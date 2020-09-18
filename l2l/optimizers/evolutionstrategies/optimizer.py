@@ -128,7 +128,7 @@ class EvolutionStrategiesOptimizer(Optimizer):
         noise_std_shape = np.array(parameters.noise_std).shape
         assert noise_std_shape == () or noise_std_shape == self.current_individual_arr.shape
 
-        traj.f_add_derived_parameter(
+        traj.f_add_parameter(
             'dimension',
             self.current_individual_arr.shape,
             comment='The dimension of the parameter space of the optimizee')
@@ -189,7 +189,7 @@ class EvolutionStrategiesOptimizer(Optimizer):
             # We need to convert the current run index into an ind_idx
             # (index of individual within one generation)
             traj.v_idx = run_index
-            ind_index = traj.par.ind_idx
+            ind_index = traj.parameters.ind_idx
 
             traj.f_add_result('$set.$.individual', self.eval_pop[ind_index])
             traj.f_add_result('$set.$.fitness', fitness)

@@ -38,10 +38,10 @@ class Environment:
         :return: the results of running a whole generation. Dictionary indexed by generation id.
         """
         result = {}
-        for it in range(self.trajectory.par['n_iteration']):
+        for it in range(self.trajectory.parameters['n_iteration']):
             if self.multiprocessing:
                 # Multiprocessing is done through JUBE, either with or without scheduler
-                logging.info("Environment run starting JUBERunner for n iterations: " + str(self.trajectory.par['n_iteration']))
+                logging.info("Environment run starting JUBERunner for n iterations: " + str(self.trajectory.parameters['n_iteration']))
                 jube = JUBERunner(self.trajectory)
                 result[it] = []
                 # Initialize new JUBE run and execute it
@@ -67,7 +67,7 @@ class Environment:
                         logger.exception("Error during serial execution of individuals")
                     raise
             # Add results to the trajectory
-            self.trajectory.results.f_add_result_to_group("all_results", it, result[it])
+            self.trajectory.results.f_add_result(it, result[it])
             self.trajectory.current_results = result[it]
             # Perform the postprocessing step in order to generate the new parameter set
             self.postprocessing(self.trajectory, result[it])

@@ -210,7 +210,7 @@ class NaturalEvolutionStrategiesOptimizer(Optimizer):
             # We need to convert the current run index into an ind_idx
             # (index of individual within one generation)
             traj.v_idx = run_index
-            ind_index = traj.par.ind_idx
+            ind_index = traj.parameters.ind_idx
 
             traj.f_add_result('$set.$.individual', self.eval_pop[ind_index])
             traj.f_add_result('$set.$.fitness', fitness)

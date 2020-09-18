@@ -1,10 +1,10 @@
 import unittest
 
-from l2l.tests.test_optimizer import OptimizerTestCase
+from l2l.tests.test_optimizer import TestCaseOptimizer
 from l2l.optimizers.evolution import GeneticAlgorithmOptimizer, GeneticAlgorithmParameters
 
 
-class GAOptimizerTestCase(OptimizerTestCase):
+class GAOptimizerTestCase(TestCaseOptimizer):
 
     def test_setup(self):
 

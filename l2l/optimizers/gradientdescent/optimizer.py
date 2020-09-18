@@ -119,7 +119,7 @@ class GradientDescentOptimizer(Optimizer):
         traj.f_add_parameter('seed', np.uint32(parameters.seed), comment='Optimizer random seed')
         
         _, self.optimizee_individual_dict_spec = dict_to_list(self.optimizee_create_individual(), get_dict_spec=True)
-        self.random_state = np.random.RandomState(seed=traj.par.seed)
+        self.random_state = np.random.RandomState(seed=traj.parameters.seed)
 
         # Note that this array stores individuals as an np.array of floats as opposed to Individual-Dicts
         # This is because this array is used within the context of the gradient descent algorithm and
@@ -185,7 +185,7 @@ class GradientDescentOptimizer(Optimizer):
             # We need to convert the current run index into an ind_idx
             # (index of individual within one generation
             traj.v_idx = run_index
-            ind_index = traj.par.ind_idx
+            ind_index = traj.parameters.ind_idx
         
             individual = old_eval_pop[ind_index]
 

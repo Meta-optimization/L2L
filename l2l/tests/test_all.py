@@ -1,30 +1,27 @@
 import unittest
 
-
-from . import test_ce_optimizer
-from . import test_ga_optimizer
-from . import test_sa_optimizer
-from . import test_gd_optimizer
-from . import test_innerloop
-from . import test_outerloop
-from . import test_setup
-
-
-def suite():
-
-    suite = unittest.TestSuite()
-    suite.addTest(test_setup.suite())
-    suite.addTest(test_outerloop.suite())
-    suite.addTest(test_innerloop.suite())
-    suite.addTest(test_ce_optimizer.suite())
-    suite.addTest(test_sa_optimizer.suite())
-    suite.addTest(test_gd_optimizer.suite())
-    suite.addTest(test_ga_optimizer.suite())
-
-    return suite
+import l2l.tests.test_ga_optimizer as test_ga_optimizer
+import l2l.tests.test_sa_optimizer as test_sa_optimizer
+import l2l.tests.test_gd_optimizer as test_gd_optimizer
+import l2l.tests.test_gs_optimizer as test_gs_optimizer
+import l2l.tests.test_pt_optimizer as test_pt_optimizer
+import l2l.tests.test_face_optimizer as test_face_optimizer
+import l2l.tests.test_es_optimizer as test_es_optimizer
+import l2l.tests.test_setup as test_setup
 
 
-if __name__ == "__main__":
+suite  = unittest.TestSuite()
+loader = unittest.TestLoader()
 
-    runner = unittest.TextTestRunner(verbosity=2)
-    runner.run(suite())
+suite.addTests(test_setup.suite())
+suite.addTests(test_es_optimizer.suite())
+suite.addTests(test_sa_optimizer.suite())
+suite.addTests(test_gd_optimizer.suite())
+suite.addTests(test_ga_optimizer.suite())
+suite.addTests(test_gs_optimizer.suite())
+suite.addTests(test_face_optimizer.suite())
+suite.addTests(test_pt_optimizer.suite())
+suite.addTests(test_es_optimizer.suite())
+
+runner = unittest.TextTestRunner(verbosity=3)
+result = runner.run(suite)

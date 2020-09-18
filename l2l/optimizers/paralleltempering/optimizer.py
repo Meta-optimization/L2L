@@ -307,7 +307,7 @@ class ParallelTemperingOptimizer(Optimizer):
             # We need to convert the current run index into an ind_idx
             # (index of individual within one generation)
             traj.v_idx = run_index
-            ind_index = traj.par.ind_idx
+            ind_index = traj.parameters.ind_idx
             individual = old_eval_pop[ind_index]
 
             # Accept or reject the new solution

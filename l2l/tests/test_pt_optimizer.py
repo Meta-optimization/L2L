@@ -1,12 +1,12 @@
 import unittest
 
-from l2l.tests.test_optimizer import OptimizerTestCase
+from l2l.tests.test_optimizer import TestCaseOptimizer
 import numpy as np
 from l2l.optimizers.paralleltempering.optimizer import AvailableCoolingSchedules
 from l2l.optimizers.paralleltempering.optimizer import ParallelTemperingParameters, ParallelTemperingOptimizer
 
 
-class PTOptimizerTestCase(OptimizerTestCase):
+class PTOptimizerTestCase(TestCaseOptimizer):
 
     def test_sa(self):
         cooling_schedules = [AvailableCoolingSchedules.EXPONENTIAL_ADDAPTIVE,

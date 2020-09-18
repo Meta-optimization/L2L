@@ -7,7 +7,7 @@ from l2l.optimizees.functions.optimizee import FunctionGeneratorOptimizee
 from collections import namedtuple
 
 
-class OptimizerTestCase(unittest.TestCase):
+class TestCaseOptimizer(unittest.TestCase):
 
     def setUp(self):
         # Test function
@@ -23,3 +23,16 @@ class OptimizerTestCase(unittest.TestCase):
                                                                               jube_parameter=jube_params)
         self.optimizee_parameters = namedtuple('OptimizeeParameters', [])
         self.optimizee = FunctionGeneratorOptimizee(self.trajectory,benchmark_function, seed=1)
+
+def suite():
+    suite = unittest.makeSuite(TestCaseOptimizer, 'test')
+    return suite
+
+
+def run():
+    runner = unittest.TextTestRunner(verbosity=2)
+    runner.run(suite())
+
+
+if __name__ == "__main__":
+    run()

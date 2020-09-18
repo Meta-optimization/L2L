@@ -11,16 +11,11 @@ from l2l.optimizees.functions.optimizee import FunctionGeneratorOptimizee
 import os
 
 
-class SetupTestCase(unittest.TestCase):
+class TestCaseSetup(unittest.TestCase):
 
     def setUp(self):
         self.name = "test_trajectory"
-        try:
-            with open('../../bin/path.conf') as f:
-                root_dir_path = f.read().strip()
-        except FileNotFoundError:
-            self.fail("L2L is not well configured. Missing path file.")
-        self.paths = Paths(self.name, dict(run_num='test'), root_dir_path=root_dir_path, suffix="-" + self.name)
+        self.paths = Paths(self.name, dict(run_num='test'), root_dir_path=".", suffix="-" + self.name)
 
     def test_paths(self):
         self.assertIsNotNone(self.paths)
@@ -105,7 +100,7 @@ class SetupTestCase(unittest.TestCase):
 
 
 def suite():
-    suite = unittest.makeSuite(SetupTestCase, 'test')
+    suite = unittest.makeSuite(TestCaseSetup, 'test')
     return suite
 
 

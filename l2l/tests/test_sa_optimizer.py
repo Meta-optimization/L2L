@@ -1,11 +1,11 @@
 import unittest
 
-from l2l.tests.test_optimizer import OptimizerTestCase
+from l2l.tests.test_optimizer import TestCaseOptimizer
 import numpy as np
 from l2l.optimizers.simulatedannealing.optimizer import SimulatedAnnealingParameters, SimulatedAnnealingOptimizer, AvailableCoolingSchedules
 
 
-class SAOptimizerTestCase(OptimizerTestCase):
+class SAOptimizerTestCase(TestCaseOptimizer):
 
     def test_sa(self):
         optimizer_parameters = SimulatedAnnealingParameters(n_parallel_runs=1, noisy_step=.03, temp_decay=.99, n_iteration=1,

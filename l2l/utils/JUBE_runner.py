@@ -24,7 +24,7 @@ class JUBERunner():
         """
         self.trajectory = trajectory
         self.done = False
-        if 'JUBE_params' not in self.trajectory.par.keys():
+        if 'JUBE_params' not in self.trajectory.parameters.keys():
             raise KeyError("The trajectory must contain the parameter group JUBE_params")
         args = self.trajectory.parameters["JUBE_params"].params
 

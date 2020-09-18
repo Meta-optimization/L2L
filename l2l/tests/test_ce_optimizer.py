@@ -1,11 +1,12 @@
 import unittest
 
 import numpy as np
-from l2l.tests.test_optimizer import OptimizerTestCase
+from l2l.tests.test_optimizer import TestCaseOptimizer
 from l2l.optimizers.crossentropy.distribution import NoisyGaussian
 from l2l.optimizers.crossentropy import CrossEntropyOptimizer, CrossEntropyParameters
 
-class CEOptimizerTestCase(OptimizerTestCase):
+
+class CEOptimizerTestCase(TestCaseOptimizer):
 
     def test_setup(self):
 

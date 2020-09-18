@@ -16,19 +16,14 @@ class Trajectory:
     def __init__(self, **keyword_args):
         """
         Initializes the trajectory. Some parameters are kept to match the interface with the pypet trajectory.
-        TODO: remove all irrelevant attributes and simplify the class
         """
         if 'name' in keyword_args:
             self._name = keyword_args['name']
         self._timestamp = time.time()
-        self._parameters = ParameterDict(self)  # Contains all parameters
-        self._results = {}  # Contains all results
-        self.individual = Individual()
+        self.parameters = ParameterDict(self)  # Contains all parameters
         self.results = ResultGroup()
-        self.results.f_add_result_group('all_results', "Contains all the results")
         self.current_results = {}
-        self._parameters.parameter_group = {}
-        self._parameters.parameter = {}
+        self.individual = Individual()
         self.individuals = {}
         self.v_idx = 0
 
@@ -38,7 +33,7 @@ class Trajectory:
         :param name: name of the new parameter group
         :param comment: ignored for the moment. Kept to match pypet interface.
         """
-        self._parameters[name] = ParameterGroup()
+        self.parameters[name] = ParameterGroup()
         logging.info("Added new parameter group: " + name)
 
     def f_add_parameter_to_group(self, group_name, key, val):
@@ -51,8 +46,8 @@ class Trajectory:
 
         Throws an exception if the group does not exist
         """
-        if group_name in self._parameters.keys():
-            self._parameters[group_name].f_add_parameter(key, val)
+        if group_name in self.parameters.keys():
+            self.parameters[group_name].f_add_parameter(key, val)
         else:
             # LOG("Key not found when adding to result group")
             raise Exception("Group name not found when adding value to result group")
@@ -62,12 +57,8 @@ class Trajectory:
         Adds a result to the trajectory
         :param key: it identifies either a generation params result group or another result
         :param val: The value to be added to the results
-        TODO: verify where is the generation_params call performed
         """
-        if key == 'generation_params':
-            self.results[key] = ResultGroup()
-        else:
-            self._results[key] = val
+        self.results[key] = val
 
     def f_add_parameter(self, key, val, comment=""):
         """
@@ -76,16 +67,7 @@ class Trajectory:
         :param val: Value of the parameter
         :param comment
         """
-        self._parameters[key] = val
-
-    def f_add_derived_parameter(self, key, val, comment=""):
-        """
-        Adds a derived parameter to the trajectory. Match the previous pypet interface.
-        :param key: Name of the parameter
-        :param val: Value of the parameter
-        :param comment:
-        """
-        self.f_add_parameter(key,val,comment)
+        self.parameters[key] = val
 
     def f_expand(self, build_dict, fail_safe=True):
         """
@@ -117,7 +99,7 @@ class Trajectory:
         logging.info("Expanded trajectory for generation: " + str(generation))
 
     def __str__(self):
-        return str(self._parameters)
+        return str(self.parameters)
 
     def __getattr__(self, attr):
         """
@@ -128,20 +110,19 @@ class Trajectory:
         if '.' in attr:
             # This is triggered exclusively in the case where __getattr__ is called from __getitem__
             attrs = attr.split('.')
-            ret = self._parameters.get(attrs[0])
+            ret = self.parameters.get(attrs[0])
             for at in attrs[1:]:
                 ret = ret[at]
-        elif attr == 'par' or attr == 'parameters':
-            ret = self._parameters
+        elif attr == 'parameters':
+            ret = self.parameters
         else:
-            ret = self._parameters.get(attr,default_value=None)
+            ret = self.parameters.get(attr,default_value=None)
         return ret
 
     def __getitem__(self, key):
         return self.__getattr__(key)
 
     def __getstate__(self):
-        # print(self.__dict__)
         return self.__dict__
 
     def __setstate__(self, d):

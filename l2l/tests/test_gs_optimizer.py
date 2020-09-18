@@ -1,13 +1,13 @@
 import unittest
 
-from l2l.tests.test_optimizer import OptimizerTestCase
+from l2l.tests.test_optimizer import TestCaseOptimizer
 
 from l2l.optimizers.gridsearch import GridSearchOptimizer, GridSearchParameters
 
 from l2l import list_to_dict
 
 
-class GSOptimizerTestCase(OptimizerTestCase):
+class GSOptimizerTestCase(TestCaseOptimizer):
 
     def test_gd(self):
         n_grid_divs_per_axis = 2

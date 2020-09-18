@@ -1,10 +1,11 @@
 import unittest
 
 import numpy as np
-from l2l.tests.test_optimizer import OptimizerTestCase
+from l2l.tests.test_optimizer import TestCaseOptimizer
 from l2l.optimizers.evolutionstrategies import EvolutionStrategiesParameters, EvolutionStrategiesOptimizer
 
-class ESOptimizerTestCase(OptimizerTestCase):
+
+class TestCaseESOptimizer(TestCaseOptimizer):
 
     def test_setup(self):
 
@@ -41,7 +42,7 @@ class ESOptimizerTestCase(OptimizerTestCase):
 
 
 def suite():
-    suite = unittest.makeSuite(CEOptimizerTestCase, 'test')
+    suite = unittest.makeSuite(TestCaseESOptimizer, 'test')
     return suite
 
 

@@ -64,3 +64,15 @@ And open the documentation with
    firefox _build/html/index.html
 
 All further (and extensive) documentation is in the html documentation!
+
+
+Invoking the tests
+******************
+
+To run the tests go to the folder `l2l/tests` and execute: 
+
+    python test_all.py
+    
+If the package nosetests is installed run on the top folder (L2L):
+
+     nosetests -v --with-coverage --cover-package=l2l/

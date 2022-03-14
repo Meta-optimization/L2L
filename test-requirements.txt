@@ -1,1 +1,15 @@
+# Packages for runtime
+numpy
+scipy
+pyyaml
+sphinx
+sphinxjp.themes.basicstrap
+sklearn
+jinja2
+gitpython
+scikit-learn
+flake8
+deap
+git+https://github.com/Meta-optimization/JUBE-L2L@master
+# For testing
 nose2[coverage_plugin]>=0.6.5

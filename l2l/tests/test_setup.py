@@ -12,7 +12,8 @@ import os
 class SetupTestCase(unittest.TestCase):
 
     def setUp(self):
-        self.root_dir_path = '$HOME/results'
+        home_path =  os.environ.get("HOME")
+        self.root_dir_path = os.path.join(home_path, 'results')
         self.experiment = Experiment(root_dir_path=self.root_dir_path)
         jube_params = {}
         try:
@@ -42,7 +43,7 @@ class SetupTestCase(unittest.TestCase):
         self.assertEqual("value1", self.trajectory.Test_params.params["param1"])
 
     def test_juberunner_setup(self):
-        self.experiment = Experiment(root_dir_path='../../results')
+        self.experiment = Experiment(root_dir_path=self.root_dir_path)
         self.trajectory, _ = self.experiment.prepare_experiment(
             name='test_trajectory',
             trajectory='test_trajectory',

@@ -29,7 +29,7 @@ def test_suite():
 if __name__ == "__main__":
 
     runner = unittest.TextTestRunner(verbosity=2)
-    root_dir_path = '../../results'
+    root_dir_path = '$HOME/results'
     runner.run(test_suite())
     if os.path.exists(root_dir_path):
         shutil.rmtree(root_dir_path)

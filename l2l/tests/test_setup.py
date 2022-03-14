@@ -12,7 +12,7 @@ import os
 class SetupTestCase(unittest.TestCase):
 
     def setUp(self):
-        self.root_dir_path = '../../results'
+        self.root_dir_path = '$HOME/results'
         self.experiment = Experiment(root_dir_path=self.root_dir_path)
         jube_params = {}
         try:

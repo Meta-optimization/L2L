@@ -22,7 +22,7 @@ def get_requirements(filename):
 
 requirements, dependency_links = get_requirements('requirements.txt')
 setup(
-    name="Learning to Learn",
+    name="L2L",
     version=FULL_VERSION,
     packages=find_packages("."),
     author="Anand Subramoney, Arjun Rao",

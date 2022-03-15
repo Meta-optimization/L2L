@@ -9,4 +9,4 @@ gitpython
 scikit-learn
 flake8
 deap
-git+https://github.com/Meta-optimization/JUBE-L2L@master
+JUBE @ git+https://github.com/Meta-optimization/JUBE-L2L@master

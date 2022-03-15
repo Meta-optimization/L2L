@@ -7,6 +7,7 @@ from l2l.tests import test_ce_optimizer
 from l2l.tests import test_ga_optimizer
 from l2l.tests import test_sa_optimizer
 from l2l.tests import test_gd_optimizer
+from l2l.tests import test_gs_optimizer
 from l2l.tests import test_innerloop
 from l2l.tests import test_outerloop
 from l2l.tests import test_setup
@@ -22,6 +23,7 @@ def test_suite():
     suite.addTest(test_sa_optimizer.suite())
     suite.addTest(test_gd_optimizer.suite())
     suite.addTest(test_ga_optimizer.suite())
+    suite.addTest(test_gs_optimizer.suite())
 
     return suite
 
@@ -33,4 +35,5 @@ if __name__ == "__main__":
     root_dir_path = os.path.join(home_path, 'results')
     runner.run(test_suite())
     if os.path.exists(root_dir_path):
+        print(f'removing {root_dir_path}')
         shutil.rmtree(root_dir_path)

@@ -3,6 +3,7 @@ import os.path
 import pickle
 import time
 import logging
+import subprocess
 
 logger = logging.getLogger("JUBERunner")
 
@@ -61,6 +62,7 @@ class JUBERunner():
             os.makedirs(self.work_paths[dir], exist_ok=True)
 
         self.zeepath = os.path.join(self.path, "optimizee.bin")
+        self.debug_stderr = True
 
 
     def write_pop_for_jube(self, trajectory, generation):
@@ -242,6 +244,13 @@ class JUBERunner():
         for f in files:
             if not os.path.isfile(f):  # self.scheduler_config['ready_file']
                 done = False
+        if self.debug_stderr:
+            print(os.path.join(self.path,"work/*/stderr"))
+            f = subprocess.Popen(['tail ' + os.path.join(self.path,"work/*/stderr")], shell=True,\
+                stdout=subprocess.PIPE)
+            line = f.stdout.readlines()
+            for l in line:
+                print(l.decode('UTF-8'))
         return done
 
     def prepare_run_file(self, path_ready):

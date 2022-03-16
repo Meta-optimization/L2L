@@ -20,7 +20,10 @@ def main():
                    "cpu_pp": "1"}
     traj, all_jube_params = experiment.prepare_experiment(name='L2L',
                                                           log_stdout=True,
-                                                          jube_parameter=jube_params)
+                                                          jube_parameter=jube_params,
+                                                          # To enable stderror output
+                                                          # from the optimizee set debug True
+                                                          debug=False)
 
     ## Innerloop simulator
     # TODO when using the template: Change the optimizee to the appropriate

@@ -62,7 +62,7 @@ class JUBERunner():
             os.makedirs(self.work_paths[dir], exist_ok=True)
 
         self.zeepath = os.path.join(self.path, "optimizee.bin")
-        self.debug_stderr = False
+        self.debug_stderr = self.trajectory.debug
 
 
     def write_pop_for_jube(self, trajectory, generation):

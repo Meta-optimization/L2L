@@ -36,6 +36,8 @@ class Experiment(object):
             - jube_parameter: dict, User specified parameter for jube.
                 See notes section for default jube parameter
             - multiprocessing, bool, enable multiprocessing, Default: False
+            - debug, bool, enable verbose mode to print out errors appearing
+                in the optimizee, Default: False
         :return traj, trajectory object
         :return all_jube_params, dict, a dictionary with all parameters for jube
             given by the user and default ones
@@ -84,7 +86,8 @@ class Experiment(object):
             add_time=True,
             automatic_storing=True,
             log_stdout=kwargs.get('log_stdout', False),  # Sends stdout to logs
-            multiprocessing=kwargs.get('multiprocessing', True)
+            multiprocessing=kwargs.get('multiprocessing', True),
+            debug = kwargs.get('debug', False)
         )
 
         create_shared_logger_data(

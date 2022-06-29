@@ -1,6 +1,5 @@
 import argparse
 import json
-from mpi4py import MPI
 import nest
 import numpy as np
 import os
@@ -114,9 +113,10 @@ class Reservoir:
                     conns.append(synapse_collection)
                     assert len(synapse_collection.target) == len(synapse_collection.source)
                     length_conns += len(synapse_collection.source)
-            if os.path.isfile(os.path.join(path, f"{p}_connections.csv")):
-                os.remove(os.path.join(path, f"{p}_connections.csv"))
-            self.save_connections(conns, path=path, typ=p)
+            # check if file already exists and if not save
+            if not os.path.isfile(os.path.join(path, f"{p}_connections.csv")):
+                # os.remove(os.path.join(path, f"{p}_connections.csv"))
+                self.save_connections(conns, path=path, typ=p)
             d[p] = length_conns
         return d["eeo"], d["eio"], d["ieo"], d["iio"]
 
@@ -695,6 +695,8 @@ class Reservoir:
                 source=self.nodes_e,
                 target=self.nodes_out_e,
                 test=test,
+                sim_idx=sim_idx,
+                ind_idx=ind_idx
             )
             self.replace_weights(
                 path=path,
@@ -702,6 +704,8 @@ class Reservoir:
                 source=self.nodes_e,
                 target=self.nodes_out_i,
                 test=test,
+                sim_idx=sim_idx,
+                ind_idx=ind_idx
             )
             self.replace_weights(
                 path=path,
@@ -709,6 +713,8 @@ class Reservoir:
                 source=self.nodes_i,
                 target=self.nodes_out_e,
                 test=test,
+                sim_idx=sim_idx,
+                ind_idx=ind_idx
             )
             self.replace_weights(
                 path=path,
@@ -716,6 +722,8 @@ class Reservoir:
                 source=self.nodes_i,
                 target=self.nodes_out_i,
                 test=test,
+                sim_idx=sim_idx,
+                ind_idx=ind_idx
             )
         # Warm up simulation
         print("Starting simulation")
@@ -755,22 +763,26 @@ class Reservoir:
                         record_out=True,
                         path=path,
                     )
+                    if len(targets) - 1 == idx: 
+                        print("Mean out e ", self.mean_ca_out_e)
+                        print("Mean e ", self.mean_ca_e)
+                        print('Input spikes ', len(nest.GetStatus(self.input_spike_detector, keys='events')[0]['times']))
+                        print('Bulk spikes', len(nest.GetStatus(self.bulks_detector_ex, keys='events')[0]['times']))
+                        for n in range(self.n_output_clusters):
+                            print('Out spikes', len(nest.GetStatus(self.out_detector_e, keys='events')[n]['times']))
                     self.clear_spiking_events()
                 else:
                     self.record_ca(record_out=True)
                 # self.record_connectivity()
             print("Simulation loop {} finished successfully".format(idx))
-            print("Mean out e ", self.mean_ca_out_e)
-            print("Mean e ", self.mean_ca_e)
-            print('Input spikes ', len(nest.GetStatus(self.input_spike_detector, keys='events')[0]['times']))
-            print('Bulk spikes', len(nest.GetStatus(self.bulks_detector_ex, keys='events')[0]['times']))
-            for n in range(self.n_output_clusters):
-                print('Out spikes', len(nest.GetStatus(self.out_detector_e, keys='events')[n]['times']))
             model_outs.append(self.mean_ca_out_e.copy())
             # clear lists
             self.clear_records()
         # write model_outs
-        np.save(os.path.join(path, f"{ind_idx}_{sim_idx}_model_out.npy"), model_outs)
+        model_path = os.path.join(path, f"{ind_idx}_{sim_idx}_model_out.npy")
+        if os.path.isfile(model_path):
+            os.remove(model_path)
+        np.save(model_path, model_outs)
         return model_outs
 
     @staticmethod
@@ -948,6 +960,8 @@ if __name__ == "__main__":
                         help="Simulates the network, should run after the creation",)
     parser.add_argument("-p", "--path", type=str, help="Path to csv files")
     parser.add_argument("-i", "--index", type=str, help="Index of the run")
+    parser.add_argument("-si", "--simulation_index", type=str,
+                        help="The simulation index to indentify the rank")
     parser.add_argument('-g', '--generation', type=str, help='Generation index')
     parser.add_argument("-rfr", "--record_spiking_firingrate", default=True, type=bool)
     parser.add_argument("-t", "--test", action="store_true",
@@ -955,16 +969,15 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     # set the random seed
-    np.random.seed(int(args.generation))
+    np.random.seed(int(args.generation))  
+    simulation_index = int(args.simulation_index)
     if args.create:
-        size_eeo, size_eio, size_ieo, size_iio = reservoir.connect_network(args.path)
+        if simulation_index == 0:
+            size_eeo, size_eio, size_ieo, size_iio = reservoir.connect_network(args.path)
 
     elif args.simulate:
         csv_path = args.path
         # overall index, something like 12 for generation-individual
-        comm = MPI.COMM_WORLD
-        # index of the actual simulation is obtained from the mpi rank
-        simulation_index = comm.Get_rank()
         individual_id = int(args.index)
         generation_id = int(args.generation)
         data = np.load(os.path.join(csv_path, f"{generation_id}_dataset.npy"),
@@ -978,7 +991,7 @@ if __name__ == "__main__":
             targets=labels,
             gen_idx=generation_id,
             ind_idx=individual_id,
-            sim_indx=simulation_index,
+            sim_idx=simulation_index,
             test=False,
         )
     elif args.test:

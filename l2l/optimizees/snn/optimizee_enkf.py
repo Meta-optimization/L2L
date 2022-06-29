@@ -14,12 +14,13 @@ import pathlib
 import pandas as pd
 import subprocess
 import time
-import datetime
+
 
 # TODO:
 '''
 - weights are saved as `{individual_index}_{simulation_index}_weights_{type}.csv`
 - the key in the dictionary is `{individual_index}_{simulation_index}_weights_{type}`
+- model outs are saved as `{individual_index}_{simulation_index}_model_out.npy`
 - if the reservoir conn structure changes the conn dictionary needs to be adapted
 - save weights and cov mat
 - save train set and train labels
@@ -135,20 +136,21 @@ class EnKFOptimizee(Optimizee):
         # batch file
         self.batchfile = 'batchfile.sh'
         self.types = ['eeo', 'eio', 'ieo', 'iio']
+        self.test_gen = 10  # generation number for testing
+        self.iterations = 10  # number of iterations the inner loop will take
+        self.iteration_idx = 0
 
         # Hyper-parameters
-        self.gamma = 0.
+        # place holder values, will be overwritten in create_individual
+        self.max_ens_size = 30
+        self.max_gamma = 1.0
+        self.max_reps = 10
+        self.gamma = 0.01
         self.ensemble_size = int(self.parameters.ensemble_size)
-        self.repetitions = 0
+        self.repetitions = 3
 
-        # results to save pro certain generation for further analysis
-        self.results_to_save = {
-            "weights": [],
-            "cov_mat": [],
-            "fitness": []
-        }
 
-    def get_mnist_data(self, mnist_path='./mnist784_dat/'):
+    def get_mnist_data(self, mnist_path='/p/project/haf/users/yegenoglu/L2L/bin/mnist784_dat/'):
         self.train_set, self.train_labels, self.test_set, self.test_labels = \
             fetch(path=mnist_path, labels=self.target_label)
         self.other_set, self.other_labels, self.test_set_other, self.test_labels_other = \
@@ -273,8 +275,8 @@ class EnKFOptimizee(Optimizee):
                 ind = best_individuals[rnd_indx]
                 # add gaussian noise
                 noise = self.rng.normal(loc=kwargs['loc'],
-                                                 scale=kwargs['scale'],
-                                                 size=len(ind))
+                                        scale=kwargs['scale'],
+                                        size=len(ind))
                 worst_individuals[wi] = ind + noise
                 model_output[wi] = sorted_model_output[rnd_indx]
             elif pick_method == 'best_first':
@@ -317,25 +319,32 @@ class EnKFOptimizee(Optimizee):
     def create_batchfile(self, csv_path):
         with open(os.path.join(csv_path, self.batchfile), 'w') as f:
             reservoir_path = os.path.join(str(self.fp), 'reservoir_nest3.py')
+            account = 'icei-hbp-2022-0007'
+            tasks_node = 30
+            cpu_task = 4
             print(f"Reservoir path: {reservoir_path}")
-            batch = "#!/bin/bash -x \n" \
+            batch = "#!/bin/bash \n" \
                     "#SBATCH --nodes=1 \n" \
-                    "#SBATCH --ntasks-per-node=128\n" \
-                    "#SBATCH --cpus-per-task=8 \n" \
+                    f"#SBATCH --ntasks-per-node={tasks_node} \n" \
+                    f"#SBATCH --cpus-per-task={cpu_task} \n" \
                     "#SBATCH --time=01:00:00 \n" \
                     "#SBATCH --partition=batch \n" \
-                    "#SBATCH --account=haf \n" \
+                    f"#SBATCH --account={account} \n" \
                     "#SBATCH --gres=gpu:0 \n" \
                     "export OMP_NUM_THREADS=${SLURM_CPUS_PER_TASK} \n" \
-                    f"srun -n $1 -c $2 python {reservoir_path} $3 $4 $5 $6"
+                    "for ((x=0; x<$1; x++)) \n" \
+                    "do \n" \
+                    f"  srun -n 1 -c $2 python {reservoir_path} $3 $4 $5 $6 -si $x &\n" \
+                    "done \n" \
+                    "wait"
             f.write(batch)
 
     def create_ensembles(self):
         # check first if the connections exists and delete
         for t in self.types:
             conn = os.path.join(self.parameters.path, f'{t}_connections.csv')
-            if os.path.isfile(conn):
-                os.remove(conn)
+            # if os.path.isfile(conn):
+            #     os.remove(conn)
         # connect network
         self.execute_subprocess(self.parameters.path, simulation='--create')
         while True:
@@ -356,22 +365,24 @@ class EnKFOptimizee(Optimizee):
         for i in range(self.ensemble_size):
             self.dict_weights[
                 f'{self.ind_idx}_{i}_weights_eeo'] = np.random.normal(mu, sigma,
-                                                                     size_eeo)
+                                                                      size_eeo)
             self.dict_weights[
                 f'{self.ind_idx}_{i}_weights_eio'] = np.random.normal(mu, sigma,
-                                                                     size_eio)
+                                                                      size_eio)
             self.dict_weights[
                 f'{self.ind_idx}_{i}_weights_ieo'] = np.random.normal(-mu,
-                                                                     sigma,
-                                                                     size_ieo)
+                                                                      sigma,
+                                                                      size_ieo)
             self.dict_weights[
                 f'{self.ind_idx}_{i}_weights_iio'] = np.random.normal(-mu,
-                                                                     sigma,
-                                                                     size_iio)
+                                                                      sigma,
+                                                                      size_iio)
             # finally, save weights
-            self.save_weights(self.parameters.path, i)
+            self.save_weights(self.parameters.path, i,
+                              iteration_idx=self.iteration_idx,
+                              generation_idx=self.gen_idx)
 
-    def execute_subprocess(self, csv_path, index='00', simulation='--create'):
+    def execute_subprocess(self, csv_path, index='0', simulation='--create'):
         threads = int(self.config['threads'])
         batchfile_path = os.path.join(self.parameters.path, self.batchfile)
         print(f"Batch file path: {batchfile_path}")
@@ -396,26 +407,39 @@ class EnKFOptimizee(Optimizee):
                 f'--generation={self.gen_idx}',
                 f'--path={csv_path}',
                 f'--record_spiking_firingrate={self.parameters.record_spiking_firingrate}',
-            ],
-                check=True)
+            ], 
+                                 check=True)
         sub.check_returncode()
 
     def create_individual(self):
-        return {'gamma': np.abs(self.rng.normal(0., 0.5)),
-                # 'ensemble_size': self.rng.integers(10, 32),
-                'ensemble_size': int(self.ensemble_size),
-                'repetitions': self.rng.integers(1, 2),
+        # normalize hyper-parameters before optimization 
+        gamma = np.abs(self.rng.normal(0., 0.5))
+        gamma = self.min_max_normalize(gamma, 0.009, self.max_gamma)
+        ensemble_size = self.rng.integers(10, self.max_ens_size)
+        ensemble_size = self.min_max_normalize(ensemble_size, 9, self.max_ens_size)
+        repetitions = self.rng.integers(1, self.max_reps)
+        repetitions = self.min_max_normalize(repetitions, 1, self.max_reps)
+        print(f'Parameters in create individual ens {ensemble_size} reps {repetitions} gamma {gamma}')
+        return {'gamma': gamma,
+                'ensemble_size': ensemble_size,
+                'repetitions': repetitions,
                 # TODO sampling values
                 }
 
     def bounding_func(self, individual):
-        self.gamma = np.clip(individual['gamma'], 0.01, 1.)
-        self.ensemble_size = np.clip(individual['ensemble_size'], 10, 50).astype(int)
-        self.repetitions = np.clip(individual['repetitions'], 1, 1).astype(int)
+        print(f"In bounding before clipping, ensemble: {individual['ensemble_size']}, "
+              f"repetitions: {individual['repetitions']}, gamma: {individual['gamma']}")
+        self.ensemble_size = np.clip(individual['ensemble_size'], 1e-4, 1.0)
+        self.repetitions = np.clip(individual['repetitions'], 1e-4, 1.0)
+        self.gamma = np.clip(individual['gamma'], 1e-4, 1.0)
+        # self.gamma = self.min_max_normalize(self.gamma, 0.009, 0.9999)
+        # self.ensemble_size = self.min_max_normalize(self.ensemble_size, 9, 30)
+        # self.repetitions = self.min_max_normalize(self.repetitions, 1, 10)
         individual = {'gamma': self.gamma,
                       'ensemble_size': self.ensemble_size,
                       'repetitions': self.repetitions,
                       }
+        print(f'In bounding, ensemble: {self.ensemble_size}, repetitions: {self.repetitions}, gamma: {self.gamma}')
         return individual
 
     def simulate(self, traj):
@@ -423,142 +447,164 @@ class EnKFOptimizee(Optimizee):
         self.gen_idx = traj.individual.generation
         self.ind_idx = traj.individual.ind_idx
         self.gamma = traj.individual.gamma
-        self.repetitions = int(traj.individual.repetitions)
-        self.ensemble_size = int(traj.individual.ensemble_size)
+        self.ensemble_size = traj.individual.ensemble_size
+        self.repetitions = traj.individual.repetitions
+        if self.gen_idx >= 0: 
+            print(f'Parameters before re-normalization ens {self.ensemble_size} reps {self.repetitions} gamma {self.gamma}')
+            # re-normalize the normalized parameters
+            # ensembles
+            self.ensemble_size = self.min_max_normalize(self.ensemble_size, min_val=9,
+                                                        max_val=self.max_ens_size,
+                                                        renormalize=True)
+            # repetitions
+            self.repetitions = self.min_max_normalize(self.repetitions, min_val=1,
+                                                      max_val=self.max_reps,
+                                                      renormalize=True)
+            # gamma
+            self.gamma = self.min_max_normalize(self.gamma, min_val=0.009,
+                                                max_val=self.max_gamma,
+                                                renormalize=True)
+            print(f'Parameters after re-normalization ens {self.ensemble_size} '
+                  f'reps {self.repetitions} gamma {self.gamma}')
+            # self.ensemble_size = np.clip(self.ensemble_size, 9, 30)
+            # self.repetitions = np.clip(self.repetitions, 1, 10)
+            # self.gamma = np.clip(self.gamma, 0.01, 1.)
+
+        # optimizer may make parameters as floats,
+        # convert them to integers
+        self.repetitions = int(self.repetitions)
+        self.ensemble_size = int(self.ensemble_size)
+        print(f'Hyperparameters in generation {self.gen_idx}, Individual {self.ind_idx}')
+        print(f'Gamma: {self.gamma}, Repetitions: {self.repetitions}, Ensemble size: {self.ensemble_size}')
         if self.gen_idx == 0:
             # create the batch file if not existent
             if not os.path.isfile(
                     os.path.join(self.parameters.path, self.batchfile)):
                 self.create_batchfile(csv_path=self.parameters.path)
             self.create_ensembles()
-        # load the latest weights
+        # load the latest weights and construct the connection dictionary
         if self.gen_idx > 0:
             for i in range(self.ensemble_size):
                 self.load_weights(csv_path=self.parameters.path,
                                   simulation_idx=i)
+                size_eeo, size_eio, size_ieo, size_iio = self.get_connections_sizes(self.parameters.path)
+                self.dict_conns['eeo'] = size_eeo
+                self.dict_conns['eio'] = size_eio
+                self.dict_conns['ieo'] = size_ieo
+                self.dict_conns['iio'] = size_iio
         # get new data
         self.get_mnist_data()
-        if self.train_labels:
-            trainset = None
-            if self.data_loader_method == 'random':
-                self.optimizee_labels, self.random_ids = self.randomize_labels(
-                    self.train_labels, size=self.parameters.n_batches)
-                trainset = [self.train_set[r] for r in self.random_ids]
-            elif self.data_loader_method == 'separated':
-                self.optimizee_data, self.optimizee_labels = self.get_separated_data(
-                    self.train_labels, self.train_set, self.target_label,
-                    shuffle=self.parameters.shuffle,
-                    n_slice=self.parameters.n_slice)
-                trainset = self.optimizee_data
-                if not self.parameters.shuffle:
-                    rand_ind = self.rng.integers(0, len(self.target_label), 1)[0]
-                    self.optimizee_labels, self.random_ids = self.randomize_labels(
-                        self.optimizee_labels[rand_ind], size=self.parameters.n_batches)
-                    trainset = [self.optimizee_data[rand_ind][r] for r in
-                                self.random_ids]
-        else:
-            raise AttributeError('Train Labels are not set, please check.')
-
-        # all individuals/simulations are getting the same batch of data
-        self.save_data_set(file_path=self.parameters.path,
-                           trainset=trainset,
-                           targets=self.optimizee_labels,
-                           generation=self.gen_idx)
 
         # Prepare for simulation
         n_output_clusters = self.config['n_output_clusters']
         fitnesses = None
+        results = None
+        # gamma needs to be an I-matrix multiplied by a scalar
+        gamma = np.eye(n_output_clusters) * self.gamma  
 
         # Training
-        if self.gen_idx % 10 != 0 or self.gen_idx == 0:
+        if self.gen_idx % self.test_gen != 0 or self.gen_idx == 0:
             enkf = EnsembleKalmanFilter(maxit=1,
-                                        online=True,
-                                        n_batches=len(self.optimizee_labels))
+                                        online=False,
+                                        n_batches=traj.n_batches
+                                        # len(self.optimizee_labels)
+                                        )
             # Show i times the batch of images
-            for i in range(self.repetitions):
-                for j in range(self.ensemble_size):
-                    model_out = os.path.join(self.parameters.path,
-                                             f'{self.ind_idx}_{j}_model_out.csv')
-                    if os.path.isfile(model_out):
-                        os.remove(model_out)
-                # save weights before simulation
-                # self.save_weights(csv_path=self.parameters.path,
-                #                   simulation_idx=j)
-                self.execute_subprocess(csv_path=self.parameters.path,
-                                        index=self.ind_idx, simulation='--simulate')
-                while True:
-                    if all([os.path.isfile(os.path.join(self.parameters.path,
-                                                        f'{self.ind_idx}_{idx}_model_out.csv'))
-                            for idx in range(self.ensemble_size)]):
-                        break
-                    else:
-                        time.sleep(3)
+            for i in range(self.iterations):
+                # get new data for every repetition
+                self.get_new_data(index=i)
+                for r in range(self.repetitions):
+                    enkf.n_batches = len(self.optimizee_labels)
+                    for j in range(self.ensemble_size):
+                        model_out = os.path.join(self.parameters.path,
+                                                 f'{self.ind_idx}_{j}_model_out.npy')
+                        # TODO: is this needed?
+                        if os.path.isfile(model_out):
+                            os.remove(model_out)
+                    # save weights before simulation
+                    # self.save_weights(csv_path=self.parameters.path,
+                    #                   simulation_idx=j)
+                    print('now execute simulate subprocess', flush=True)
+                    self.execute_subprocess(csv_path=self.parameters.path,
+                                            index=self.ind_idx, simulation='--simulate')
+                    while True:
+                        if all([os.path.isfile(os.path.join(self.parameters.path,
+                                                            f'{self.ind_idx}_{idx}_model_out.npy'))
+                                for idx in range(self.ensemble_size)]):
+                            break
+                        else:
+                            time.sleep(3)
 
-                # obtain the individual model outputs
-                model_out = [np.load(os.path.join(
-                    self.parameters.path, f'{self.ind_idx}_{idx}_model_out.csv'),
-                    allow_pickle=True)
-                    for idx in range(self.ensemble_size)]
-                # get fitness
-                fitnesses = self.get_fitness(
-                    n_output_clusters=n_output_clusters, model_outs=model_out)
+                    # obtain the individual model outputs
+                    model_out = [np.load(os.path.join(
+                        self.parameters.path, f'{self.ind_idx}_{idx}_model_out.npy'),
+                        allow_pickle=True).squeeze()
+                        for idx in range(self.ensemble_size)]
+                    # apply softmax on model outs
+                    # model outs shape: (ensemble_size x labels x n_output_clusters)
+                    model_out = softmax(model_out, -1)
+                    # get fitness
+                    fitnesses = self.get_fitness(
+                        n_output_clusters=n_output_clusters, model_outs=model_out)
 
-                # EnKF fit
-                # concatenate weights
-                weights = [np.concatenate(
-                    (self.dict_weights[f'{self.ind_idx}_{i}_weights_eeo'],
-                     self.dict_weights[f'{self.ind_idx}_{i}_weights_eio'],
-                     self.dict_weights[f'{self.ind_idx}_{i}_weights_ieo'],
-                     self.dict_weights[f'{self.ind_idx}_{i}_weights_iio']))
-                    for i in range(self.ensemble_size)]
-                ens = np.array(weights)
-                if self.parameters.scale_weights:
-                    ens = ens / np.abs(ens).max()
-                if self.parameters.sample:
-                    ens, model_outs = self.sample_from_individuals(
-                        individuals=ens,
-                        model_output=model_out,
-                        fitness=fitnesses,
-                        sampling_method=self.parameters.sampling_method,
-                        pick_method=self.parameters.pick_method,
-                        best_n=self.parameters.best_n,
-                        worst_n=self.parameters.worst_n,
-                        # / (self.g % traj.n_repeat_batch /2 + 1),
-                        **self.parameters.kwargs)
-                enkf.fit(ensemble=np.array(ens),
-                         model_output=np.array(model_out),
-                         ensemble_size=self.ensemble_size,
-                         observations=np.array(self.optimizee_labels),
-                         gamma=self.gamma)
-                results = enkf.ensemble.cpu().numpy()
-                # apply scaling
-                if self.parameters.scale_weights:
-                    results = results * np.abs(weights).max()
-                # save new results into weights dictionary
-                self.restructure_weight_dict(w=results,
-                                             csv_path=self.parameters.path,
-                                             simulation_index=i)
-            # save new weights after optimization is done
-            for i in range(self.ensemble_size):
-                self.save_weights(csv_path=self.parameters.path, simulation_idx=i)
+                    # EnKF fit
+                    # concatenate weights
+                    weights = [np.concatenate(
+                        (self.dict_weights[f'{self.ind_idx}_{i}_weights_eeo'],
+                         self.dict_weights[f'{self.ind_idx}_{i}_weights_eio'],
+                         self.dict_weights[f'{self.ind_idx}_{i}_weights_ieo'],
+                         self.dict_weights[f'{self.ind_idx}_{i}_weights_iio']))
+                        for i in range(self.ensemble_size)]
+                    ens = np.array(weights)
+                    if self.parameters.scale_weights:
+                        ens = ens / np.abs(ens).max()
+                    if self.parameters.sample:
+                        ens, model_out = self.sample_from_individuals(
+                            individuals=ens,
+                            model_output=model_out,
+                            fitness=fitnesses,
+                            pick_method=self.parameters.pick_method,
+                            best_n=self.parameters.best_n,
+                            worst_n=self.parameters.worst_n,
+                            # / (self.g % traj.n_repeat_batch /2 + 1),
+                            **self.parameters.kwargs)
+                    # reshape the model outs
+                    model_out = model_out.reshape((self.ensemble_size,
+                                                  n_output_clusters,
+                                                  len(self.optimizee_labels)))
+                    enkf.fit(ensemble=np.array(ens),
+                             model_output=model_out,
+                             ensemble_size=self.ensemble_size,
+                             observations=np.array(self.optimizee_labels),
+                             gamma=gamma)
+                    results = enkf.ensemble.cpu().numpy()
+                    # apply scaling
+                    if self.parameters.scale_weights:
+                        results = results * np.abs(weights).max()
+                    # save new results into weights dictionary
+                    for j in range(self.ensemble_size):
+                        self.restructure_weight_dict(w=results,
+                                                     simulation_index=j)
+                    # save new weights after optimization step is done
+                    for j in range(self.ensemble_size):
+                        self.save_weights(csv_path=self.parameters.path,
+                                          simulation_idx=j,
+                                          iteration_idx=self.iteration_idx,
+                                          generation_idx=self.gen_idx)
+                    self.iteration_idx = i
 
-            # store results before test
-            if self.gen_idx % 9 == 0 and self.gen_idx > 0:
-                self.results_to_save['fitness'].append(fitnesses)
-                self.results_to_save['weights'].append(enkf.cov_mat)
-                self.results_to_save['weights'].append(results)
-                dir_name = "results_"+datetime.datetime.now().strftime("%d-%m-%Y-%H-%M")
-                results_path = os.path.join(self.parameters.path, dir_name)
-                if not os.path.exists(results_path):
-                    os.mkdir(results_path)
-                np.savez_compressed(results_path,
-                                    f'{self.gen_idx}_{self.ind_idx}_results.npz')
+            # store results after repetitions
+            # if self.gen_idx % 9 == 0 and self.gen_idx > 0:
+            self.save_results(fitness=fitnesses, cov_mat=enkf.cov_mat,
+                              weights=results, test=False)
 
-        # Testing
-        elif self.gen_idx % 10 == 0 and self.gen_idx > 0:
+        # Testing 
+        elif self.gen_idx % self.test_gen == 0 and self.gen_idx > 0:
             if self.test_labels:
                 testset = self.test_set[:len(self.optimizee_labels)]
                 testlabels = [int(t) for t in self.test_labels[:len(self.optimizee_labels)]]
+                print(f'Testing in generation {self.gen_idx}, individual {self.ind_idx}')
+                print(f'Testing for labels: {testlabels}')
                 # save test set and test labels
                 self.save_data_set(file_path=self.parameters.path,
                                    trainset=testset,
@@ -569,26 +615,44 @@ class EnKFOptimizee(Optimizee):
                                     index=self.ind_idx, simulation='--simulate')
             while True:
                 if all([os.path.isfile(os.path.join(self.parameters.path,
-                                                    f'{idx}_model_out.csv'))
+                                                    f'{self.ind_idx}_{idx}_model_out.npy'))
                         for idx in range(self.ensemble_size)]):
                     break
                 else:
                     time.sleep(3)
-            model_out = [pd.read_csv(os.path.join(
-                self.parameters.path, f'{idx}_model_out.csv'))['model_out'].values
-                          for idx in range(self.ensemble_size)]
+            model_outs = [np.load(os.path.join(
+                self.parameters.path, f'{self.ind_idx}_{idx}_model_out.npy'), 
+                                 allow_pickle=True).squeeze() 
+                         for idx in range(self.ensemble_size)]
+            # apply softmax on model outs
+            # ensemble_size x labels x n_output_clusters
+            model_outs = softmax(model_outs, -1)
             fitnesses = self.get_fitness(n_output_clusters=n_output_clusters,
-                                         model_outs=model_out)
+                                         model_outs=model_outs)
+            # Save test results
+            self.save_results(fitness=fitnesses, weights=None, cov_mat=None,
+                              test=True)
         self.dict_weights.clear()
-        if not fitnesses:
+        if fitnesses.size == 0:
             raise AttributeError(f'No fitness obtained - '
                                  f'Got instead : {fitnesses}')
+
+        # # normalize hyper-parameters before optimization
+        # self.gamma = self.min_max_normalize(self.gamma, 0.009, 0.9999)
+        # self.ensemble_size = self.min_max_normalize(self.ensemble_size, 9, 30)
+        # self.repetitions = self.min_max_normalize(self.repetitions, 1, 10)
+        print(f'Parameters before optimization ens {self.ensemble_size} '
+              f'reps {self.repetitions} gamma {self.gamma}')
         return np.mean(fitnesses),
 
-    def save_weights(self, csv_path, simulation_idx):
+    def save_weights(self, csv_path, simulation_idx, generation_idx,
+                     iteration_idx):
         """
         Saves the weights and connections in a csv file
         """
+        # if iteration 0 skip to write any weights unless generation_idx=0
+        if iteration_idx == 0 and generation_idx > 0:
+            return
         # Read the connections
         for typ in self.types:
             conns = pd.read_csv(os.path.join(csv_path,
@@ -602,22 +666,91 @@ class EnKFOptimizee(Optimizee):
             # write file with connections and new weights
             conns.to_csv(os.path.join(csv_path, f'{key}.csv'))
 
+    def save_results(self, fitness, cov_mat, weights, test=False):
+        dir_name = f"results_{os.environ['SLURM_JOB_ID']}"
+        results_path = os.path.join(self.parameters.path, dir_name)
+        if not os.path.exists(results_path):
+            try:
+                os.mkdir(results_path)
+            except FileExistsError as fe:
+                print(fe)
+        key = f"generation_{self.gen_idx}/individual_{self.ind_idx}"
+        if test:
+            print(f'Saving test results in {results_path}')
+            np.savez_compressed(os.path.join(results_path,
+                                             f'{self.gen_idx}_{self.ind_idx}_test_results.npz'),
+                                fitness=fitness)
+            # with h5py.File(os.path.join(results_path, "test_results.hdf5"), "a") as f:
+            #     f.create_dataset(f"{key}/fitness", data=fitness)
+        else:
+            print(f'Saving training results in {results_path}')
+            np.savez_compressed(os.path.join(results_path, 
+                                             f'{self.gen_idx}_{self.ind_idx}_results.npz'),
+                                fitness=fitness, Cpp=cov_mat['Cpp'], Cup=cov_mat['Cup'],
+                                weights=weights)
+            # with h5py.File(os.path.join(results_path, "train_results.hdf5"), "a") as f:
+            #     f.create_dataset(f"{key}/fitness", data=fitness)
+            #     f.create_dataset(f"{key}/cov_mat/CPP", data=cov_mat['Cpp'])
+            #     f.create_dataset(f"{key}/cov_mat/CUP", data=cov_mat['Cup'])
+            #     f.create_dataset(f"{key}/weights", data=weights)
+
     def load_weights(self, csv_path, simulation_idx):
         """
         Load weights and saves them in a class member dictionary `dict_weights`
         """
+        failed = False
         for typ in self.types:
             key = f'{self.ind_idx}_{simulation_idx}_weights_{typ}'
-            conns = pd.read_csv(os.path.join(csv_path, key+'.csv'))
-            # will be cleared later for new generation
-            self.dict_weights[key] = conns['weights'].values
+            try:
+                conns = pd.read_csv(os.path.join(csv_path, key+'.csv'))
+                # will be cleared later for new generation
+                self.dict_weights[key] = conns['weights'].values
+            except FileNotFoundError:
+                failed = True
+                # create new ensemble by randomly picking from the ensembles
+                # and perturbing it
+                print(f'File {key} could not be found. Creating new ensemble',
+                      flush=True)
 
-    def restructure_weight_dict(self, w, csv_path, simulation_index):
+                # create a function to split strings via "_"
+                # and take 2. argument
+                def func(x, idx=1):
+                    return int(x.split('_')[idx])
+                files = [f for f in os.listdir(csv_path) if
+                         f.endswith('.csv') and f.startswith(
+                             f'{self.ind_idx}')]
+                random_filename = self.rng.choice(files)
+                # get simulation index from the random filename
+                sim_ind = func(random_filename)
+                weights = self.dict_weights[f'{self.ind_idx}_{sim_ind}_weights_{typ}']
+                noise = self.rng.normal(loc=self.parameters.kwargs['loc'],
+                                        scale=self.parameters.kwargs['scale'],
+                                        size=len(weights))
+                new_ensemble = weights + noise
+                self.dict_weights[key] = new_ensemble
+            # only save if exception occurs
+            if failed:
+                # save weight
+                self.save_weights(csv_path, simulation_idx,
+                                  iteration_idx=self.iteration_idx,
+                                  generation_idx=self.gen_idx)
+
+    def restructure_weight_dict(self, w, simulation_index):
+        def masked(x, mu=1000, sigma=200):
+            mask = x > mu
+            x[mask] = np.random.normal(mu, sigma, np.count_nonzero(mask))
+            mask = x < -mu
+            x[mask] = np.random.normal(-mu, sigma, np.count_nonzero(mask))
+            return x
+
         length = 0
         for typ in self.types:
             key = f'{self.ind_idx}_{simulation_index}_weights_{typ}'
-            self.dict_weights[key] = w[length:self.dict_conns[typ] + length]
-            length = self.dict_conns[typ]
+            weights = w[simulation_index][length:self.dict_conns[typ] + length]
+            # bound the weights
+            weights = masked(weights)
+            self.dict_weights[key] = weights
+            length += self.dict_conns[typ]
 
     @staticmethod
     def save_data_set(file_path, trainset, targets, generation):
@@ -653,23 +786,71 @@ class EnKFOptimizee(Optimizee):
 
     def get_fitness(self, n_output_clusters, model_outs):
         fitnesses = []
-        model_outs, argmax = self.apply_softmax(model_outs=model_outs,
-                                                n_output_clusters=n_output_clusters)
-        # one hot encoding
+        argmax = np.argmax(model_outs, -1)  # ensemble_size x labels
         for i, target in enumerate(self.optimizee_labels):
+            # one hot encoding
             label = np.eye(n_output_clusters)[target]
-            pred = np.eye(n_output_clusters)[i]
+            pred = np.eye(n_output_clusters)[argmax[:, i]]
             # MSE of 1 is worst 0 is best, that's why 1 - fitness for L2L
-            fitness = 1 - self._calculate_fitness(label, pred, "MSE")
+            fitness = 1 - self._calculate_fitness(label, pred, "MSE", axis=1)
             fitnesses.append(fitness)
-            print('Fitness {} for target {}, softmax {}, argmax {}'.format(
-                fitness, target, model_outs[i], argmax[i]))
-        return fitnesses
+            print('Fitness {} for target {}, argmax {}'.format(
+                fitness, target, argmax[:, i]))
+        return np.mean(fitnesses, 0)
 
     @staticmethod
-    def _calculate_fitness(label, prediction, costf='MSE'):
+    def _calculate_fitness(label, prediction, costf='MSE', axis=None):
         if costf == 'MSE':
-            return ((label - prediction) ** 2).mean()
+            return ((label - prediction) ** 2).mean(axis)
+
+    @staticmethod
+    def min_max_normalize(x, min_val, max_val, renormalize=False):
+        if renormalize:
+            return x*(max_val - min_val) + min_val
+        else:
+            return (x - min_val) / (max_val - min_val)
+
+    def clean_files(self, csv_path):
+        """
+        Cleans csv and npy files produced by the optimizee
+        """
+        for f in os.listdir(csv_path):
+            try:
+                if f.endswith(('.csv', '.npy')) and not f.startswith(
+                        tuple(self.types)) and not f.startswith('results'):
+                    if os.path.isfile(os.path.join(csv_path, f)):
+                        print(f'Removing {f}')
+                        os.remove(os.path.join(csv_path, f))
+            except OSError as ose:
+                print(ose)
+
+    def get_new_data(self, index=0):
+        if self.train_labels:
+            trainset = None
+            if self.data_loader_method == 'random':
+                self.optimizee_labels, self.random_ids = self.randomize_labels(
+                    self.train_labels, size=self.parameters.n_batches)
+                trainset = [self.train_set[r] for r in self.random_ids]
+            elif self.data_loader_method == 'separated':
+                self.optimizee_data, self.optimizee_labels = self.get_separated_data(
+                    self.train_labels, self.train_set, self.target_label,
+                    gen_id = self.gen_idx * self.repetitions + index,
+                    shuffle=self.parameters.shuffle,
+                    n_slice=self.parameters.n_slice)
+                trainset = self.optimizee_data
+                if not self.parameters.shuffle:
+                    rand_ind = self.rng.integers(0, len(self.target_label), 1)[0]
+                    self.optimizee_labels, self.random_ids = self.randomize_labels(
+                        self.optimizee_labels[rand_ind], size=self.parameters.n_batches)
+                    trainset = [self.optimizee_data[rand_ind][r] for r in
+                                self.random_ids]
+        else:
+            raise AttributeError('Train Labels are not set, please check.')
+        # all individuals/simulations are getting the same batch of data
+        self.save_data_set(file_path=self.parameters.path,
+                           trainset=trainset,
+                           targets=self.optimizee_labels,
+                           generation=self.gen_idx)
 
 
 def randomize_labels(labels, size):

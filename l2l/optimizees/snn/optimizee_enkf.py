@@ -101,7 +101,7 @@ class EnKFOptimizee(Optimizee):
     def __init__(self, traj, parameters):
         super().__init__(traj)
         self.parameters = parameters
-        self.fp = pathlib.Path(__file__).parent.absolute()      
+        self.fp = pathlib.Path(__file__).parent.absolute()
         config_path = os.path.join(str(self.fp), 'config.json')
         print(f"Config path: {config_path}")
         with open(config_path) as jsonfile:
@@ -407,7 +407,7 @@ class EnKFOptimizee(Optimizee):
                 f'--generation={self.gen_idx}',
                 f'--path={csv_path}',
                 f'--record_spiking_firingrate={self.parameters.record_spiking_firingrate}',
-            ], 
+            ],
                                  check=True)
         sub.check_returncode()
 
@@ -449,7 +449,7 @@ class EnKFOptimizee(Optimizee):
         self.gamma = traj.individual.gamma
         self.ensemble_size = traj.individual.ensemble_size
         self.repetitions = traj.individual.repetitions
-        if self.gen_idx >= 0: 
+        if self.gen_idx >= 0:
             print(f'Parameters before re-normalization ens {self.ensemble_size} reps {self.repetitions} gamma {self.gamma}')
             # re-normalize the normalized parameters
             # ensembles
@@ -500,7 +500,7 @@ class EnKFOptimizee(Optimizee):
         fitnesses = None
         results = None
         # gamma needs to be an I-matrix multiplied by a scalar
-        gamma = np.eye(n_output_clusters) * self.gamma  
+        gamma = np.eye(n_output_clusters) * self.gamma
 
         # Training
         if self.gen_idx % self.test_gen != 0 or self.gen_idx == 0:
@@ -621,8 +621,8 @@ class EnKFOptimizee(Optimizee):
                 else:
                     time.sleep(3)
             model_outs = [np.load(os.path.join(
-                self.parameters.path, f'{self.ind_idx}_{idx}_model_out.npy'), 
-                                 allow_pickle=True).squeeze() 
+                self.parameters.path, f'{self.ind_idx}_{idx}_model_out.npy'),
+                                 allow_pickle=True).squeeze()
                          for idx in range(self.ensemble_size)]
             # apply softmax on model outs
             # ensemble_size x labels x n_output_clusters
@@ -646,13 +646,29 @@ class EnKFOptimizee(Optimizee):
         return np.mean(fitnesses),
 
     def save_weights(self, csv_path, simulation_idx, generation_idx,
-                     iteration_idx):
+                     iteration_idx, failed=False):
         """
         Saves the weights and connections in a csv file
         """
         # if iteration 0 skip to write any weights unless generation_idx=0
-        if iteration_idx == 0 and generation_idx > 0:
+        # however write the new individuals
+        if iteration_idx == 0 and generation_idx > 0 and not failed:
             return
+        elif iteration_idx == 0 and generation_idx > 0 and failed:
+            for typ in self.types:
+                # add new columns of weights
+                key = f'{self.ind_idx}_{simulation_idx}_weights_{typ}'
+                # check if file with weights exists already, skip
+                if os.path.exists(os.path.join(csv_path, key, '.csv')):
+                    return
+                # if file does not exist, save in conns dict and write
+                else:
+                    conns = pd.read_csv(os.path.join(csv_path,
+                                                     f'{typ}_connections.csv'))
+                    conns['weights'] = self.dict_weights.get(key)
+                    # write file with connections and new weights
+                    conns.to_csv(os.path.join(csv_path, f'{key}.csv'))
+        # For the other cases normally continue
         # Read the connections
         for typ in self.types:
             conns = pd.read_csv(os.path.join(csv_path,
@@ -684,7 +700,7 @@ class EnKFOptimizee(Optimizee):
             #     f.create_dataset(f"{key}/fitness", data=fitness)
         else:
             print(f'Saving training results in {results_path}')
-            np.savez_compressed(os.path.join(results_path, 
+            np.savez_compressed(os.path.join(results_path,
                                              f'{self.gen_idx}_{self.ind_idx}_results.npz'),
                                 fitness=fitness, Cpp=cov_mat['Cpp'], Cup=cov_mat['Cup'],
                                 weights=weights)
@@ -733,7 +749,8 @@ class EnKFOptimizee(Optimizee):
                 # save weight
                 self.save_weights(csv_path, simulation_idx,
                                   iteration_idx=self.iteration_idx,
-                                  generation_idx=self.gen_idx)
+                                  generation_idx=self.gen_idx,
+                                  failed=failed)
 
     def restructure_weight_dict(self, w, simulation_index):
         def masked(x, mu=1000, sigma=200):

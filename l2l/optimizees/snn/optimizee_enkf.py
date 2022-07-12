@@ -735,10 +735,26 @@ class EnKFOptimizee(Optimizee):
                 files = [f for f in os.listdir(csv_path) if
                          f.endswith('.csv') and f.startswith(
                              f'{self.ind_idx}')]
+                # sometimes there may be empty lists, if in case use a
+                # random weight csv
+                if len(files) == 0:
+                    files = [f for f in os.listdir(csv_path) if
+                             f.endswith('.csv')]
                 random_filename = self.rng.choice(files)
+                if len(files) == 0:
+                    ind_idx = func(random_filename, 0)
+                else:
+                    ind_idx = self.ind_idx
                 # get simulation index from the random filename
                 sim_ind = func(random_filename)
-                weights = self.dict_weights[f'{self.ind_idx}_{sim_ind}_weights_{typ}']
+                tmp_key = f'{ind_idx}_{sim_ind}_weights_{typ}'
+                if tmp_key in self.dict_weights:
+                    weights = self.dict_weights[tmp_key]
+                else:
+                    print(f'Not in dictionary, loading key {tmp_key}.csv '
+                          f'directly from file')
+                    # cast pandas to numpy array
+                    weights = pd.read_csv(os.path.join(csv_path, tmp_key +'.csv'))
                 noise = self.rng.normal(loc=self.parameters.kwargs['loc'],
                                         scale=self.parameters.kwargs['scale'],
                                         size=len(weights))

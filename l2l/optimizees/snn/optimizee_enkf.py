@@ -16,7 +16,7 @@ import subprocess
 import time
 
 
-# TODO:
+# NOTES:
 '''
 - weights are saved as `{individual_index}_{simulation_index}_weights_{type}.csv`
 - the key in the dictionary is `{individual_index}_{simulation_index}_weights_{type}`
@@ -137,14 +137,14 @@ class EnKFOptimizee(Optimizee):
         self.batchfile = 'batchfile.sh'
         self.types = ['eeo', 'eio', 'ieo', 'iio']
         self.test_gen = 10  # generation number for testing
-        self.iterations = 10  # number of iterations the inner loop will take
+        self.iterations = 100  # number of iterations the inner loop will take
         self.iteration_idx = 0
 
         # Hyper-parameters
         # place holder values, will be overwritten in create_individual
         self.max_ens_size = 30
         self.max_gamma = 1.0
-        self.max_reps = 10
+        self.max_reps = 3
         self.gamma = 0.01
         self.ensemble_size = int(self.parameters.ensemble_size)
         self.repetitions = 3
@@ -319,14 +319,15 @@ class EnKFOptimizee(Optimizee):
     def create_batchfile(self, csv_path):
         with open(os.path.join(csv_path, self.batchfile), 'w') as f:
             reservoir_path = os.path.join(str(self.fp), 'reservoir_nest3.py')
-            account = 'icei-hbp-2022-0007'
-            tasks_node = 30
+            account = 'icei-hbp-2021-0003'  # 'icei-hbp-2022-0007'
+            tasks_node = 31
             cpu_task = 4
             print(f"Reservoir path: {reservoir_path}")
             batch = "#!/bin/bash \n" \
                     "#SBATCH --nodes=1 \n" \
                     f"#SBATCH --ntasks-per-node={tasks_node} \n" \
                     f"#SBATCH --cpus-per-task={cpu_task} \n" \
+                    "#SBATCH --threads-per-core=1 \n" \
                     "#SBATCH --time=01:00:00 \n" \
                     "#SBATCH --partition=batch \n" \
                     f"#SBATCH --account={account} \n" \
@@ -334,7 +335,7 @@ class EnKFOptimizee(Optimizee):
                     "export OMP_NUM_THREADS=${SLURM_CPUS_PER_TASK} \n" \
                     "for ((x=0; x<$1; x++)) \n" \
                     "do \n" \
-                    f"  srun -n 1 -c $2 python {reservoir_path} $3 $4 $5 $6 -si $x &\n" \
+                    f"  srun --exact -n 1 -c $2 python {reservoir_path} $3 $4 $5 $6 -si $x &\n" \
                     "done \n" \
                     "wait"
             f.write(batch)
@@ -351,8 +352,13 @@ class EnKFOptimizee(Optimizee):
             if all([os.path.isfile(
                     os.path.join(self.parameters.path, f'{t}_connections.csv'))
                     for t in self.types]):
-                break
+                time.sleep(2)
+                if all([os.path.getsize(
+                    os.path.join(self.parameters.path, f'{t}_connections.csv')) > 0
+                    for t in self.types]):
+                       break
             else:
+                print(f'ensembles created, ind {self.ind_idx} in {self.iteration_idx}')
                 time.sleep(3)
         print('Creating the weights')
         mu = self.config['mu']
@@ -503,22 +509,22 @@ class EnKFOptimizee(Optimizee):
         gamma = np.eye(n_output_clusters) * self.gamma
 
         # Training
-        if self.gen_idx % self.test_gen != 0 or self.gen_idx == 0:
+        if self.iteration_idx % self.test_gen != 0 or self.iteration_idx == 0:
             enkf = EnsembleKalmanFilter(maxit=1,
                                         online=False,
                                         n_batches=traj.n_batches
                                         # len(self.optimizee_labels)
                                         )
             # Show i times the batch of images
-            for i in range(self.iterations):
+            for i in range(int(self.iterations/self.repetitions)):
                 # get new data for every repetition
                 self.get_new_data(index=i)
                 for r in range(self.repetitions):
                     enkf.n_batches = len(self.optimizee_labels)
+                    # Remove model outs before new simulations
                     for j in range(self.ensemble_size):
                         model_out = os.path.join(self.parameters.path,
                                                  f'{self.ind_idx}_{j}_model_out.npy')
-                        # TODO: is this needed?
                         if os.path.isfile(model_out):
                             os.remove(model_out)
                     # save weights before simulation
@@ -533,13 +539,23 @@ class EnKFOptimizee(Optimizee):
                                 for idx in range(self.ensemble_size)]):
                             break
                         else:
-                            time.sleep(3)
-
+                            print(f'waiting for simulation model outs, ind {self.ind_idx} in {self.iteration_idx}', flush=True)
+                            time.sleep(10)
+                    print(f'simulation model outs acquired, ind {self.ind_idx} in {self.iteration_idx}', flush=True) 
                     # obtain the individual model outputs
-                    model_out = [np.load(os.path.join(
-                        self.parameters.path, f'{self.ind_idx}_{idx}_model_out.npy'),
-                        allow_pickle=True).squeeze()
-                        for idx in range(self.ensemble_size)]
+                    try:
+                        model_out = [np.load(os.path.join(
+                            self.parameters.path, f'{self.ind_idx}_{idx}_model_out.npy'),
+                                             allow_pickle=True).squeeze()
+                                     for idx in range(self.ensemble_size)]
+                    except FileNotFoundError:
+                        print("Training: loading failed waiting for 60s to finish simulations")
+                        time.sleep(60)
+                        model_out = [np.load(os.path.join(self.parameters.path,
+                                                          f'{self.ind_idx}_{idx}_model_out.npy'),
+                                             allow_pickle=True).squeeze()
+                                     for idx in range(self.ensemble_size)]
+
                     # apply softmax on model outs
                     # model outs shape: (ensemble_size x labels x n_output_clusters)
                     model_out = softmax(model_out, -1)
@@ -591,47 +607,64 @@ class EnKFOptimizee(Optimizee):
                                           simulation_idx=j,
                                           iteration_idx=self.iteration_idx,
                                           generation_idx=self.gen_idx)
-                    self.iteration_idx = i
+                self.iteration_idx = i
+                print(f'Ind {self.ind_idx} in iteration {self.iteration_idx}')
 
-            # store results after repetitions
-            # if self.gen_idx % 9 == 0 and self.gen_idx > 0:
-            self.save_results(fitness=fitnesses, cov_mat=enkf.cov_mat,
-                              weights=results, test=False)
+                # store results after repetitions
+                if self.iteration_idx % 10 == 0 and self.iteration_idx > 0:
+                    self.save_results(fitness=fitnesses, cov_mat=enkf.cov_mat,
+                                      weights=results, test=False)
 
-        # Testing 
-        elif self.gen_idx % self.test_gen == 0 and self.gen_idx > 0:
-            if self.test_labels:
-                testset = self.test_set[:len(self.optimizee_labels)]
-                testlabels = [int(t) for t in self.test_labels[:len(self.optimizee_labels)]]
-                print(f'Testing in generation {self.gen_idx}, individual {self.ind_idx}')
-                print(f'Testing for labels: {testlabels}')
-                # save test set and test labels
-                self.save_data_set(file_path=self.parameters.path,
-                                   trainset=testset,
-                                   targets=testlabels,
-                                   generation=self.gen_idx)
-
-            self.execute_subprocess(csv_path=self.parameters.path,
-                                    index=self.ind_idx, simulation='--simulate')
-            while True:
-                if all([os.path.isfile(os.path.join(self.parameters.path,
-                                                    f'{self.ind_idx}_{idx}_model_out.npy'))
-                        for idx in range(self.ensemble_size)]):
-                    break
-                else:
-                    time.sleep(3)
-            model_outs = [np.load(os.path.join(
-                self.parameters.path, f'{self.ind_idx}_{idx}_model_out.npy'),
-                                 allow_pickle=True).squeeze()
-                         for idx in range(self.ensemble_size)]
-            # apply softmax on model outs
-            # ensemble_size x labels x n_output_clusters
-            model_outs = softmax(model_outs, -1)
-            fitnesses = self.get_fitness(n_output_clusters=n_output_clusters,
-                                         model_outs=model_outs)
-            # Save test results
-            self.save_results(fitness=fitnesses, weights=None, cov_mat=None,
-                              test=True)
+                # Testing
+                if self.iteration_idx % self.test_gen == 0 and self.iteration_idx > 0:
+                    if self.test_labels:
+                        testset = self.test_set[:len(self.optimizee_labels)]
+                        testlabels = [int(t) for t in self.test_labels[:len(self.optimizee_labels)]]
+                        print(f'Testing in generation {self.gen_idx}, individual {self.ind_idx}, iteration {self.iteration_idx}')
+                        print(f'Testing for labels: {testlabels}')
+                        # save test set and test labels
+                        self.save_data_set(file_path=self.parameters.path,
+                                           trainset=testset,
+                                           targets=testlabels,
+                                           generation=self.gen_idx,
+                                           individual=self.ind_idx)
+                        # Remove model outs before test simulation
+                        for j in range(self.ensemble_size):
+                            model_out = os.path.join(self.parameters.path,
+                                                     f'{self.ind_idx}_{j}_model_out.npy')
+                            if os.path.isfile(model_out):
+                                os.remove(model_out)
+                    self.execute_subprocess(csv_path=self.parameters.path,
+                                            index=self.ind_idx, simulation='--simulate')
+                    while True:
+                        if all([os.path.isfile(os.path.join(self.parameters.path,
+                                                            f'{self.ind_idx}_{idx}_model_out.npy'))
+                                for idx in range(self.ensemble_size)]):
+                            break
+                        else:
+                            print(f'waiting for test model outs ind {self.ind_idx} in {self.iteration_idx}', flush=True)
+                            time.sleep(10)
+                    print(f'test model outs acquired, ind {self.ind_idx} in {self.iteration_idx}', flush=True)
+                    try:
+                        model_outs = [np.load(os.path.join(
+                            self.parameters.path, f'{self.ind_idx}_{idx}_model_out.npy'),
+                                              allow_pickle=True).squeeze()
+                                      for idx in range(self.ensemble_size)]
+                    except FileNotFoundError:
+                        print("Testing: loading failed waiting for 60s to finish simulations")
+                        time.sleep(60)
+                        model_outs = [np.load(os.path.join(
+                            self.parameters.path, f'{self.ind_idx}_{idx}_model_out.npy'),
+                                              allow_pickle=True).squeeze()
+                                      for idx in range(self.ensemble_size)]
+                    # apply softmax on model outs
+                    # ensemble_size x labels x n_output_clusters
+                    model_outs = softmax(model_outs, -1)
+                    fitnesses = self.get_fitness(n_output_clusters=n_output_clusters,
+                                                 model_outs=model_outs)
+                    # Save test results
+                    self.save_results(fitness=fitnesses, weights=None, cov_mat=None,
+                                      test=True)
         self.dict_weights.clear()
         if fitnesses.size == 0:
             raise AttributeError(f'No fitness obtained - '
@@ -694,14 +727,14 @@ class EnKFOptimizee(Optimizee):
         if test:
             print(f'Saving test results in {results_path}')
             np.savez_compressed(os.path.join(results_path,
-                                             f'{self.gen_idx}_{self.ind_idx}_test_results.npz'),
+                                             f'{self.gen_idx}_{self.ind_idx}_{self.iteration_idx}_test_results.npz'),
                                 fitness=fitness)
             # with h5py.File(os.path.join(results_path, "test_results.hdf5"), "a") as f:
             #     f.create_dataset(f"{key}/fitness", data=fitness)
         else:
             print(f'Saving training results in {results_path}')
-            np.savez_compressed(os.path.join(results_path,
-                                             f'{self.gen_idx}_{self.ind_idx}_results.npz'),
+            np.savez_compressed(os.path.join(results_path, 
+                                             f'{self.gen_idx}_{self.ind_idx}_{self.iteration_idx}_results.npz'),
                                 fitness=fitness, Cpp=cov_mat['Cpp'], Cup=cov_mat['Cup'],
                                 weights=weights)
             # with h5py.File(os.path.join(results_path, "train_results.hdf5"), "a") as f:
@@ -735,15 +768,15 @@ class EnKFOptimizee(Optimizee):
                 files = [f for f in os.listdir(csv_path) if
                          f.endswith('.csv') and f.startswith(
                              f'{self.ind_idx}')]
-                # sometimes there may be empty lists, if in case use a
+                # sometimes there may be empty lists, if in case use a 
                 # random weight csv
                 if len(files) == 0:
                     files = [f for f in os.listdir(csv_path) if
-                             f.endswith('.csv')]
-                random_filename = self.rng.choice(files)
-                if len(files) == 0:
+                             f.endswith('.csv') and not f.endswith('connections.csv')]
+                    random_filename = self.rng.choice(files)
                     ind_idx = func(random_filename, 0)
                 else:
+                    random_filename = self.rng.choice(files)
                     ind_idx = self.ind_idx
                 # get simulation index from the random filename
                 sim_ind = func(random_filename)
@@ -753,8 +786,9 @@ class EnKFOptimizee(Optimizee):
                 else:
                     print(f'Not in dictionary, loading key {tmp_key}.csv '
                           f'directly from file')
-                    # cast pandas to numpy array
                     weights = pd.read_csv(os.path.join(csv_path, tmp_key +'.csv'))
+                    # cast pandas to numpy array
+                    weights = weights.weights.values
                 noise = self.rng.normal(loc=self.parameters.kwargs['loc'],
                                         scale=self.parameters.kwargs['scale'],
                                         size=len(weights))
@@ -786,16 +820,17 @@ class EnKFOptimizee(Optimizee):
             length += self.dict_conns[typ]
 
     @staticmethod
-    def save_data_set(file_path, trainset, targets, generation):
+    def save_data_set(file_path, trainset, targets, generation, individual):
         """
         Saves the dataset and label as a numpy file per generation.
-        If the file already exists the data is not created.
+        If the file already exists the data is removed before.
         """
-        filename = f"{generation}_dataset.npy"
-        if not os.path.exists(filename):
-            np.save(os.path.join(file_path, filename),
-                    {'train_set': trainset, 'targets': targets},
-                    allow_pickle=True)
+        filename = f"{generation}_{individual}_dataset.npy"
+        if os.path.isfile(os.path.join(file_path, filename)):
+            os.remove(os.path.join(file_path, filename))
+        np.save(os.path.join(file_path, filename),
+                {'train_set': trainset, 'targets': targets},
+                allow_pickle=True)
 
     def get_connections_sizes(self, csv_path):
         sizes = []
@@ -879,11 +914,35 @@ class EnKFOptimizee(Optimizee):
                                 self.random_ids]
         else:
             raise AttributeError('Train Labels are not set, please check.')
-        # all individuals/simulations are getting the same batch of data
+
+        # path to flag file
+        # finished_file = os.path.join(self.parameters.path, 'finished.txt')
+        # if os.path.exists(finished_file):
+        #     os.remove(finished_file)
+        # write out the dataset for the individuals
+        # every individual shares the dataset between the ensembles
         self.save_data_set(file_path=self.parameters.path,
                            trainset=trainset,
                            targets=self.optimizee_labels,
-                           generation=self.gen_idx)
+                           generation=self.gen_idx,
+                           individual=self.ind_idx)
+            
+            # with open(finished_file, 'w') as f:
+            #     print(f'writing txt to {finished_file}')
+            #     f.write(' ')
+        while True:
+            # if os.path.isfile(finished_file):
+            #     break
+            # else:
+            #     time.sleep(3)
+            if os.path.isfile(os.path.join(self.parameters.path,
+                                           f'{self.gen_idx}_{self.ind_idx}_dataset.npy')):
+                if os.path.getsize(os.path.join(self.parameters.path,
+                                                f'{self.gen_idx}_{self.ind_idx}_dataset.npy')) > 0:
+                    break
+                else:
+                    time.sleep(3)
+        # print(f'flag ind {self.ind_idx} in {self.iteration_idx} done')
 
 
 def randomize_labels(labels, size):

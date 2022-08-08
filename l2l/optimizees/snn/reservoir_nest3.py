@@ -1,11 +1,13 @@
 import argparse
 import json
+from mpi4py import MPI
 import nest
 import numpy as np
 import os
 import pandas as pd
 import pathlib
 import pickle
+import time
 
 from collections import OrderedDict
 from itertools import permutations, product
@@ -215,23 +217,6 @@ class Reservoir:
     def create_synapses():
         nest.CopyModel("static_synapse", "random_synapse")
         nest.CopyModel("static_synapse", "random_synapse_i")
-
-    def create_spike_rate_generator(self, input_type):
-        if input_type == "greyvalue":
-            return nest.Create("poisson_generator", self.n_input_neurons)
-        elif input_type == "bellec":
-            return nest.Create("spike_generator", self.n_input_neurons)
-        elif input_type == "greyvalue_sequential":
-            n_img = self.n_input_neurons
-            rates, starts, ends = spike_generator.greyvalue_sequential(
-                self.target_px[n_img],
-                start_time=0,
-                end_time=783,
-                min_rate=0,
-                max_rate=200,
-            )  # 10
-            self.rates = rates
-            self.pixel_rate_generators = nest.Create("poisson_generator", len(rates))
 
     def connect_spike_detectors(self):
         # Input
@@ -781,13 +766,24 @@ class Reservoir:
         # write model_outs
         model_path = os.path.join(path, f"{ind_idx}_{sim_idx}_model_out.npy")
         if os.path.isfile(model_path):
-            os.remove(model_path)
+            try:
+                os.remove(model_path)
+            except FileNotFoundError as fe:
+                print(fe, flush=True)
         np.save(model_path, model_outs)
         return model_outs
 
     @staticmethod
     def replace_weights(source, target, path=".", ind_idx="0", sim_idx="0",
                         typ="e", test=False):
+        while True:
+            if os.path.isfile(os.path.join(path, f"{ind_idx}_{sim_idx}_weights_{typ}.csv")):
+                if os.path.getsize(os.path.join(path,
+                                                f"{ind_idx}_{sim_idx}_weights_{typ}.csv")) > 0:
+                    break
+            else:
+                print(f'waiting in replace for weights, {ind_idx}, {sim_idx}')
+                time.sleep(2)        
         # Read the connections, i.e. sources and targets
         conns = pd.read_csv(
             os.path.join(path, f"{ind_idx}_{sim_idx}_weights_{typ}.csv"),
@@ -970,17 +966,22 @@ if __name__ == "__main__":
     args = parser.parse_args()
     # set the random seed
     np.random.seed(int(args.generation))  
+    # comm = MPI.COMM_WORLD
+    # index of the actual simulation is obtained from the mpi rank
+    # simulation_index = comm.Get_rank()
     simulation_index = int(args.simulation_index)
     if args.create:
         if simulation_index == 0:
             size_eeo, size_eio, size_ieo, size_iio = reservoir.connect_network(args.path)
+        # comm.Barrier()
 
     elif args.simulate:
         csv_path = args.path
         # overall index, something like 12 for generation-individual
         individual_id = int(args.index)
         generation_id = int(args.generation)
-        data = np.load(os.path.join(csv_path, f"{generation_id}_dataset.npy"),
+        print(f'Generation {generation_id}, Individual {individual_id}', flush=True)
+        data = np.load(os.path.join(csv_path, f"{generation_id}_{individual_id}_dataset.npy"),
                        allow_pickle=True).item()
         dataset = data["train_set"]
         labels = data["targets"]

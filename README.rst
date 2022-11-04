@@ -46,21 +46,22 @@ Installing the L2L Package
 
 From the Top-Level directory of the directory, run the following command:
 
-    python3 setup.py develop --user
+    python -m pip install -e . 
     
-or alternatively 
+or alternatively (if you do not use a virtual environment) 
     
-    pip3 install -e . 
+    python -m pip install -e . --user
 
 *The `--user` flag is to be used if you wish to install in the user path as opposed
-to the root path (e.g. when one does not have sudo access)*
+to the root path*. However, we **recommend to use a virtual enviornment**, 
+such as the standard Python env or conda env. 
 
 The above will install the package by creating symlinks to the code files in the
 relevant directory containing python modules. This means that you can change any
 of the code files and see the changes reflected in the package immediately (i.e.
 without requiring a reinstall). In order to uninstall one may run the following:
 
-    pip3 uninstall Learning-to-Learn
+    pip uninstall L2L 
 
 *Note that if the setup was done using sudo access, then the uninstall must also
 be done using sudo access*

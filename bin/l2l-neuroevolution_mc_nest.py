@@ -1,7 +1,7 @@
 from datetime import datetime
 from l2l.utils.experiment import Experiment
 
-from l2l.optimizees.neuroevolution import NeuroEvolutionOptimizeeMC, NeuroEvolutionOptimizeeMCParameters
+from l2l.optimizees.mc_gym import NeuroEvolutionOptimizeeMC, NeuroEvolutionOptimizeeMCParameters
 from l2l.optimizers.evolution import GeneticAlgorithmParameters, GeneticAlgorithmOptimizer
 
 import os

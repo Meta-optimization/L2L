@@ -9,7 +9,7 @@ import subprocess
 import time
 from collections import namedtuple
 from l2l.optimizees.optimizee import Optimizee
-import gym
+import gymnasium as gym
 import nest
 
 NeuroEvolutionOptimizeeMCParameters = namedtuple(
@@ -61,23 +61,23 @@ class NestNetwork():
 
     def simulate(self, sim_time=20.0):
         nest.Simulate(sim_time)
-            
+
     def feed_network(self, velocity, position):
         velocity_neuron = int(encode_values(-0.07, 0.07, 30, velocity)) - 1
         position_neuron = int(encode_values(-1.2, 0.6, 30, position)) - 1
-        nest.SetStatus(self.activator_velocity[velocity_neuron], [{'amplitude':40000.0}])            
-        nest.SetStatus(self.activator_position[position_neuron], [{'amplitude':40000.0}])            
+        nest.SetStatus(self.activator_velocity[velocity_neuron], [{'amplitude':40000.0}])
+        nest.SetStatus(self.activator_position[position_neuron], [{'amplitude':40000.0}])
 
     def reset_activators_and_recorders(self):
         for n in range(0, 30):
-            nest.SetStatus(self.activator_velocity[n], [{'amplitude':0.0}])            
-            nest.SetStatus(self.activator_position[n], [{'amplitude':0.0}])            
+            nest.SetStatus(self.activator_velocity[n], [{'amplitude':0.0}])
+            nest.SetStatus(self.activator_position[n], [{'amplitude':0.0}])
 
         for n in range(0, 3):
-            nest.SetStatus(self.spike_detector[n], [{'n_events':0}])            
-            nest.SetStatus(self.spike_detector[n], [{'n_events':0}])            
+            nest.SetStatus(self.spike_detector[n], [{'n_events':0}])
+            nest.SetStatus(self.spike_detector[n], [{'n_events':0}])
 
-            
+
     def get_action_from_network(self):
         push_left = nest.GetStatus(self.spike_detector[0], 'n_events')
         push_none = nest.GetStatus(self.spike_detector[1], 'n_events')
@@ -90,7 +90,7 @@ class NestNetwork():
             return 1
 
     def set_gym_action(self, action, env):
-        observation, reward, done, info = env.step(action) 
+        observation, reward, terminated, truncated, info = env.step(action)
         return observation
 
 
@@ -99,7 +99,7 @@ def encode_values(min_range, max_range, bins, value):
         return bins
     x = np.linspace(min_range, max_range, bins)
     hist, edges = np.histogram(x, bins=bins)
-    return np.digitize(value, edges)   
+    return np.digitize(value, edges)
 
 ##########################################################################
 
@@ -114,7 +114,7 @@ class NeuroEvolutionOptimizeeMC(Optimizee):
         self.dir_path = ''
         self.fp = pathlib.Path(__file__).parent.absolute()
         self.is_headless = parameters.run_headless
-        self.load_parameter = parameters.load_parameter   
+        self.load_parameter = parameters.load_parameter
         self.min_weight = -20.
         self.max_weight = 20.
 
@@ -175,19 +175,19 @@ class NeuroEvolutionOptimizeeMC(Optimizee):
         weights = weights.clip(self.min_weight, self.max_weight)
 
         self.dir_path = os.path.join(self.param_path,
-                                     f'individual_{self.ind_idx}')        
-    
-        test_weights = weights * 100 
+                                     f'individual_{self.ind_idx}')
+
+        test_weights = weights * 100
         test_network = NestNetwork()
-        test_network.connect_network(test_weights)  
+        test_network.connect_network(test_weights)
         #Set same seed for all individuals in the same generation
         env = gym.make('MountainCar-v0')
-        env.seed(self.generation)
-        observation = env.reset()
+        # env.seed(self.generation)
+        observation, info = env.reset(seed=self.generation)
         position = observation[0]
-        velocity = observation[1]   
+        velocity = observation[1]
         max_position = -2.0
-        fitness = 0  
+        fitness = 0
         """
         Run the MC environment for 110 simulation steps or stop on goal condition
         """
@@ -195,10 +195,10 @@ class NeuroEvolutionOptimizeeMC(Optimizee):
             test_network.reset_activators_and_recorders()
             test_network.feed_network(velocity, position)
             test_network.simulate(20.)
-            action = test_network.get_action_from_network() 
+            action = test_network.get_action_from_network()
             observation = test_network.set_gym_action(action, env)
             position = observation[0]
-            velocity = observation[1]     
+            velocity = observation[1]
             if max_position < position:
                 max_position = position
             if position >= 0.5:
@@ -219,16 +219,13 @@ class NeuroEvolutionOptimizeeMC(Optimizee):
             individual = {
                 'weights': weights,
                 'fitness': fitness
-            }            
+            }
             df = pd.DataFrame(individual)
             df = df.T
             df.to_csv(os.path.join(result_folder, results_filename),
-                      header=False, index=False)               
-        return (fitness,) 
+                      header=False, index=False)
+        return (fitness,)
 
     def bounding_func(self, individual):
-        individual = {"weights": np.clip(individual['weights'], self.min_weight, self.max_weight)}    
-        return individual    
-    
-
-
+        individual = {"weights": np.clip(individual['weights'], self.min_weight, self.max_weight)}
+        return individual

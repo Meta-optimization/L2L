@@ -204,6 +204,7 @@ class NeuroEvolutionOptimizeeMC(Optimizee):
             if position >= 0.5:
                 break
         fitness = max_position
+        env.close()
 
         ##################################################################
 

@@ -5,7 +5,7 @@ from collections import OrderedDict
 from contextlib import contextmanager
 from warnings import warn
 from enum import Enum
-from collections import Iterable, Mapping
+from collections.abc import Iterable, Mapping
 from numbers import Integral, Real
 from timeit import default_timer as timer
 

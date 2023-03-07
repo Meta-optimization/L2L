@@ -10,3 +10,4 @@ scikit-learn
 flake8
 deap
 JUBE @ git+https://github.com/Meta-optimization/JUBE-L2L@master
+sdict @ https://github.com/Meta-optimization/sdict.git@master

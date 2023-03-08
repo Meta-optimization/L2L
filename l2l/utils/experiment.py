@@ -130,8 +130,8 @@ class Experiment(object):
         if kwargs.get('jube_parameter'):
             for k, v in kwargs['jube_parameter'].items():
                 if k == "exec":
-                    val = v + " " + os.path.join(self.paths.simulation_path,
-                                                 "run_files/run_optimizee.py")
+                    val = v + " \"{0}\"".format(os.path.join(self.paths.simulation_path, 
+                                                             "run_files/run_optimizee.py"))
                     self.traj.f_add_parameter_to_group("JUBE_params", k, val)
                     all_jube_params[k] = val
                 else:

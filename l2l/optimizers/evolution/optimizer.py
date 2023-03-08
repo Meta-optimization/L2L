@@ -144,8 +144,7 @@ class GeneticAlgorithmOptimizer(Optimizer):
         best_inds = tools.selBest(self.eval_pop_inds, 2)
         self.best_individual = list_to_dict(best_inds[0], self.optimizee_individual_dict_spec)
         for best_ind in best_inds:
-            print("Best individual is %s, %s" % (list_to_dict(best_ind, self.optimizee_individual_dict_spec),
-                                                 best_ind.fitness.values))
+            print(f"Best individual fitness is {best_ind.fitness.values)}") 
 
         self.hall_of_fame.update(self.eval_pop_inds)
 

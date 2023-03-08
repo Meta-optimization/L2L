@@ -143,7 +143,7 @@ class GeneticAlgorithmOptimizer(Optimizer):
         best_inds = tools.selBest(self.eval_pop_inds, 2)
         self.best_individual = list_to_dict(best_inds[0], self.optimizee_individual_dict_spec)
         for best_ind in best_inds:
-            print(f"Best individual fitness is {best_ind.fitness.values)}") 
+            print(f"Best individual fitness is {best_ind.fitness.values}")
 
         self.hall_of_fame.update(self.eval_pop_inds)
 
@@ -198,7 +198,7 @@ class GeneticAlgorithmOptimizer(Optimizer):
         logger.info("-- End of (successful) evolution --")
         best_inds = tools.selBest(self.pop, 10)
         for best_ind in best_inds:
-            logger.info("Best individual is %s, %s" % (best_ind, best_ind.fitness.values))
+            logger.info(f"Best individual fitness is {best_ind.fitness.values}")
 
         logger.info("-- Hall of fame --")
         for hof_ind in self.hall_of_fame:

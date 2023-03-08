@@ -88,7 +88,6 @@ class GeneticAlgorithmOptimizer(Optimizer):
                     bounded_individuals = [self.optimizee_bounding_func(x) for x in result_individuals]
                     for i, deap_indiv in enumerate(result_individuals_deap):
                         deap_indiv[:] = dict_to_list(bounded_individuals[i])
-                    print("Bounded Individual: {}".format(bounded_individuals))
                     return result_individuals_deap
 
             return bounding_wrapper

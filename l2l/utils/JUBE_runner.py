@@ -245,11 +245,11 @@ class JUBERunner():
             if not os.path.isfile(f):  # self.scheduler_config['ready_file']
                 done = False
         if self.debug_stderr:
-            print(os.path.join(self.path,"work/*/stderr"))
-            f = subprocess.Popen(['tail ' + os.path.join(self.path,"work/*/stderr")], shell=True,\
+            f = subprocess.Popen(["tail '" + os.path.join(self.path,"work/*/stderr'")], shell=True,\
                 stdout=subprocess.PIPE)
             line = f.stdout.readlines()
             for l in line:
+                print(os.path.join(self.path,"work/*/stderr"))
                 print(l.decode('UTF-8'))
         return done
 

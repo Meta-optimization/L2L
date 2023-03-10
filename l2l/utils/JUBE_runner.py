@@ -1,4 +1,5 @@
 from jube2.main import main
+import glob
 import os.path
 import pickle
 import time
@@ -245,12 +246,13 @@ class JUBERunner():
             if not os.path.isfile(f):  # self.scheduler_config['ready_file']
                 done = False
         if self.debug_stderr:
-            f = subprocess.Popen(["tail '" + os.path.join(self.path,"work/*/stderr'")], shell=True,\
-                stdout=subprocess.PIPE)
-            line = f.stdout.readlines()
-            for l in line:
-                print(os.path.join(self.path,"work/*/stderr"))
-                print(l.decode('UTF-8'))
+            path = os.path.join(self.path, f"work/jobsystem_bench_{self.generation}_*/stderr")
+            files = sorted(glob.glob(path))
+            for f in files:
+                with open(f, 'r') as output:
+                    if output:
+                        print(f"{f}: \n")
+                        print(output.read())
         return done
 
     def prepare_run_file(self, path_ready):

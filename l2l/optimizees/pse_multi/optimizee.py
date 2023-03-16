@@ -14,19 +14,33 @@ logger = logging.getLogger("l2l-pse")
 
 class PSEOptimizee(Optimizee):
 
-    def __init__(self, trajectory, seed=27):
+    def __init__(self, trajectory, inner_params, seed=27):
 
         super(PSEOptimizee, self).__init__(trajectory)
         # If needed
         seed = np.uint32(seed)
         self.random_state = np.random.RandomState(seed=seed)
+        self.minnorp0 = -100
+        self.maxnorp0 = -1
+        self.minnorp1 = -100
+        self.maxnorp1 = -1
+        # self.minnorp2 = -70
+        # self.maxnorp2 = -55
+        # self.minnorp3 = 1
+        # self.maxnorp3 = 40
+
+        # self.inner_params = inner_params
 
     def simulate(self, trajectory):
         self.id = trajectory.individual.ind_idx
         self.p0 = trajectory.individual.p0
+        # self.p0 = self.min_max_normalize(np.asarray(self.p0), self.minnorp0, self.maxnorp0, renormalize=True)
         self.p1 = trajectory.individual.p1
-        self.p2 = trajectory.individual.p2
-        self.p3 = trajectory.individual.p3
+        # self.p1 = self.min_max_normalize(np.asarray(self.p1), self.minnorp1, self.maxnorp1, renormalize=True)
+        # self.p2 = trajectory.individual.p2
+        # self.p2 = self.min_max_normalize(np.asarray(self.p2), self.minnorp2, self.maxnorp2, renormalize=True)
+        # self.p3 = trajectory.individual.p3
+        # self.p3 = self.min_max_normalize(np.asarray(self.p3), self.minnorp3, self.maxnorp3, renormalize=True)
         # self.p4 = trajectory.individual.p4
 
         # print('p0', self.p0)
@@ -49,7 +63,10 @@ class PSEOptimizee(Optimizee):
         #    self.p3,
             # self.p4,
         #)
-        params = [self.p0, self.p1, self.p2, self.p3]
+        # self.p0 = -1*self.p0
+        # self.p1 = -1*self.p1
+        # params = [self.p0, self.p1, self.p2, self.p3]
+        params = [self.p0, self.p1]
         params = np.array([vals for vals in params], np.float32).T
         print('paramsshape', params.shape)
         print('paramsshape', params)
@@ -64,10 +81,12 @@ class PSEOptimizee(Optimizee):
         try:
             subprocess.run(['python', 'rateml/model_driver_zerlaut.py',
                             # '--model', 'oscillator',
-                            '-s0', '2', '-s1', '2',
-                            '-s2', '2', '-s3', '2',
-                            # '-s4', '2',
-                            '-n', '40', '-v', '-sm', '3',
+                            '-s0', '32',
+                            '-s1', '32',
+                            # '-s2', '8',
+                            # '-s3', '8',
+                            # '-s4', '8',
+                            '-n', '5000', '-v', '-sm', '3',
                             # '--tvbn', '76', '--stts', '2',
                             '--procid', str(self.id)], check=True)
         except subprocess.CalledProcessError:
@@ -79,8 +98,9 @@ class PSEOptimizee(Optimizee):
         self.fitness = pickle.load(cuda_RateML_res_file)
         cuda_RateML_res_file.close()
         # self.fitness = np.random.randn(16)
-        print("FITNESSSSSSSSSSS", self.fitness)
+        print("FITNESSSSSSSSSSS", self.fitness.shape)
         # print("FITNESSSSSSSSSSS", len(self.fitness))
+
 
         # self.fitness = []
         # if id == 0:
@@ -126,13 +146,32 @@ class PSEOptimizee(Optimizee):
         # return {'delay': self.random_state.rand() * (self.bound_gr[1] - self.bound_gr[0]) + self.bound_gr[0],
         #      'coupling': self.random_state.rand() * (self.bound_gr2[1] - self.bound_gr2[0]) + self.bound_gr2[0]}
 
-        # representing the S, be, ELE, ELI, T parameters Goldman2023. TODO arrayfy
-        return {'p0': (np.random.rand()*(0.5+0))+0,
-                'p1': (np.random.rand()*(0.5-0))+0,
-                'p2': (np.random.rand()*(-60--80))+-80,
-                'p3': (np.random.rand()*(-60--80))+-80,
-        #         'p4': (np.random.rand()*(40-5))+5
+        # representing the S, be, ELE, ELI, T parameters Goldman2023. Fitting only be for demo
+        # return {'p0': (np.random.rand() * (0 + 100)) + 100}
+        # return {'p0': self.min_max_normalize(np.random.uniform(self.minnorp0, self.maxnorp0), self.minnorp0, self.maxnorp0),
+        #         'p1': self.min_max_normalize(np.random.uniform(self.minnorp1, self.maxnorp1), self.minnorp1, self.maxnorp1),
+                # 'p2': self.min_max_normalize(np.random.uniform(self.minnorp2, self.maxnorp2), self.minnorp2, self.maxnorp2),
+                # 'p3': self.min_max_normalize(np.random.uniform(self.minnorp3, self.maxnorp3), self.minnorp3, self.maxnorp3)
+                # }
+
+        return {'p0': np.random.uniform(self.minnorp0, self.maxnorp0),
+                'p1': np.random.uniform(self.minnorp1, self.maxnorp1),
                 }
+
+    @staticmethod
+    def min_max_normalize(x, min_val, max_val, renormalize=False):
+        if renormalize:
+            return x * (max_val - min_val) + min_val
+        else:
+            return (x - min_val) / (max_val - min_val)
+
+        # representing the (S,) be, ELE, ELI, T parameters Goldman2023. TODO arrayfy
+        # return {'p0': (np.random.rand()*(25+100))-25,
+        #         'p1': (np.random.rand()*(-55--70))+-55,
+        #         'p2': (np.random.rand()*(-55--70))+-55,
+        #         'p3': (np.random.rand()*(1+40))+1,
+        # #         'p4': (np.random.rand()*(40-5))+5
+        #         }
         # for fitting the showcase 1. alpha, beta, gamma, delta scalers for tau_i and Eli. Find out initial values
         # return {'p0': np.random.uniform(0,5,1),
         #         'p1': np.random.uniform(0,5,1),
@@ -141,7 +180,35 @@ class PSEOptimizee(Optimizee):
         #         }
 
     def bounding_func(self, individual):
+
+        # stay positive
+        # if individual['p0'] < 0:
+        #     individual['p0'] = -1*individual['p0']
+        #
+        # # and some stay negative
+        # if individual['p1'] > 0:
+        #     individual['p1'] = -1*individual['p1']
+        #
+        # if individual['p2'] > 0:
+        #     individual['p2'] = -1*individual['p2']
+        #
+        # if individual['p3'] > 0:
+        #     individual['p3'] = -1 * individual['p3']
+
+        # individual = {
+        #     "p0": np.clip(individual['p0'], np.random.uniform(0.00001 ,0.01), np.random.uniform(0.99, 1)),
+        #     "p1": np.clip(individual['p1'], np.random.uniform(0.00001 ,0.01), np.random.uniform(0.99, 1)),
+            # "p2": np.clip(individual['p2'], np.random.uniform(0.00001 ,0.01), np.random.uniform(0.99, 1)),
+            # "p3": np.clip(individual['p3'], np.random.uniform(0.00001 ,0.01), np.random.uniform(0.99, 1))
+            #           }
+
         return individual
+
+        # return {'p0': self.min_max_normalize(np.random.uniform(0, 1), 0, 1),
+        #         'p1': self.min_max_normalize(np.random.uniform(-55, -70), -55, -70),
+        #         'p2': self.min_max_normalize(np.random.uniform(-55, -70), -55, -70),
+        #         'p3': self.min_max_normalize(np.random.uniform(0, 40), 0, 40)
+        #         }
 
 
 def end(self):

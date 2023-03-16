@@ -111,6 +111,15 @@ const float K_ext_i = 0;
 
 #include "zerlaut.h"
 
+__device__ float wrap_it_EI(float EI)
+{
+    float EIdim[] = {0.0, INF};
+    if (EI < EIdim[0]) EI = EIdim[0];
+    else if (EI > EIdim[1]) EI = EIdim[1];
+
+    return EI;
+}
+
 __global__ void zerlaut(
 
         // config
@@ -124,8 +133,15 @@ __global__ void zerlaut(
         )
 {
     // work id & size
-    const unsigned int id = (gridDim.x * blockDim.x * threadIdx.y) + threadIdx.x;
+//    const unsigned int id = (gridDim.x * blockDim.x * threadIdx.y) + threadIdx.x;
     const unsigned int size = n_work_items;
+
+    int blockId = blockIdx.x + blockIdx.y * gridDim.x;
+    // 2d grid with 2d blocks
+    const unsigned int id = blockId * (blockDim.x * blockDim.y) + (threadIdx.y * blockDim.x) + threadIdx.x;
+
+    // 2d grid with 1d blocks
+//    const unsigned int id = blockId * blockDim.x + threadIdx.x;
 
 #define params(i_par) (params_pwi[(size * (i_par)) + id])
 #define state(time, i_node) (state_pwi[((time) * 7 * n_node + (i_node))*size + id])
@@ -137,20 +153,22 @@ __global__ void zerlaut(
     // unpack params
     // Goldman parameters
 //    const float global_coupling = params(0);
+    const float E_L_e = params(0);
+    const float E_L_i = params(1);
+//    const float T = params(3);
+
 //    const float b_e = params(1);
-//    const float E_L_e = params(2);
-//    const float E_L_i = params(3);
-//    const float T = params(4);
+    const float b_e = 60;
 
     const float global_coupling = 0.2;
-    const float b_e = 0;
-    const float E_L_e = -65;
-    const float T = 19;
+//    const float E_L_e = -54;
+//    const float E_L_i = -53;
+    const float T = 15;
 
-    const float alpha_g = params(0);
-    const float beta_g = params(1);
-    const float gamma_g = params(2);
-    const float delta_g = params(3);
+//    const float alpha_g = params(0);
+//    const float beta_g = params(1);
+//    const float gamma_g = params(2);
+//    const float delta_g = params(3);
 
 //    regional variatic variable, init with stupids
     float gaba_ratio[68];
@@ -159,15 +177,15 @@ __global__ void zerlaut(
         gaba_ratio[i]=1;
     }
     float tau_i = 5.0;
-    float E_L_i = -65;
+//    float E_L_i = -65;
 
 //    printf("g%f b%f e%f i%f t%f", global_coupling, b_e, E_L_e, E_L_i, T);
 
 
     // for function pointers
     float mu_V;
-	float sigma_V;
-	float T_V;
+    float sigma_V;
+    float T_V;
 
     // coupling constants, coupling itself is hardcoded in kernel
     const float c_a = 1;
@@ -222,7 +240,9 @@ __global__ void zerlaut(
 
     curandState crndst;
     curand_init(id + (unsigned int) clock64(), 0, 0, &crndst);
+//    curand_init(18446744073709551615, 0, 0, &crndst);
 //    float noise = 0.0;
+//    printf("curand %u\n", clock64());
 
     //***// This is only initialization of the observable
     for (unsigned int i_node = 0; i_node < n_node; i_node++)
@@ -249,7 +269,7 @@ __global__ void zerlaut(
 
             if (t == (i_step)){
                 tavg(i_node + 0 * n_node) = 0;
-                tavg(i_node + 1 * n_node) = 0;
+//                tavg(i_node + 1 * n_node) = 0;
 //                tavg(i_node + 2 * n_node) = 0;
 //                tavg(i_node + 3 * n_node) = 0;
 //                tavg(i_node + 4 * n_node) = 0;
@@ -286,7 +306,7 @@ __global__ void zerlaut(
                 //***// Get the state of node j which is delayed by dij
                 V_j = state(((t - dij_i + nh) % nh), j_node + 0 * n_node);
 
-                // Sum it all together using the coupling function. Kuramoto coupling: (postsyn * presyn) == ((a) * (sin(xj - xi))) 
+                // Sum it all together using the coupling function. Kuramoto coupling: (postsyn * presyn) == ((a) * (sin(xj - xi)))
                 c_pop0 += wij * V_j;
             } // j_node */
 
@@ -382,7 +402,8 @@ __global__ void zerlaut(
                 + C_ei*_diff2_fe_fi
                 + .5*C_ii*_diff2_fi_fi_e
                     )/T);
-//            printf("dE %f \n", dE);
+            // firing rate is always positive
+            dE = wrap_it_EI(dE);
 
             // Inhibitory firing rate derivation
             dI = dt * ((_TF_i - I
@@ -390,6 +411,8 @@ __global__ void zerlaut(
                 + C_ei*_diff2_fi_fe
                 + .5*C_ii*_diff2_fi_fi_i
                     )/T);
+            // firing rate is always positive
+            dI = wrap_it_EI(dI);
 
             // Covariance excitatory-excitatory derivation
             dC_ee = dt * ((_TF_e*(1./T-_TF_e)/N_e
@@ -451,7 +474,7 @@ __global__ void zerlaut(
 
             // Update the observable
             tavg(i_node + 0 * n_node) += E/n_step;
-            tavg(i_node + 1 * n_node) += W_e/n_step;
+//            tavg(i_node + 1 * n_node) += W_e/n_step;
 //            tavg(i_node + 1 * n_node) += I/n_step;
 //            tavg(i_node + 2 * n_node) += C_ee/n_step;
 //            tavg(i_node + 3 * n_node) += C_ei/n_step;

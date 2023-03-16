@@ -24,8 +24,11 @@ void update_cov(
 //    const unsigned int it = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
 //    const unsigned int nt = blockDim.x * gridDim.x * gridDim.y;
 //#endif
+    // index for 2d grid with 2d blocks
+    int blockId = blockIdx.x + blockIdx.y * gridDim.x;
+    const unsigned int it = blockId * (blockDim.x * blockDim.y) + (threadIdx.y * blockDim.x) + threadIdx.x;
 
-    const unsigned int it = (gridDim.x * blockDim.x * threadIdx.y) + threadIdx.x;
+//    const unsigned int it = (gridDim.x * blockDim.x * threadIdx.y) + threadIdx.x; old global index
     const unsigned int size = nwi;
 
     if (it >= size) return;
@@ -104,7 +107,11 @@ void cov_to_corr(
 //    const unsigned int nt = blockDim.x * gridDim.x * gridDim.y;
 //#endif
 
-    const unsigned int it = (gridDim.x * blockDim.x * threadIdx.y) + threadIdx.x;
+    // global index for 2d grid with 2d blocks
+    int blockId = blockIdx.x + blockIdx.y * gridDim.x;
+    const unsigned int it = blockId * (blockDim.x * blockDim.y) + (threadIdx.y * blockDim.x) + threadIdx.x;
+
+//    const unsigned int it = (gridDim.x * blockDim.x * threadIdx.y) + threadIdx.x; old global index
     const unsigned int size = nwi;
 
     if (it >= size) return;
@@ -122,7 +129,7 @@ void cov_to_corr(
     for (int i = 0; i < n_node; i++)
 //    for (unsigned int i = threadIdx.y; i < n_node; i += blockDim.y)
     {
-        if (i >= n_node) continue;
+//        if (i >= n_node) continue;
 
         float var_i = COV(i, i);
         for (unsigned int j = 0; j < n_node; ++j)

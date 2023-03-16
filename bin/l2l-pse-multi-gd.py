@@ -85,17 +85,18 @@ def main():
     experiment = Experiment(root_dir_path='../results')
 
     traj, _ = experiment.prepare_experiment(jube_parameter=jube_params, name=name, log_stdout=True)
-    
 
     # NOTE: Innerloop simulator
-    optimizee = PSEOptimizee(traj, seed=0)
 
     # NOTE: Outerloop optimizer initialization
     # n_random_steps controls the number of individuals and thus the number of processes/nodes spawned
     # TODO: Change the optimizer to the appropriate Optimizer class
-    parameters = MultiRMSPropParameters(learning_rate=0.01, exploration_step_size=0.01,
+    parameters = MultiRMSPropParameters(learning_rate=0.1, exploration_step_size=0.1,
                                    n_random_steps=1, momentum_decay=0.005,
-                                   n_iteration=4, stop_criterion=np.Inf, seed=99, n_inner_params=16)
+                                   n_iteration=88, stop_criterion=np.Inf, seed=99, n_inner_params=1024)
+
+    optimizee = PSEOptimizee(traj, parameters.n_inner_params, seed=0)
+
 
     optimizer = MultiGradientDescentOptimizer(traj, optimizee_create_individual=optimizee.create_individual,
                                          optimizee_fitness_weights=(1,),

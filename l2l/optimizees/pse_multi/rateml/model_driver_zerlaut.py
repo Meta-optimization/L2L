@@ -23,6 +23,9 @@ import matplotlib.pyplot as plt
 import time
 import tqdm
 
+# import sys
+# np.set_printoptions(threshold=sys.maxsize)
+
 here = os.path.dirname(os.path.abspath(__file__))
 headerhere = here
 
@@ -40,15 +43,20 @@ class Driver_Setup:
 		self.connectivity = self.tvb_connectivity(self.args.n_regions)
 		# self.weights = self.connectivity.weights
 		self.weights = self.connectivity.weights / (np.sum(self.connectivity.weights, axis=0) + 1e-12)
+
+		# dump it for visuals
+		# np.savetxt("SCweights.csv", self.connectivity.weights, delimiter=",")
+		# np.savetxt("SClengths.csv", self.connectivity.tract_lengths, delimiter=",")
+
 		self.lengths = self.connectivity.tract_lengths
-		self.tavg_period = 1.0
+		self.tavg_period = 0.1
 		self.n_inner_steps = int(self.tavg_period / self.dt)
 
 		self.params = self.setup_params(
-		self.args.n_sweep_arg0,
-		self.args.n_sweep_arg1,
-		self.args.n_sweep_arg2,
-		self.args.n_sweep_arg3,
+		# self.args.n_sweep_arg0,
+		# self.args.n_sweep_arg1,
+		# self.args.n_sweep_arg2,
+		# self.args.n_sweep_arg3,
 		# self.args.n_sweep_arg4,
 		)
 
@@ -72,8 +80,8 @@ class Driver_Setup:
 		self.logger.info('dt %f', self.dt)
 		self.logger.info('s0 %f', self.args.n_sweep_arg0)
 		self.logger.info('s1 %f', self.args.n_sweep_arg1)
-		self.logger.info('s2 %f', self.args.n_sweep_arg2)
-		self.logger.info('s3 %f', self.args.n_sweep_arg3)
+		# self.logger.info('s2 %f', self.args.n_sweep_arg2)
+		# self.logger.info('s3 %f', self.args.n_sweep_arg3)
 		# self.logger.info('s4 %f', self.args.n_sweep_arg4)
 		self.logger.info('n_nodes %d', self.args.n_regions)
 		self.logger.info('weights.shape %s', self.weights.shape)
@@ -123,8 +131,8 @@ class Driver_Setup:
 		# for every parameter that needs to be swept, the size can be set
 		parser.add_argument('-s0', '--n_sweep_arg0', default=4, help='num grid points for 1st parameter', type=int)
 		parser.add_argument('-s1', '--n_sweep_arg1', default=4, help='num grid points for 2st parameter', type=int)
-		parser.add_argument('-s2', '--n_sweep_arg2', default=4, help='num grid points for 3st parameter', type=int)
-		parser.add_argument('-s3', '--n_sweep_arg3', default=4, help='num grid points for 4st parameter', type=int)
+		# parser.add_argument('-s2', '--n_sweep_arg2', default=4, help='num grid points for 3st parameter', type=int)
+		# parser.add_argument('-s3', '--n_sweep_arg3', default=4, help='num grid points for 4st parameter', type=int)
 		# parser.add_argument('-s4', '--n_sweep_arg4', default=4, help='num grid points for 5st parameter', type=int)
 		parser.add_argument('-n', '--n_time', default=400, help='number of time steps to do', type=int)
 		parser.add_argument('-v', '--verbose', default=False, help='increase logging verbosity', action='store_true')
@@ -153,44 +161,43 @@ class Driver_Setup:
 	# E_L_i = -64
 	# T = 19
 	def setup_params(self,
-		 n0,
-		 n1,
-		 n2,
-		 n3,
+		 # n0,
+		 # n1,
+		 # n2,
+		 # n3,
 		 # n4,
 		 ):
 		'''
         This code generates the parameters ranges that need to be set
         '''
 		# sweeparam0 = np.linspace(0.2, 0.2, n0)
-		# sweeparam1 = np.linspace(60, 60, n1)
-		# sweeparam2 = np.linspace(-63, -63, n2)
-		# sweeparam3 = np.linspace(-65, -65, n3)
-		# sweeparam4 = np.linspace(40, 40, n4)
-
-		# original sweeps
-		# sweeparam0 = np.linspace(0, 0.5, n0)
-		# sweeparam1 = np.linspace(0, 120, n1)
-		# sweeparam2 = np.linspace(-80, -60, n2)
-		# sweeparam3 = np.linspace(-80, -60, n3)
-		# sweeparam4 = np.linspace(5, 40, n4)
-
-		# params = itertools.product(
-		# 	paramslist[0],
-		# 	paramslist[1],
-		# 	paramslist[2],
-		# 	paramslist[3],
-		# 	paramslist[4],
-		# )
+		# s0 = np.linspace(-64, -64, self.args.n_sweep_arg0)
+		# s1 = np.linspace(-64, -64, self.args.n_sweep_arg1)
+		# s2 = np.linspace(-64, -64, self.args.n_sweep_arg2)
+		# s3 = np.linspace(19, 19, self.args.n_sweep_arg3)
+		#
+		# # original sweeps
+		# # sweeparam0 = np.linspace(0, 0.5, n0)
+		# # sweeparam1 = np.linspace(0, 120, n1)
+		# # sweeparam2 = np.linspace(-80, -60, n2)
+		# # sweeparam3 = np.linspace(-80, -60, n3)
+		# # sweeparam4 = np.linspace(5, 40, n4)
+		#
+		# params = itertools.product(s0, s1, s2, s3)
+		# params = itertools.product(s0, s1)
 		# params = np.array([vals for vals in params], np.float32)
 
-		# unpickle itertooled file from L2L
+		# unpickle file from L2L
 		paramsfile = open(f'/p/project/cslns/vandervlag1/L2Lnew/L2L/l2l/optimizees/pse_multi/rateml/sweepars_{self.args.procid}', 'rb')
 		params = pickle.load(paramsfile)
 		paramsfile.close()
 
+		print('paramsvar', np.var(params, axis=0))
+
 		print('paramsonTVB', params.shape)
 		print('params', params)
+		print('paramsnan?', np.where(np.isnan(params)))
+
 		return params
 
 
@@ -464,14 +471,14 @@ class Driver_Execute(Driver_Setup):
 
 				tavgk = 'tavg%d' % ((i + 1) % 2,)
 
-				if i >= (nstep // 2):
-					i_time = i - nstep // 2
-					# update_cov (covar_cov is output, tavgk and covar_means are input)
-					covar_fn(np.uintc(i_time), np.uintc(self.args.n_regions), np.uintc(self.n_work_items),
-							 gpu_data['covar_cov'], gpu_data['covar_means'], gpu_data[tavgk],
-							 # gpu_data['corr'], gpu_data['covar_means'], gpu_data[tavgk],
-							 block=final_block_dim, grid=final_grid_dim,
-							 stream=stream)
+				# if i >= (nstep // 2):
+				# 	i_time = i - nstep // 2
+				# 	# update_cov (covar_cov is output, tavgk and covar_means are input)
+				# 	covar_fn(np.uintc(i_time), np.uintc(self.args.n_regions), np.uintc(self.n_work_items),
+				# 			 gpu_data['covar_cov'], gpu_data['covar_means'], gpu_data[tavgk],
+				# 			 # gpu_data['corr'], gpu_data['covar_means'], gpu_data[tavgk],
+				# 			 block=final_block_dim, grid=final_grid_dim,
+				# 			 stream=stream)
 
 				# async wrt. other streams & host, but not this stream.
 				if i >= n_streams:
@@ -480,13 +487,13 @@ class Driver_Execute(Driver_Setup):
 
 				drv.memcpy_dtoh_async(tavg[i % n_streams], gpu_data[tavgk].ptr, stream=stream)
 
-				if i == (nstep - 1):
-				# cov_to_corr(covar_cov is input, and corr output)
-					cov_corr_fn(np.uintc(nstep // 2), np.uintc(self.args.n_regions), np.uintc(self.n_work_items),
-								gpu_data['covar_cov'], gpu_data['corr'],
-								# block=(couplings.size, 1, 1), grid=(speeds.size, 1), stream=stream)
-								block=final_block_dim, grid=final_grid_dim,
-								stream=stream)
+				# if i == (nstep - 1):
+				# # cov_to_corr(covar_cov is input, and corr output)
+				# 	cov_corr_fn(np.uintc(nstep // 2), np.uintc(self.args.n_regions), np.uintc(self.n_work_items),
+				# 				gpu_data['covar_cov'], gpu_data['corr'],
+				# 				# block=(couplings.size, 1, 1), grid=(speeds.size, 1), stream=stream)
+				# 				block=final_block_dim, grid=final_grid_dim,
+				# 				stream=stream)
 
 			# recover uncopied data from pinned buffer
 			if nstep > n_streams:
@@ -533,6 +540,15 @@ class Driver_Execute(Driver_Setup):
 		pickle.dump(tavg, tavg_file)
 		tavg_file.close()
 
+	def write_output_corr(self, corr):
+		from datetime import datetime
+		# timestring = datetime.now().strftime("%d.%m.%Y-%H:%M:%S")
+
+		filename = '/corr'
+		corr_file = open(here + filename, 'wb')
+		pickle.dump(corr, corr_file)
+		corr_file.close()
+
 	def calc_corrcoef(self, corr):
 		# calculate correlation between SC and simulated FC. SC is the weights of TVB simulation.
 		SC = self.connectivity.weights / self.connectivity.weights.max()
@@ -541,6 +557,39 @@ class Driver_Execute(Driver_Setup):
 			ccFCSC[i] = np.corrcoef(corr[:, :, i].ravel(), SC.ravel())[0, 1]
 
 		return ccFCSC
+
+	def calc_corrcoef_FC(self, corr):
+		# calculate correlation between simulated FC from Goldman simulation for specific set of params for Ex
+		# and Inhibitory firing rates. 68 nodes need be the case
+		# shape of the Goldman FC
+		pearsonfile = open('/p/project/cslns/vandervlag1/L2Lnew/L2L/l2l/optimizees/pse_multi/rateml/pearson_0.4_72_-64_-64_19', 'rb')
+		FCExIn = pickle.load(pearsonfile)
+		pearsonfile.close()
+
+		SC = self.connectivity.weights / self.connectivity.weights.max()
+
+		# print("SCshapee", SC.shape)
+		# print("corrshape", corr.shape)
+		# print("FCXIshape", FCExIn.shape[:][:][0])
+
+		ccFCFC = np.zeros(self.n_work_items, 'f')
+		for i in range(self.n_work_items):
+			ccFCFC[i] = np.corrcoef(
+				corr[:,:,i].ravel(),
+				FCExIn[:,:,0].ravel())[0, 1]
+
+		# print(FCExIn[:,:,0])
+
+		return ccFCFC
+
+	def calc_corrcoef_TAVG(self, tavg, cut_transient):
+		# calc pearon with numpy
+		tavgFC = np.zeros((68, 68, self.n_work_items), 'f')
+		for i in range(self.n_work_items):
+			tavgFC[:, :, i] = np.corrcoef(np.transpose(tavg[cut_transient:, 0, :, i]) * 1e3)
+
+		return tavgFC
+
 
 	def run_all(self):
 
@@ -557,26 +606,42 @@ class Driver_Execute(Driver_Setup):
 
 		self.plot_output(tavg0) if self.args.plot_data is not None else None
 		self.write_output(tavg0) if self.args.write_data else None
+		self.write_output_corr(corr) if self.args.write_data else None
 		self.logger.info('Output shape (simsteps, states, bnodes, n_params) %s', tavg0.shape)
 		self.logger.info('Finished CUDA simulation successfully in: {0:.3f}'.format(elapsed))
 		self.logger.info('and in {0:.3f} M step/s'.format(
 			1e-6 * self.args.n_time * self.n_inner_steps * self.n_work_items / elapsed))
 
+		# cut transient relative to sim time
+		# cut_transient = 2 * self.args.n_time // 5
+		cut_transient = 2000
+
+		tavgFC = self.calc_corrcoef_TAVG(tavg0, cut_transient)
+
 		# the functional structural correlation computation
 		# self.logger.info('tavg0 %s', tavg0)
-		self.logger.info('corr %s', corr.shape)
+		# self.logger.info('corr %s', corr.shape)
 		# self.logger.info('corr %s', corr)
-		ccFCSC = self.calc_corrcoef(corr)
-		self.logger.info('ccFCSC %s', ccFCSC.shape)
-		self.logger.info('ccFCSC %s', ccFCSC)
+		# ccFCSC = self.calc_corrcoef(corr)
+		ccFCFC = self.calc_corrcoef_FC(tavgFC)
+		self.logger.info('tavgFC %s', tavgFC.shape)
+		# self.logger.info('tavgFC %s', tavgFC)
+		self.logger.info('fitness shape %s', ccFCFC.shape)
+		self.logger.info('max fitness %s', np.max(ccFCFC))
 		resL2L_file = open(f'/p/project/cslns/vandervlag1/L2Lnew/L2L/l2l/optimizees/pse_multi/rateml/result_{self.args.procid}', 'wb')
-		pickle.dump(self.calc_corrcoef(corr), resL2L_file)
+		pickle.dump(ccFCFC, resL2L_file)
+		# pickle.dump(self.calc_corrcoef(corr), resL2L_file)
 		resL2L_file.close()
 
-		return tavg0
+		# where are the nans
+		print('tavgnan?', np.where(np.isnan(tavg0)))
+		print('tavgFCnan?', np.where(np.isnan(tavgFC)))
+		print('fcfcnan?', np.where(np.isnan(ccFCFC)))
+
+		return
 
 
 if __name__ == '__main__':
 
 	driver_setup = Driver_Setup()
-	tavgGPU = Driver_Execute(driver_setup).run_all()
+	Driver_Execute(driver_setup).run_all()

@@ -14,7 +14,7 @@ logger = logging.getLogger("l2l-pse")
 
 class PSEOptimizee(Optimizee):
 
-    def __init__(self, trajectory, inner_params, seed=27):
+    def __init__(self, trajectory, seed=27):
 
         super(PSEOptimizee, self).__init__(trajectory)
         # If needed
@@ -28,8 +28,6 @@ class PSEOptimizee(Optimizee):
         # self.maxnorp2 = -55
         # self.minnorp3 = 1
         # self.maxnorp3 = 40
-
-        # self.inner_params = inner_params
 
     def simulate(self, trajectory):
         self.id = trajectory.individual.ind_idx

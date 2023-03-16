@@ -30,6 +30,7 @@ class Environment:
             self.multiprocessing = keyword_args['multiprocessing']
         self.run_id = 0
         self.enable_logging()
+        self.trajectory.debug = keyword_args['debug']
 
     def run(self, runfunc):
         """

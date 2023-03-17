@@ -543,7 +543,7 @@ class Driver_Execute(Driver_Setup):
 
 		filename = '/tavg_data'
 		tavg_file = open(here + filename, 'wb')
-		pickle.dump(tavg[cut_transient:, :, :, :], tavg_file)
+		pickle.dump(tavg[cut_transient:, :, :, ::100], tavg_file)
 		tavg_file.close()
 
 	def write_output_corr(self, corr):

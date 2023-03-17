@@ -29,7 +29,10 @@ import tqdm
 here = os.path.dirname(os.path.abspath(__file__))
 headerhere = here
 
-os.chdir("$PROJECT/$USER/L2L/l2l/optimizees/pse_multi/")
+PROJECT = os.getenv('PROJECT')
+USER = os.getenv('USER')
+os.chdir("PROJECT/USER/L2L/l2l/optimizees/pse_multi/")
+print("wp modeldriver", os.getcwd())
 
 class Driver_Setup:
 

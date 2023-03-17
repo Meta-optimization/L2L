@@ -49,7 +49,7 @@ class PSEOptimizee(Optimizee):
 
         import os
         # print("wp", os.getcwd())
-        os.chdir("/p/project/cslns/vandervlag1/L2Lnew/L2L/l2l/optimizees/pse_multi/")
+        os.chdir("$PROJECT/$USER/L2L/l2l/optimizees/pse_multi/")
         # print("wp", os.getcwd())
 
         # Pickle the L2L produced parameters such that your application can pick them up

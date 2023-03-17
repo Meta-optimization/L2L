@@ -307,7 +307,7 @@ class Driver_Execute(Driver_Setup):
 
 				step_fn = network_module.get_function(mod_func)
 
-			with open('rateml/covar.c', 'r') as fd:
+			with open('/covar.c', 'r') as fd:
 				source = fd.read()
 				opts = ['-ftz=true']  # for faster rsqrtf in corr
 				opts.append('-DWARP_SIZE=%d' % (warp_size,))
@@ -568,7 +568,7 @@ class Driver_Execute(Driver_Setup):
 		# calculate correlation between simulated FC from Goldman simulation for specific set of params for Ex
 		# and Inhibitory firing rates. 68 nodes need be the case
 		# shape of the Goldman FC
-		pearsonfile = open('rateml/pearson_0.4_72_-64_-64_19', 'rb')
+		pearsonfile = open('/pearson_0.4_72_-64_-64_19', 'rb')
 		FCExIn = pickle.load(pearsonfile)
 		pearsonfile.close()
 

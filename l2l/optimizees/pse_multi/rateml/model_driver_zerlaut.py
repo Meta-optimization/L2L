@@ -194,7 +194,7 @@ class Driver_Setup:
 		# params = np.array([vals for vals in params], np.float32)
 
 		# unpickle file from L2L
-		paramsfile = open(f'rateml/sweepars_{self.args.procid}', 'rb')
+		paramsfile = open(here + f'/sweepars_{self.args.procid}', 'rb')
 		params = pickle.load(paramsfile)
 		paramsfile.close()
 

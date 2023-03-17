@@ -28,10 +28,11 @@ import tqdm
 
 here = os.path.dirname(os.path.abspath(__file__))
 headerhere = here
+print("here", here)
 
 PROJECT = os.getenv('PROJECT')
 USER = os.getenv('USER')
-os.chdir("PROJECT/USER/L2L/l2l/optimizees/pse_multi/")
+os.chdir(PROJECT+USER+"/L2L/l2l/optimizees/pse_multi/")
 print("wp modeldriver", os.getcwd())
 
 class Driver_Setup:
@@ -126,7 +127,7 @@ class Driver_Setup:
 	def tvb_connectivity(self, tvbnodes):
 		# white_matter = connectivity.Connectivity.from_file(source_file="connectivity_"+str(tvbnodes)+".zip")
 		# white_matter = connectivity.Connectivity.from_file(source_file="paupau.zip")
-		white_matter = connectivity.Connectivity.from_file(source_file= here + "rateml/connectivity_zerlaut_68.zip")
+		white_matter = connectivity.Connectivity.from_file(source_file= here + "/connectivity_zerlaut_68.zip")
 		white_matter.configure()
 		return white_matter
 
@@ -386,7 +387,7 @@ class Driver_Execute(Driver_Setup):
 		# setup CUDA stuff#{{{
 		step_fn, covar_fn, cov_corr_fn = self.make_kernel(
 			# source_file=self.args.filename,
-			source_file=here + 'rateml/zerlaut.c',
+			source_file=here + '/zerlaut.c',
 			warp_size=32,
 			# block_dim_x=self.args.n_sweep_arg0,
 			# ext_options=preproccesor_defines,
@@ -540,7 +541,7 @@ class Driver_Execute(Driver_Setup):
 		from datetime import datetime
 		# timestring = datetime.now().strftime("%d.%m.%Y-%H:%M:%S")
 
-		filename = 'rateml/tavg_data'
+		filename = '/tavg_data'
 		tavg_file = open(here + filename, 'wb')
 		pickle.dump(tavg, tavg_file)
 		tavg_file.close()

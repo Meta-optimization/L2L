@@ -57,6 +57,7 @@ class PSEOptimizee(Optimizee):
         here = os.path.dirname(os.path.abspath(__file__))
         headerhere = here
         os.chdir(here)
+        print('here in optimizee', here)
 
         # Pickle the L2L produced parameters such that your application can pick them up
         # Already make them GPU TVB proof such to pack a single file
@@ -90,7 +91,7 @@ class PSEOptimizee(Optimizee):
                             # '-s2', '8',
                             # '-s3', '8',
                             # '-s4', '8',
-                            '-n', '5000', '-v', '-sm', '3',
+                            '-n', '5000', '-v', '-sm', '3', '-w',
                             # '--tvbn', '76', '--stts', '2',
                             '--procid', str(self.id)], check=True)
         except subprocess.CalledProcessError:

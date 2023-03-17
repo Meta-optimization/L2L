@@ -30,9 +30,9 @@ here = os.path.dirname(os.path.abspath(__file__))
 headerhere = here
 print("here", here)
 
-PROJECT = os.getenv('PROJECT')
-USER = os.getenv('USER')
-os.chdir(PROJECT+USER+"/L2L/l2l/optimizees/pse_multi/")
+# PROJECT = os.getenv('PROJECT')
+# USER = os.getenv('USER')
+# os.chdir(PROJECT+USER+"/L2L/l2l/optimizees/pse_multi/")
 print("wp modeldriver", os.getcwd())
 
 class Driver_Setup:
@@ -537,13 +537,13 @@ class Driver_Execute(Driver_Setup):
 		plt.plot((tavg[:, self.args.plot_data, :, 0]), 'k', alpha=.2)
 		plt.show()
 
-	def write_output(self, tavg):
+	def write_output(self, tavg, cut_transient):
 		from datetime import datetime
 		# timestring = datetime.now().strftime("%d.%m.%Y-%H:%M:%S")
 
 		filename = '/tavg_data'
 		tavg_file = open(here + filename, 'wb')
-		pickle.dump(tavg, tavg_file)
+                pickle.dump(tavg[cut_transient:, :, :, :], tavg_file)
 		tavg_file.close()
 
 	def write_output_corr(self, corr):
@@ -610,8 +610,10 @@ class Driver_Execute(Driver_Setup):
 		if (self.args.validate == True):
 			self.compare_with_ref(tavg0)
 
+                cut_transient = 2000
+
 		self.plot_output(tavg0) if self.args.plot_data is not None else None
-		self.write_output(tavg0) if self.args.write_data else None
+		self.write_output(tavg0, cut_transient) if self.args.write_data else None
 		self.write_output_corr(corr) if self.args.write_data else None
 		self.logger.info('Output shape (simsteps, states, bnodes, n_params) %s', tavg0.shape)
 		self.logger.info('Finished CUDA simulation successfully in: {0:.3f}'.format(elapsed))
@@ -634,7 +636,7 @@ class Driver_Execute(Driver_Setup):
 		# self.logger.info('tavgFC %s', tavgFC)
 		self.logger.info('fitness shape %s', ccFCFC.shape)
 		self.logger.info('max fitness %s', np.max(ccFCFC))
-		resL2L_file = open(f'rateml/result_{self.args.procid}', 'wb')
+		resL2L_file = open(here + f'/result_{self.args.procid}', 'wb')
 		pickle.dump(ccFCFC, resL2L_file)
 		# pickle.dump(self.calc_corrcoef(corr), resL2L_file)
 		resL2L_file.close()

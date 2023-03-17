@@ -610,7 +610,7 @@ class Driver_Execute(Driver_Setup):
 		if (self.args.validate == True):
 			self.compare_with_ref(tavg0)
 
-                cut_transient = 2000
+		cut_transient = 2000
 
 		self.plot_output(tavg0) if self.args.plot_data is not None else None
 		self.write_output(tavg0, cut_transient) if self.args.write_data else None

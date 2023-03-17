@@ -269,7 +269,7 @@ __global__ void zerlaut(
 
             if (t == (i_step)){
                 tavg(i_node + 0 * n_node) = 0;
-//                tavg(i_node + 1 * n_node) = 0;
+                tavg(i_node + 1 * n_node) = 0;
 //                tavg(i_node + 2 * n_node) = 0;
 //                tavg(i_node + 3 * n_node) = 0;
 //                tavg(i_node + 4 * n_node) = 0;
@@ -475,7 +475,7 @@ __global__ void zerlaut(
             // Update the observable
             tavg(i_node + 0 * n_node) += E/n_step;
 //            tavg(i_node + 1 * n_node) += W_e/n_step;
-//            tavg(i_node + 1 * n_node) += I/n_step;
+            tavg(i_node + 1 * n_node) += I/n_step;
 //            tavg(i_node + 2 * n_node) += C_ee/n_step;
 //            tavg(i_node + 3 * n_node) += C_ei/n_step;
 //            tavg(i_node + 4 * n_node) += C_ii/n_step;

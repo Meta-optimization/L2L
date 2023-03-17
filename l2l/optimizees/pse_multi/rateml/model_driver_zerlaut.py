@@ -144,7 +144,7 @@ class Driver_Setup:
 		parser.add_argument('-v', '--verbose', default=False, help='increase logging verbosity', action='store_true')
 		parser.add_argument('-m', '--model', default='zerlaut_func', help="neural mass model to be used during the simulation")
 		parser.add_argument('-s', '--states', default=8, type=int, help="number of states for model")
-		parser.add_argument('-x', '--exposures', default=1, type=int, help="number of exposures for model")
+		parser.add_argument('-x', '--exposures', default=2, type=int, help="number of exposures for model")
 		parser.add_argument('-l', '--lineinfo', default=False, help='generate line-number information for device code.', action='store_true')
 		parser.add_argument('-bx', '--blockszx', default=32, type=int, help="gpu block size x")
 		parser.add_argument('-by', '--blockszy', default=32, type=int, help="gpu block size y")

@@ -188,7 +188,7 @@ class Driver_Setup:
 		# params = np.array([vals for vals in params], np.float32)
 
 		# unpickle file from L2L
-		paramsfile = open(f'/p/project/cslns/vandervlag1/L2Lnew/L2L/l2l/optimizees/pse_multi/rateml/sweepars_{self.args.procid}', 'rb')
+		paramsfile = open(f'rateml/sweepars_{self.args.procid}', 'rb')
 		params = pickle.load(paramsfile)
 		paramsfile.close()
 
@@ -301,7 +301,7 @@ class Driver_Execute(Driver_Setup):
 
 				step_fn = network_module.get_function(mod_func)
 
-			with open('/p/project/cslns/vandervlag1/L2Lnew/L2L/l2l/optimizees/pse_multi/rateml/covar.c', 'r') as fd:
+			with open('rateml/covar.c', 'r') as fd:
 				source = fd.read()
 				opts = ['-ftz=true']  # for faster rsqrtf in corr
 				opts.append('-DWARP_SIZE=%d' % (warp_size,))
@@ -533,9 +533,9 @@ class Driver_Execute(Driver_Setup):
 
 	def write_output(self, tavg):
 		from datetime import datetime
-		timestring = datetime.now().strftime("%d.%m.%Y-%H:%M:%S")
+		# timestring = datetime.now().strftime("%d.%m.%Y-%H:%M:%S")
 
-		filename = '/tavg_data_' + timestring
+		filename = '/tavg_data'
 		tavg_file = open(here + filename, 'wb')
 		pickle.dump(tavg, tavg_file)
 		tavg_file.close()
@@ -562,7 +562,7 @@ class Driver_Execute(Driver_Setup):
 		# calculate correlation between simulated FC from Goldman simulation for specific set of params for Ex
 		# and Inhibitory firing rates. 68 nodes need be the case
 		# shape of the Goldman FC
-		pearsonfile = open('/p/project/cslns/vandervlag1/L2Lnew/L2L/l2l/optimizees/pse_multi/rateml/pearson_0.4_72_-64_-64_19', 'rb')
+		pearsonfile = open('rateml/pearson_0.4_72_-64_-64_19', 'rb')
 		FCExIn = pickle.load(pearsonfile)
 		pearsonfile.close()
 
@@ -628,7 +628,7 @@ class Driver_Execute(Driver_Setup):
 		# self.logger.info('tavgFC %s', tavgFC)
 		self.logger.info('fitness shape %s', ccFCFC.shape)
 		self.logger.info('max fitness %s', np.max(ccFCFC))
-		resL2L_file = open(f'/p/project/cslns/vandervlag1/L2Lnew/L2L/l2l/optimizees/pse_multi/rateml/result_{self.args.procid}', 'wb')
+		resL2L_file = open(f'rateml/result_{self.args.procid}', 'wb')
 		pickle.dump(ccFCFC, resL2L_file)
 		# pickle.dump(self.calc_corrcoef(corr), resL2L_file)
 		resL2L_file.close()

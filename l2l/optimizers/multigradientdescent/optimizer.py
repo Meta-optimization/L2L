@@ -313,7 +313,7 @@ class MultiGradientDescentOptimizer(Optimizer):
         # print('oepashapafter', old_eval_pop_as_array)
         fitness_sorting_indices = np.array(fitness_sorting_indices).squeeze()
 
-        print('fitness_sorting_indices', fitness_sorting_indices.shape, ' ', )
+        # print('fitness_sorting_indices', fitness_sorting_indices.shape, ' ', )
         # Sorting the data according to fitness and taking the highest index
         best_index = fitness_sorting_indices[0]
         best_individual = old_eval_pop_as_array[best_index]

@@ -58,7 +58,7 @@
 // regular global constants
 const float g_L = 10.0;
 const float C_m = 200.0;
-const float a_e = 4.0;
+const float a_e = 0.0;
 const float b_i = 0.0;
 const float a_i = 0.0;
 const float tau_w_e = 500.0;
@@ -104,8 +104,8 @@ const float external_input_in_ex = 0.315*1e-3;
 const float external_input_in_in = 0.000;
 // adjusted to 1.25 to scale the noise to tvb
 const float tau_OU = 5;
-//const float weight_noise = 1e-4;
-const float weight_noise = 10.5;
+const float weight_noise = 1e-4;
+//const float weight_noise = 10.5;
 const float K_ext_e = 400;
 const float K_ext_i = 0;
 
@@ -113,7 +113,7 @@ const float K_ext_i = 0;
 
 __device__ float wrap_it_EI(float EI)
 {
-    float EIdim[] = {0.0, INF};
+    float EIdim[] = {0.0, 3000};
     if (EI < EIdim[0]) EI = EIdim[0];
     else if (EI > EIdim[1]) EI = EIdim[1];
 
@@ -137,6 +137,7 @@ __global__ void zerlaut(
     const unsigned int size = n_work_items;
 
     int blockId = blockIdx.x + blockIdx.y * gridDim.x;
+//    const unsigned int id = (gridDim.x * blockDim.x * threadIdx.y) + threadIdx.x;
     // 2d grid with 2d blocks
     const unsigned int id = blockId * (blockDim.x * blockDim.y) + (threadIdx.y * blockDim.x) + threadIdx.x;
 
@@ -152,18 +153,23 @@ __global__ void zerlaut(
 
     // unpack params
     // Goldman parameters
-//    const float global_coupling = params(0);
-    const float E_L_e = params(0);
-    const float E_L_i = params(1);
-//    const float T = params(3);
+    const float global_coupling = params(0);
+    const float b_e = params(1);
+    const float E_L_e = params(2);
+    const float E_L_i = params(3);
+    const float T = params(4);
 
 //    const float b_e = params(1);
-    const float b_e = 60;
 
-    const float global_coupling = 0.2;
-//    const float E_L_e = -54;
-//    const float E_L_i = -53;
-    const float T = 15;
+
+//    const float global_coupling = 0.2;
+//    const float E_L_e = -63;
+//    const float E_L_i = -65;
+//    const float T = 40;
+
+//    const float tau_OU = params(0);
+//    const float weight_noise = params(1);
+
 
 //    const float alpha_g = params(0);
 //    const float beta_g = params(1);
@@ -403,7 +409,9 @@ __global__ void zerlaut(
                 + .5*C_ii*_diff2_fi_fi_e
                     )/T);
             // firing rate is always positive
-            dE = wrap_it_EI(dE);
+            
+	    // if (dE<0) dE=0.0;
+	    // dE = wrap_it_EI(dE);
 
             // Inhibitory firing rate derivation
             dI = dt * ((_TF_i - I
@@ -412,7 +420,8 @@ __global__ void zerlaut(
                 + .5*C_ii*_diff2_fi_fi_i
                     )/T);
             // firing rate is always positive
-            dI = wrap_it_EI(dI);
+            // if (dI<0) dI=0.0;
+	    //dI = wrap_it_EI(dI);
 
             // Covariance excitatory-excitatory derivation
             dC_ee = dt * ((_TF_e*(1./T-_TF_e)/N_e

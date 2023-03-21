@@ -23,6 +23,7 @@ import matplotlib.pyplot as plt
 import time
 import tqdm
 
+np.set_printoptions(precision=2)
 # import sys
 # np.set_printoptions(threshold=sys.maxsize)
 
@@ -55,7 +56,7 @@ class Driver_Setup:
 		# np.savetxt("SClengths.csv", self.connectivity.tract_lengths, delimiter=",")
 
 		self.lengths = self.connectivity.tract_lengths
-		self.tavg_period = 0.1
+		self.tavg_period = 1
 		self.n_inner_steps = int(self.tavg_period / self.dt)
 
 		self.params = self.setup_params(
@@ -137,9 +138,9 @@ class Driver_Setup:
 		# for every parameter that needs to be swept, the size can be set
 		parser.add_argument('-s0', '--n_sweep_arg0', default=4, help='num grid points for 1st parameter', type=int)
 		parser.add_argument('-s1', '--n_sweep_arg1', default=4, help='num grid points for 2st parameter', type=int)
-		# parser.add_argument('-s2', '--n_sweep_arg2', default=4, help='num grid points for 3st parameter', type=int)
-		# parser.add_argument('-s3', '--n_sweep_arg3', default=4, help='num grid points for 4st parameter', type=int)
-		# parser.add_argument('-s4', '--n_sweep_arg4', default=4, help='num grid points for 5st parameter', type=int)
+		parser.add_argument('-s2', '--n_sweep_arg2', default=0, help='num grid points for 3st parameter', type=int)
+		parser.add_argument('-s3', '--n_sweep_arg3', default=0, help='num grid points for 4st parameter', type=int)
+		parser.add_argument('-s4', '--n_sweep_arg4', default=0, help='num grid points for 5st parameter', type=int)
 		parser.add_argument('-n', '--n_time', default=400, help='number of time steps to do', type=int)
 		parser.add_argument('-v', '--verbose', default=False, help='increase logging verbosity', action='store_true')
 		parser.add_argument('-m', '--model', default='zerlaut_func', help="neural mass model to be used during the simulation")
@@ -156,6 +157,7 @@ class Driver_Setup:
 		parser.add_argument('-dt', '--delta_time', default=0.1, type=float, help="dt for simulation")
 		parser.add_argument('-sm', '--speeds_min', default=1, type=float, help="min speed for temporal buffer")
 		parser.add_argument('--procid', default="0", type=int, help="Number of L2L processes(Only when in L2L)")
+		parser.add_argument('-gs', '--grid_search', default=False, help="enablel grid search", action='store_true')
 
 		args = parser.parse_args()
 		return args
@@ -177,26 +179,27 @@ class Driver_Setup:
         This code generates the parameters ranges that need to be set
         '''
 		# sweeparam0 = np.linspace(0.2, 0.2, n0)
-		# s0 = np.linspace(-64, -64, self.args.n_sweep_arg0)
-		# s1 = np.linspace(-64, -64, self.args.n_sweep_arg1)
+		# s0 = np.linspace(-80, -60, self.args.n_sweep_arg0)
+		# s1 = np.linspace(-80, -60, self.args.n_sweep_arg1)
 		# s2 = np.linspace(-64, -64, self.args.n_sweep_arg2)
 		# s3 = np.linspace(19, 19, self.args.n_sweep_arg3)
 		#
-		# # original sweeps
-		# # sweeparam0 = np.linspace(0, 0.5, n0)
-		# # sweeparam1 = np.linspace(0, 120, n1)
-		# # sweeparam2 = np.linspace(-80, -60, n2)
-		# # sweeparam3 = np.linspace(-80, -60, n3)
-		# # sweeparam4 = np.linspace(5, 40, n4)
-		#
-		# params = itertools.product(s0, s1, s2, s3)
-		# params = itertools.product(s0, s1)
-		# params = np.array([vals for vals in params], np.float32)
-
-		# unpickle file from L2L
-		paramsfile = open(here + f'/sweepars_{self.args.procid}', 'rb')
-		params = pickle.load(paramsfile)
-		paramsfile.close()
+		if self.args.grid_search:
+			# original sweeps
+			s0 = np.linspace(0.10, 0.90, self.args.n_sweep_arg0)
+			s1 = np.linspace(1.00, 120.00, self.args.n_sweep_arg1)
+			s2 = np.linspace(-80.00, -60.00, self.args.n_sweep_arg2)
+			s3 = np.linspace(-80.00, -60.00, self.args.n_sweep_arg3)
+			s4 = np.linspace(5.00, 40.00, self.args.n_sweep_arg4)
+			#
+			params = itertools.product(s0, s1, s2, s3, s4)
+			# params = itertools.product(s0, s1)
+			params = np.array([vals for vals in params], np.float32)
+		else:
+			# unpickle file from L2L
+			paramsfile = open(here + f'/sweepars_{self.args.procid}', 'rb')
+			params = pickle.load(paramsfile)
+			paramsfile.close()
 
 		print('paramsvar', np.var(params, axis=0))
 
@@ -307,7 +310,7 @@ class Driver_Execute(Driver_Setup):
 
 				step_fn = network_module.get_function(mod_func)
 
-			with open('/covar.c', 'r') as fd:
+			with open(here + '/covar.c', 'r') as fd:
 				source = fd.read()
 				opts = ['-ftz=true']  # for faster rsqrtf in corr
 				opts.append('-DWARP_SIZE=%d' % (warp_size,))
@@ -369,9 +372,9 @@ class Driver_Execute(Driver_Setup):
 			tavg0=(self.exposures, self.args.n_regions,),
 			tavg1=(self.exposures, self.args.n_regions,),
 			state=(self.buf_len, self.states * self.args.n_regions),
-			covar_means=(2 * self.args.n_regions,),
-			covar_cov=(self.args.n_regions, self.args.n_regions,),
-			corr=(self.args.n_regions, self.args.n_regions,),
+			# covar_means=(2 * self.args.n_regions,),
+			# covar_cov=(self.args.n_regions, self.args.n_regions,),
+			# corr=(self.args.n_regions, self.args.n_regions,),
 			).items():
 			# memory error exception for compute device
 			try:
@@ -511,7 +514,7 @@ class Driver_Execute(Driver_Setup):
 				stream.synchronize()
 				tavg_unpinned.append(tavg[i].copy())
 
-			corr = gpu_data['corr'].get()
+			# corr = gpu_data['corr'].get()
 
 		except drv.LogicError as e:
 			self.logger.error('%s. Check the number of states of the model or '
@@ -531,19 +534,20 @@ class Driver_Execute(Driver_Setup):
 		self.release_gpumem(gpu_data)
 
 		self.logger.info('kernel finished')
+		corr = 0
 		return tavg, corr
 
 	def plot_output(self, tavg):
 		plt.plot((tavg[:, self.args.plot_data, :, 0]), 'k', alpha=.2)
 		plt.show()
 
-	def write_output(self, tavg, cut_transient):
+	def write_output(self, tavg, cut_transient, bestindex):
 		from datetime import datetime
 		# timestring = datetime.now().strftime("%d.%m.%Y-%H:%M:%S")
 
 		filename = '/tavg_data'
 		tavg_file = open(here + filename, 'wb')
-		pickle.dump(tavg[cut_transient:, :, :, ::100], tavg_file)
+		pickle.dump(tavg[cut_transient:, :, :, bestindex], tavg_file)
 		tavg_file.close()
 
 	def write_output_corr(self, corr):
@@ -568,7 +572,7 @@ class Driver_Execute(Driver_Setup):
 		# calculate correlation between simulated FC from Goldman simulation for specific set of params for Ex
 		# and Inhibitory firing rates. 68 nodes need be the case
 		# shape of the Goldman FC
-		pearsonfile = open('/pearson_0.4_72_-64_-64_19', 'rb')
+		pearsonfile = open(here + '/pearson_0.4_72_-64_-64_19', 'rb')
 		FCExIn = pickle.load(pearsonfile)
 		pearsonfile.close()
 
@@ -610,10 +614,7 @@ class Driver_Execute(Driver_Setup):
 		if (self.args.validate == True):
 			self.compare_with_ref(tavg0)
 
-		cut_transient = 2000
-
 		self.plot_output(tavg0) if self.args.plot_data is not None else None
-		self.write_output(tavg0, cut_transient) if self.args.write_data else None
 		self.write_output_corr(corr) if self.args.write_data else None
 		self.logger.info('Output shape (simsteps, states, bnodes, n_params) %s', tavg0.shape)
 		self.logger.info('Finished CUDA simulation successfully in: {0:.3f}'.format(elapsed))
@@ -621,8 +622,8 @@ class Driver_Execute(Driver_Setup):
 			1e-6 * self.args.n_time * self.n_inner_steps * self.n_work_items / elapsed))
 
 		# cut transient relative to sim time
-		# cut_transient = 2 * self.args.n_time // 5
-		cut_transient = 2000
+		cut_transient = 2 * self.args.n_time // 5
+		# cut_transient = 2000
 
 		tavgFC = self.calc_corrcoef_TAVG(tavg0, cut_transient)
 
@@ -636,6 +637,23 @@ class Driver_Execute(Driver_Setup):
 		# self.logger.info('tavgFC %s', tavgFC)
 		self.logger.info('fitness shape %s', ccFCFC.shape)
 		self.logger.info('max fitness %s', np.max(ccFCFC))
+
+		# look at finesses gridlike
+		fitness_sorting_indices = list(reversed(np.argsort(ccFCFC, axis=0)))
+		sorted_fitness = list(reversed(np.sort(ccFCFC)))
+		sorted_fitness = np.asarray(sorted_fitness).reshape(self.n_work_items, 1)
+		paramsnfitness = np.concatenate((self.params[fitness_sorting_indices], sorted_fitness), axis=-1)
+
+		if self.args.grid_search:
+			print('\n[  g,  be,  ele,  eli,  T] [fitness]')
+			for i in range(10):
+				# print("".join([str(x) for x in paramsnfitness[i,:]]))
+				print(self.params[fitness_sorting_indices][i], sorted_fitness[i])
+			np.savetxt('params_fitness.out', paramsnfitness)
+
+		# dump only the best one to file
+		self.write_output(tavg0, cut_transient, fitness_sorting_indices[0]) if self.args.write_data else None
+
 		resL2L_file = open(here + f'/result_{self.args.procid}', 'wb')
 		pickle.dump(ccFCFC, resL2L_file)
 		# pickle.dump(self.calc_corrcoef(corr), resL2L_file)

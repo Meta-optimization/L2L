@@ -20,10 +20,10 @@ class PSEOptimizee(Optimizee):
         # If needed
         seed = np.uint32(seed)
         self.random_state = np.random.RandomState(seed=seed)
-        self.minnorp0 = -100
-        self.maxnorp0 = -1
-        self.minnorp1 = -100
-        self.maxnorp1 = -1
+        self.minnorp0 = -80
+        self.maxnorp0 = -50
+        self.minnorp1 = -80
+        self.maxnorp1 = -50
         # self.minnorp2 = -70
         # self.maxnorp2 = -55
         # self.minnorp3 = 1
@@ -74,7 +74,7 @@ class PSEOptimizee(Optimizee):
         params = [self.p0, self.p1]
         params = np.array([vals for vals in params], np.float32).T
         print('paramsshape', params.shape)
-        print('paramsshape', params)
+        # print('paramsshape', params)
         params_file = open('rateml/sweepars_%d' % self.id, 'wb')
         pickle.dump(params, params_file)
         params_file.close()
@@ -91,7 +91,7 @@ class PSEOptimizee(Optimizee):
                             # '-s2', '8',
                             # '-s3', '8',
                             # '-s4', '8',
-                            '-n', '5000', '-v', '-sm', '3', '-w',
+                            '-n', '500', '-v', '-sm', '3', '-w',
                             # '--tvbn', '76', '--stts', '2',
                             '--procid', str(self.id)], check=True)
         except subprocess.CalledProcessError:
@@ -103,7 +103,7 @@ class PSEOptimizee(Optimizee):
         self.fitness = pickle.load(cuda_RateML_res_file)
         cuda_RateML_res_file.close()
         # self.fitness = np.random.randn(16)
-        print("FITNESSSSSSSSSSS", self.fitness.shape)
+        print("FITNESS", self.fitness.shape)
         # print("FITNESSSSSSSSSSS", len(self.fitness))
 
 

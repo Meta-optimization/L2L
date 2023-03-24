@@ -208,12 +208,13 @@ class PSEOptimizee(Optimizee):
         if individual['p4'] < 0:
             individual['p4'] = -1 * individual['p4']
 
-        # individual = {
-        #     "p0": np.clip(individual['p0'], np.random.uniform(0.00001 ,0.01), np.random.uniform(0.99, 1)),
-        #     "p1": np.clip(individual['p1'], np.random.uniform(0.00001 ,0.01), np.random.uniform(0.99, 1)),
-            # "p2": np.clip(individual['p2'], np.random.uniform(0.00001 ,0.01), np.random.uniform(0.99, 1)),
-            # "p3": np.clip(individual['p3'], np.random.uniform(0.00001 ,0.01), np.random.uniform(0.99, 1))
-            #           }
+        individual = {
+            "p0": np.clip(individual['p0'], np.random.uniform(0.00001, 0.01), np.random.uniform(0.99, 1)),
+            "p1": np.clip(individual['p1'], np.random.uniform(1., 2.), np.random.uniform(119, 120)),
+            "p2": np.clip(individual['p2'], np.random.uniform(-80, -79), np.random.uniform(-50, -49)),
+            "p3": np.clip(individual['p3'], np.random.uniform(-80, -79), np.random.uniform(-50, -49)),
+            "p4": np.clip(individual['p4'], np.random.uniform(1, 2), np.random.uniform(39, 40))
+                      }
 
         return individual
 

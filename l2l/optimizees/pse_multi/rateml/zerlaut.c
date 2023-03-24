@@ -153,17 +153,17 @@ __global__ void zerlaut(
 
     // unpack params
     // Goldman parameters/grid search demo
-//    const float global_coupling = params(0);
-//    const float b_e = params(1);
-//    const float E_L_e = params(2);
-//    const float E_L_i = params(3);
-//    const float T = params(4);
+    const float global_coupling = params(0);
+    const float b_e = params(1);
+    const float E_L_e = params(2);
+    const float E_L_i = params(3);
+    const float T = params(4);
 
-      const float b_e = 72;
-      const float global_coupling = 0.2;
-      const float E_L_e = params(0);
-      const float E_L_i = params(1);
-      const float T = 40;
+//      const float b_e = 72;
+//      const float global_coupling = 0.2;
+//      const float E_L_e = params(0);
+//      const float E_L_i = params(1);
+//      const float T = 40;
 
 //    const float tau_OU = params(0);
 //    const float weight_noise = params(1);

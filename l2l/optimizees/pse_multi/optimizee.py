@@ -20,14 +20,16 @@ class PSEOptimizee(Optimizee):
         # If needed
         seed = np.uint32(seed)
         self.random_state = np.random.RandomState(seed=seed)
-        self.minnorp0 = -80
-        self.maxnorp0 = -50
-        self.minnorp1 = -80
-        self.maxnorp1 = -50
-        # self.minnorp2 = -70
-        # self.maxnorp2 = -55
-        # self.minnorp3 = 1
-        # self.maxnorp3 = 40
+        self.minnorp0 = 0.1
+        self.maxnorp0 = 0.9
+        self.minnorp1 = 0.1
+        self.maxnorp1 = 120
+        self.minnorp2 = -80
+        self.maxnorp2 = -60
+        self.minnorp3 = -80
+        self.maxnorp3 = -60
+        self.minnorp4 = 1
+        self.maxnorp4 = 40
 
     def simulate(self, trajectory):
         self.id = trajectory.individual.ind_idx
@@ -35,11 +37,11 @@ class PSEOptimizee(Optimizee):
         # self.p0 = self.min_max_normalize(np.asarray(self.p0), self.minnorp0, self.maxnorp0, renormalize=True)
         self.p1 = trajectory.individual.p1
         # self.p1 = self.min_max_normalize(np.asarray(self.p1), self.minnorp1, self.maxnorp1, renormalize=True)
-        # self.p2 = trajectory.individual.p2
+        self.p2 = trajectory.individual.p2
         # self.p2 = self.min_max_normalize(np.asarray(self.p2), self.minnorp2, self.maxnorp2, renormalize=True)
-        # self.p3 = trajectory.individual.p3
+        self.p3 = trajectory.individual.p3
         # self.p3 = self.min_max_normalize(np.asarray(self.p3), self.minnorp3, self.maxnorp3, renormalize=True)
-        # self.p4 = trajectory.individual.p4
+        self.p4 = trajectory.individual.p4
 
         # print('p0', self.p0)
         # print('p1', self.p1)
@@ -70,8 +72,8 @@ class PSEOptimizee(Optimizee):
         #)
         # self.p0 = -1*self.p0
         # self.p1 = -1*self.p1
-        # params = [self.p0, self.p1, self.p2, self.p3]
-        params = [self.p0, self.p1]
+        params = [self.p0, self.p1, self.p2, self.p3, self.p4]
+        # params = [self.p0, self.p1]
         params = np.array([vals for vals in params], np.float32).T
         print('paramsshape', params.shape)
         # print('paramsshape', params)
@@ -86,11 +88,11 @@ class PSEOptimizee(Optimizee):
         try:
             subprocess.run(['python', 'rateml/model_driver_zerlaut.py',
                             # '--model', 'oscillator',
-                            '-s0', '32',
-                            '-s1', '32',
-                            # '-s2', '8',
-                            # '-s3', '8',
-                            # '-s4', '8',
+                            '-s0', '6',
+                            '-s1', '6',
+                            '-s2', '6',
+                            '-s3', '6',
+                            '-s4', '5',
                             '-n', '500', '-v', '-sm', '3', '-w',
                             # '--tvbn', '76', '--stts', '2',
                             '--procid', str(self.id)], check=True)
@@ -161,6 +163,9 @@ class PSEOptimizee(Optimizee):
 
         return {'p0': np.random.uniform(self.minnorp0, self.maxnorp0),
                 'p1': np.random.uniform(self.minnorp1, self.maxnorp1),
+                'p2': np.random.uniform(self.minnorp2, self.maxnorp2),
+                'p3': np.random.uniform(self.minnorp3, self.maxnorp3),
+                'p4': np.random.uniform(self.minnorp4, self.maxnorp4)
                 }
 
     @staticmethod

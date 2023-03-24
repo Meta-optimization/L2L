@@ -32,7 +32,7 @@ def main():
     # n_random_steps controls the number of individuals and thus the number of processes/nodes spawned
     parameters = MultiRMSPropParameters(learning_rate=0.1, exploration_step_size=1,
                                    n_random_steps=1, momentum_decay=0.005,
-                                   n_iteration=8, stop_criterion=np.Inf, seed=99, n_inner_params=6480)
+                                   n_iteration=4, stop_criterion=np.Inf, seed=99, n_inner_params=6480)
 
     optimizer = MultiGradientDescentOptimizer(traj, optimizee_create_individual=optimizee.create_individual,
                                          optimizee_fitness_weights=(1,),

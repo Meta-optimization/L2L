@@ -192,18 +192,21 @@ class PSEOptimizee(Optimizee):
     def bounding_func(self, individual):
 
         # stay positive
-        # if individual['p0'] < 0:
-        #     individual['p0'] = -1*individual['p0']
-        #
+        if individual['p0'] < 0:
+            individual['p0'] = -1*individual['p0']
+
+        if individual['p1'] < 0:
+            individual['p1'] = -1*individual['p1']
+
         # # and some stay negative
-        # if individual['p1'] > 0:
-        #     individual['p1'] = -1*individual['p1']
-        #
-        # if individual['p2'] > 0:
-        #     individual['p2'] = -1*individual['p2']
-        #
-        # if individual['p3'] > 0:
-        #     individual['p3'] = -1 * individual['p3']
+        if individual['p2'] > 0:
+            individual['p2'] = -1*individual['p2']
+
+        if individual['p3'] > 0:
+            individual['p3'] = -1*individual['p3']
+
+        if individual['p4'] < 0:
+            individual['p4'] = -1 * individual['p4']
 
         # individual = {
         #     "p0": np.clip(individual['p0'], np.random.uniform(0.00001 ,0.01), np.random.uniform(0.99, 1)),

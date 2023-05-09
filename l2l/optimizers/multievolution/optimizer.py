@@ -30,7 +30,12 @@ MultiGeneticAlgorithmParameters.__doc__ = """
 
 class MultiGeneticAlgorithmOptimizer(Optimizer):
     """
-    Implements evolutionary algorithm
+    Implements evolutionary algorithm with individuals which contain multiple parameters inside.
+    This type of optimizer allows for the definition and deployment of multi-individuals which inside contain
+    several individuals, each with a parameter combination.
+    This optimizer is particularly useful when the hardware used to execute the individuals offers a second
+    hierarchy of parallelization, e.g. in the case of GPUs, where one multi-individual can be defined per GPU and
+    several individuals with independent parameter combinations can be deployed within each GPU.
 
     :param  ~l2l.utils.trajectory.Trajectory traj: Use this trajectory to store the parameters of the specific runs.
       The parameters should be initialized based on the values in `parameters`
@@ -117,16 +122,37 @@ class MultiGeneticAlgorithmOptimizer(Optimizer):
 
 
     def expand_individual(self, c_population, inner_params):
+        """
+        Expands a multi-individual into many individuals, each with their own parameter combination.
+        This expansion is necessary in order for the evolutionary algorithm to be applied correctly on the parameter
+        space being explored.
+
+        :param  c_population: the population of multi-individuals to be expanded
+        :param inner_params: a description of the parameters which describe each of the individuals within
+        the multi-individual.
+
+        """
         individual_exp = [{} for i in range(len(c_population)*inner_params)]
         for ind_id, elem in enumerate(c_population):
-            for key in self.grouped_params_dict.keys():
-                parameters = elem[key]
-                for ix, e in enumerate(parameters):
-                    individual_exp[ind_id*inner_params+ix][key] = float(e)
-        # print(individual_exp)
+            for ix, (key, e) in enumerate(self.grouped_params_dict.items()):
+                try:
+                    individual_exp[ind_id * inner_params + ix][key] = float(e)
+                except ValueError:
+                    individual_exp[ind_id * inner_params + ix][key] = e
         return individual_exp
 
+
     def compress_individual(self, e_population, inner_params):
+        """
+        Compresses a set of individuals into a set of multi-individuals.
+        This is required after the optimization algorithm has been applied in order to return the description
+        of the individuals to the way it can be correctly interpreted during execution.
+
+        :param  e_population: the population of individuals to be compressed
+        :param inner_params: a description of the parameters which describe each of the individuals within
+        the multi-individual.
+
+        """
         e_population_reform = []
         for s in range(int(len(e_population) / inner_params)):
            tmp_dict = {}
@@ -136,7 +162,6 @@ class MultiGeneticAlgorithmOptimizer(Optimizer):
                    tmp.append(e_population[s*inner_params + p][key])
                tmp_dict[key] = tmp
            e_population_reform.append(tmp_dict)
-        # print(e_population_reform)
         return e_population_reform
 
     def post_process(self, traj, fitnesses_results):

@@ -208,11 +208,10 @@ class MultiGradientDescentOptimizer(Optimizer):
         """
         individual_exp = [{} for i in range(len(c_population)*inner_params)]
         for ind_id, elem in enumerate(c_population):
-            for ix, (key, e) in enumerate(self.grouped_params_dict.items()):
-                try:
-                    individual_exp[ind_id * inner_params + ix][key] = float(e)
-                except ValueError:
-                    individual_exp[ind_id * inner_params + ix][key] = e
+            for key in self.grouped_params_dict.keys():
+                parameters = elem[key]
+                for ix, e in enumerate(parameters):
+                    individual_exp[ind_id*inner_params+ix][key] = float(e)
         return individual_exp
 
     def compress_individual(self, e_population, inner_params):

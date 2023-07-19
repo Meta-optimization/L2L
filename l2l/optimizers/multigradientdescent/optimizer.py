@@ -263,7 +263,7 @@ class MultiGradientDescentOptimizer(Optimizer):
             # We need to convert the current run index into an ind_idx
             # (index of individual within one generation
             traj.v_idx = run_index
-            ind_index = i#traj.par.ind_idx
+            # ind_index = i#traj.par.ind_idx
 
             individual = old_eval_pop_expanded[i]
             traj.f_add_result('$set.$.individual', individual)
@@ -272,35 +272,43 @@ class MultiGradientDescentOptimizer(Optimizer):
             weighted_fitness = np.dot(fitness, self.optimizee_fitness_weights)
             weighted_fitness_list.append(weighted_fitness)
 
-            # The last element of the list is the evaluation of the individual obtained via gradient descent
-            if i == len(fitnesses_results) - 1:
-                self.current_fitness = weighted_fitness
-            else:
-                fitnesses[i] = weighted_fitness
-                dx[i] = np.array(dict_to_list(individual)) - self.current_individual
+            # take best fitness from last iteration
+            indictlist = np.array(dict_to_list(individual))
+            # TODO should current individual be from last generation or best or mean from current?
+            dx[i] = indictlist - self.current_individual
+
+            fitnesses[i] = weighted_fitness
+
         traj.v_idx = -1  # set the trajectory back to default
 
         # Performs descending arg-sort of weighted fitness
         fitness_sorting_indices = list(reversed(np.argsort(weighted_fitness_list)))
-        old_eval_pop_as_array = np.array([dict_to_list(x) for x in old_eval_pop])
+        old_eval_pop_as_array = np.array([dict_to_list(x) for x in old_eval_pop_expanded])
+        old_eval_pop_as_array = old_eval_pop_as_array.ravel()
 
         # Sorting the data according to fitness
-        sorted_population = old_eval_pop_as_array[fitness_sorting_indices]
-        sorted_fitness = np.asarray(weighted_fitness_list)[fitness_sorting_indices]
+        fitness_sorting_indices = np.array(fitness_sorting_indices).squeeze()
+        best_index = fitness_sorting_indices[0]
+        best_individual = old_eval_pop_as_array[best_index]
+        avrg_fitness = np.asarray(np.mean(weighted_fitness_list))
+        best_fitness = weighted_fitness_list[best_index]
 
         logger.info("-- End of generation %d --", self.g)
-        logger.info("  Evaluated %d individuals", len(fitnesses_results))
-        logger.info('  Average Fitness: %.4f', np.mean(sorted_fitness))
+        logger.info("  Evaluated %d individuals", len(traj.individual.params))
+        logger.info('  Average Fitness: %.4f', avrg_fitness)
         logger.info("  Current fitness is %.2f", self.current_fitness)
-        logger.info('  Best Fitness: %.4f', sorted_fitness[0])
-        logger.info("  Best individual is %s", sorted_population[0])
+        logger.info('  Best Fitness: %.4f', best_fitness)
+        logger.info("  Best individual is %s", best_individual)
 
         generation_result_dict = {
             'generation': self.g,
             'current_fitness': self.current_fitness,
-            'best_fitness_in_run': sorted_fitness[0],
-            'average_fitness_in_run': np.mean(sorted_fitness),
+            'best_fitness_in_run': best_fitness,
+            'average_fitness_in_run': avrg_fitness,
         }
+
+        # mv. current fitness is set as the best or mean of this.generation (TODO should it be previous?)
+        self.current_fitness = best_fitness
 
         generation_name = 'generation_{}'.format(self.g)
         traj.results.generation_params.f_add_result_group(generation_name)

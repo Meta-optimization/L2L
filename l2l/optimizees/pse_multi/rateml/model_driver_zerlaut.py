@@ -29,12 +29,12 @@ np.set_printoptions(precision=2)
 
 here = os.path.dirname(os.path.abspath(__file__))
 headerhere = here
-print("here", here)
+# print("here", here)
 
 # PROJECT = os.getenv('PROJECT')
 # USER = os.getenv('USER')
 # os.chdir(PROJECT+USER+"/L2L/l2l/optimizees/pse_multi/")
-print("wp modeldriver", os.getcwd())
+# print("wp modeldriver", os.getcwd())
 
 class Driver_Setup:
 
@@ -78,7 +78,7 @@ class Driver_Setup:
 		if self.args.gpu_info:
 			self.logger.setLevel(level='INFO')
 			self.gpu_device_info()
-			exit(1)
+			# exit(1)
 
 		self.logdata()
 
@@ -197,16 +197,21 @@ class Driver_Setup:
 			params = np.array([vals for vals in params], np.float32)
 		else:
 			# unpickle file from L2L
-			print('L2L params used')
-			paramsfile = open(here + f'/sweepars_{self.args.procid}', 'rb')
-			params = pickle.load(paramsfile)
-			paramsfile.close()
+			# print('L2L params used')
 
-		print('paramsvar', np.var(params, axis=0))
+			try:
+				paramsfile = open(here + f'/sweepars_{self.args.procid}', 'rb')
+				params = pickle.load(paramsfile)
+				paramsfile.close()
+			except EOFError as e:
+				print(e, 'using 0s for params for this generation')
+				self.fitness = [0] * (self.args.n_sweep_arg0 * self.args.n_sweep_arg1)
 
-		print('paramsonTVB', params.shape)
-		print('params', params)
-		print('paramsnan?', np.where(np.isnan(params)))
+		# print('paramsvar', np.var(params, axis=0))
+
+		# print('paramsonTVB', params.shape)
+		# print('params', params)
+		# print('paramsnan?', np.where(np.isnan(params)))
 
 		return params
 
@@ -220,31 +225,33 @@ class Driver_Setup:
 		print('\n')
 		self.logger.info('GPU = %s', dev.name())
 		self.logger.info('TOTAL AVAIL MEMORY: %d MiB', dev.total_memory()/1024/1024)
+		self.logger.info('PCI_DEVICE_ID: %d MiB', dev.get_attribute(drv.device_attribute.PCI_DEVICE_ID))
+
 
 		# get device information
-		att = {'MAX_THREADS_PER_BLOCK': [],
-			   'MAX_BLOCK_DIM_X': [],
-			   'MAX_BLOCK_DIM_Y': [],
-			   'MAX_BLOCK_DIM_Z': [],
-			   'MAX_GRID_DIM_X': [],
-			   'MAX_GRID_DIM_Y': [],
-			   'MAX_GRID_DIM_Z': [],
-			   'TOTAL_CONSTANT_MEMORY': [],
-			   'WARP_SIZE': [],
-			   # 'MAX_PITCH': [],
-			   'CLOCK_RATE': [],
-			   'TEXTURE_ALIGNMENT': [],
-			   # 'GPU_OVERLAP': [],
-			   'MULTIPROCESSOR_COUNT': [],
-			   'SHARED_MEMORY_PER_BLOCK': [],
-			   'MAX_SHARED_MEMORY_PER_BLOCK': [],
-			   'REGISTERS_PER_BLOCK': [],
-			   'MAX_REGISTERS_PER_BLOCK': []}
-
-		for key in att:
-			getstring = 'drv.device_attribute.' + key
-			# att[key].append(eval(getstring))
-			self.logger.info(key + ': %s', dev.get_attribute(eval(getstring)))
+		# att = {'MAX_THREADS_PER_BLOCK': [],
+		# 	   'MAX_BLOCK_DIM_X': [],
+		# 	   'MAX_BLOCK_DIM_Y': [],
+		# 	   'MAX_BLOCK_DIM_Z': [],
+		# 	   'MAX_GRID_DIM_X': [],
+		# 	   'MAX_GRID_DIM_Y': [],
+		# 	   'MAX_GRID_DIM_Z': [],
+		# 	   'TOTAL_CONSTANT_MEMORY': [],
+		# 	   'WARP_SIZE': [],
+		# 	   # 'MAX_PITCH': [],
+		# 	   'CLOCK_RATE': [],
+		# 	   'TEXTURE_ALIGNMENT': [],
+		# 	   # 'GPU_OVERLAP': [],
+		# 	   'MULTIPROCESSOR_COUNT': [],
+		# 	   'SHARED_MEMORY_PER_BLOCK': [],
+		# 	   'MAX_SHARED_MEMORY_PER_BLOCK': [],
+		# 	   'REGISTERS_PER_BLOCK': [],
+		# 	   'MAX_REGISTERS_PER_BLOCK': []}
+		#
+		# for key in att:
+		# 	getstring = 'drv.device_attribute.' + key
+		# 	# att[key].append(eval(getstring))
+		# 	self.logger.info(key + ': %s', dev.get_attribute(eval(getstring)))
 
 class Driver_Execute(Driver_Setup):
 
@@ -288,11 +295,12 @@ class Driver_Execute(Driver_Setup):
 				# if lineinfo:
 				opts.append('-lineinfo')
 				opts.append('-g')
+				# opts.append('-dc')
 				opts.append('-DWARP_SIZE=%d' % (warp_size, ))
 				opts.append('-DNH=%s' % (nh, ))
 
 				idirs = [here, headerhere]
-				self.logger.info('nvcc options %r', opts)
+				# self.logger.info('nvcc options %r', opts)
 
 				try:
 					network_module = SourceModule(
@@ -346,7 +354,7 @@ class Driver_Execute(Driver_Setup):
 			except drv.MemoryError as e:
 				self.gpu_mem_info()
 				self.logger.error(
-					'%s.\n\t Please check the parameter dimensions, %d parameters are too large for this GPU',
+					'%s.\n\t Please check the parameter dimensions, %d parameters are too large for this GPU 0',
 					e, self.params.size)
 				exit(1)
 		return gpu_data#}}}
@@ -386,6 +394,7 @@ class Driver_Execute(Driver_Setup):
 							 e, self.args.n_sweep_arg0, self.args.n_sweep_arg1)
 				exit(1)
 
+		self.logger.info('GPUdata.shape %s', np.asarray(data).shape)
 		gpu_data = self.make_gpu_data(data)#{{{
 
 		# setup CUDA stuff#{{{
@@ -413,7 +422,7 @@ class Driver_Execute(Driver_Setup):
 			tavg = drv.pagelocked_zeros((n_streams,) + data['tavg0'].shape, dtype=np.float32)
 		except drv.MemoryError as e:
 			self.logger.error(
-				'%s.\n\t Please check the parameter dimensions, %d parameters are too large for this GPU',
+				'%s.\n\t Please check the parameter dimensions, %d parameters are too large for this GPU 1',
 				e, self.params.size)
 			exit(1)
 
@@ -444,12 +453,12 @@ class Driver_Execute(Driver_Setup):
 
 		assert gridx * gridy * bx * by >= nwi
 
-		self.logger.info('work items %r', self.n_work_items)
-		self.logger.info('history shape %r', gpu_data['state'].shape)
-		self.logger.info('gpu_data %s', gpu_data['tavg0'].shape)
-		self.logger.info('on device mem: %.3f MiB' % (self.nbytes(data) / 1024 / 1024, ))
-		self.logger.info('final block dim %r', final_block_dim)
-		self.logger.info('final grid dim %r', final_grid_dim)
+		# self.logger.info('work items %r', self.n_work_items)
+		# self.logger.info('history shape %r', gpu_data['state'].shape)
+		# self.logger.info('gpu_data %s', gpu_data['tavg0'].shape)
+		# self.logger.info('on device mem: %.3f MiB' % (self.nbytes(data) / 1024 / 1024, ))
+		# self.logger.info('final block dim %r', final_block_dim)
+		# self.logger.info('final grid dim %r', final_grid_dim)
 
 		# run simulation#{{{
 		nstep = self.args.n_time
@@ -457,7 +466,8 @@ class Driver_Execute(Driver_Setup):
 		self.gpu_mem_info() if self.args.verbose else None
 
 		try:
-			for i in tqdm.trange(nstep, file=sys.stdout):
+			# for i in tqdm.trange(nstep, file=sys.stdout):
+			for i in range(nstep):
 
 				try:
 					event = events[i % n_streams]
@@ -601,7 +611,6 @@ class Driver_Execute(Driver_Setup):
 
 		return tavgFC
 
-
 	def run_all(self):
 
 		np.random.seed(79)
@@ -626,7 +635,7 @@ class Driver_Execute(Driver_Setup):
 		cut_transient = 2 * self.args.n_time // 5
 		# cut_transient = 2000
 
-		tavgFC = self.calc_corrcoef_TAVG(tavg0, cut_transient)
+		# tavgFC = self.calc_corrcoef_TAVG(tavg0, cut_transient)
 
 		# the functional structural correlation computation
 		# self.logger.info('tavg0 %s', tavg0)
@@ -661,9 +670,12 @@ class Driver_Execute(Driver_Setup):
 		resL2L_file.close()
 
 		# where are the nans
-		print('tavgnan?', np.where(np.isnan(tavg0)))
-		print('tavgFCnan?', np.where(np.isnan(tavgFC)))
-		print('fcfcnan?', np.where(np.isnan(ccFCFC)))
+		# print('tavgnan?', np.where(np.isnan(tavg0)))
+		# print('tavgFCnan?', np.where(np.isnan(tavgFC)))
+		# print('fcfcnan?', np.where(np.isnan(ccFCFC)))
+
+		# import socket
+		# print(socket.gethostname())
 
 		return
 

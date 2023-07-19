@@ -20,16 +20,14 @@ class PSEOptimizee(Optimizee):
         # If needed
         seed = np.uint32(seed)
         self.random_state = np.random.RandomState(seed=seed)
-        self.minnorp0 = 0.1
-        self.maxnorp0 = 0.9
-        self.minnorp1 = 0.1
-        self.maxnorp1 = 120
-        self.minnorp2 = -80
-        self.maxnorp2 = -60
-        self.minnorp3 = -80
-        self.maxnorp3 = -60
-        self.minnorp4 = 1
-        self.maxnorp4 = 40
+        self.minnorp0 = -100
+        self.maxnorp0 = -1
+        self.minnorp1 = -100
+        self.maxnorp1 = -1
+        # self.minnorp2 = -70
+        # self.maxnorp2 = -55
+        # self.minnorp3 = 1
+        # self.maxnorp3 = 40
 
     def simulate(self, trajectory):
         self.id = trajectory.individual.ind_idx
@@ -37,11 +35,11 @@ class PSEOptimizee(Optimizee):
         # self.p0 = self.min_max_normalize(np.asarray(self.p0), self.minnorp0, self.maxnorp0, renormalize=True)
         self.p1 = trajectory.individual.p1
         # self.p1 = self.min_max_normalize(np.asarray(self.p1), self.minnorp1, self.maxnorp1, renormalize=True)
-        self.p2 = trajectory.individual.p2
+        # self.p2 = trajectory.individual.p2
         # self.p2 = self.min_max_normalize(np.asarray(self.p2), self.minnorp2, self.maxnorp2, renormalize=True)
-        self.p3 = trajectory.individual.p3
+        # self.p3 = trajectory.individual.p3
         # self.p3 = self.min_max_normalize(np.asarray(self.p3), self.minnorp3, self.maxnorp3, renormalize=True)
-        self.p4 = trajectory.individual.p4
+        # self.p4 = trajectory.individual.p4
 
         # print('p0', self.p0)
         # print('p1', self.p1)
@@ -51,15 +49,8 @@ class PSEOptimizee(Optimizee):
 
         import os
         # print("wp", os.getcwd())
-        # PROJECT = os.getenv('PROJECT')
-        # USER = os.getenv('USER')
-        # os.chdir(PROJECT+USER+"/L2L/l2l/optimizees/pse_multi/")
+        os.chdir("/p/project/cslns/vandervlag1/L2Lnew/L2L/l2l/optimizees/pse_multi/")
         # print("wp", os.getcwd())
-
-        here = os.path.dirname(os.path.abspath(__file__))
-        headerhere = here
-        os.chdir(here)
-        print('here in optimizee', here)
 
         # Pickle the L2L produced parameters such that your application can pick them up
         # Already make them GPU TVB proof such to pack a single file
@@ -72,10 +63,10 @@ class PSEOptimizee(Optimizee):
         #)
         # self.p0 = -1*self.p0
         # self.p1 = -1*self.p1
-        params = [self.p0, self.p1, self.p2, self.p3, self.p4]
-        # params = [self.p0, self.p1]
+        # params = [self.p0, self.p1, self.p2, self.p3]
+        params = [self.p0, self.p1]
         params = np.array([vals for vals in params], np.float32).T
-        print('paramsshape', params.shape)
+        # print('paramsshape', params.shape)
         # print('paramsshape', params)
         params_file = open('rateml/sweepars_%d' % self.id, 'wb')
         pickle.dump(params, params_file)
@@ -85,15 +76,17 @@ class PSEOptimizee(Optimizee):
         # Make sure to read in the pickled data from L2L
         # Set the rateML execution and results folder on your system
         # TODO: make nicer
+        s0 = 134
+        s1 = 134
         try:
             subprocess.run(['python', 'rateml/model_driver_zerlaut.py',
                             # '--model', 'oscillator',
-                            '-s0', '6',
-                            '-s1', '6',
-                            '-s2', '6',
-                            '-s3', '6',
-                            '-s4', '5',
-                            '-n', '500', '-v', '-sm', '3', '-w',
+                            '-s0', str(s0),
+                            '-s1', str(s1),
+                            # '-s2', '8',
+                            # '-s3', '8',
+                            # '-s4', '8',
+                            '-n', '500', '-sm', '3', '-v',
                             # '--tvbn', '76', '--stts', '2',
                             '--procid', str(self.id)], check=True)
         except subprocess.CalledProcessError:
@@ -101,11 +94,16 @@ class PSEOptimizee(Optimizee):
 
         # Results are dumped to file result_[self.id].txt. Unpickle them here
         self.fitness = []
-        cuda_RateML_res_file = open('rateml/result_%d' % self.id, 'rb')
-        self.fitness = pickle.load(cuda_RateML_res_file)
-        cuda_RateML_res_file.close()
+        try:
+            cuda_RateML_res_file = open('rateml/result_%d' % self.id, 'rb')
+            self.fitness = pickle.load(cuda_RateML_res_file)
+            cuda_RateML_res_file.close()
+        except EOFError as e:
+            print(e, 'using 0s for fitness for this generation')
+            self.fitness = [0] * (s0*s1)
+
         # self.fitness = np.random.randn(16)
-        print("FITNESS", self.fitness.shape)
+        # print("FITNESSSSSSSSSSS", self.fitness.shape)
         # print("FITNESSSSSSSSSSS", len(self.fitness))
 
 
@@ -163,9 +161,6 @@ class PSEOptimizee(Optimizee):
 
         return {'p0': np.random.uniform(self.minnorp0, self.maxnorp0),
                 'p1': np.random.uniform(self.minnorp1, self.maxnorp1),
-                'p2': np.random.uniform(self.minnorp2, self.maxnorp2),
-                'p3': np.random.uniform(self.minnorp3, self.maxnorp3),
-                'p4': np.random.uniform(self.minnorp4, self.maxnorp4)
                 }
 
     @staticmethod
@@ -192,29 +187,25 @@ class PSEOptimizee(Optimizee):
     def bounding_func(self, individual):
 
         # stay positive
-        if individual['p0'] < 0:
-            individual['p0'] = -1*individual['p0']
-
-        if individual['p1'] < 0:
-            individual['p1'] = -1*individual['p1']
-
+        # if individual['p0'] < 0:
+        #     individual['p0'] = -1*individual['p0']
+        #
         # # and some stay negative
-        if individual['p2'] > 0:
-            individual['p2'] = -1*individual['p2']
+        # if individual['p1'] > 0:
+        #     individual['p1'] = -1*individual['p1']
+        #
+        # if individual['p2'] > 0:
+        #     individual['p2'] = -1*individual['p2']
+        #
+        # if individual['p3'] > 0:
+        #     individual['p3'] = -1 * individual['p3']
 
-        if individual['p3'] > 0:
-            individual['p3'] = -1*individual['p3']
-
-        if individual['p4'] < 0:
-            individual['p4'] = -1 * individual['p4']
-
-        individual = {
-            "p0": np.clip(individual['p0'], np.random.uniform(0.00001, 0.01), np.random.uniform(0.99, 1)),
-            "p1": np.clip(individual['p1'], np.random.uniform(1., 2.), np.random.uniform(119, 120)),
-            "p2": np.clip(individual['p2'], np.random.uniform(-80, -79), np.random.uniform(-50, -49)),
-            "p3": np.clip(individual['p3'], np.random.uniform(-80, -79), np.random.uniform(-50, -49)),
-            "p4": np.clip(individual['p4'], np.random.uniform(1, 2), np.random.uniform(39, 40))
-                      }
+        # individual = {
+        #     "p0": np.clip(individual['p0'], np.random.uniform(0.00001 ,0.01), np.random.uniform(0.99, 1)),
+        #     "p1": np.clip(individual['p1'], np.random.uniform(0.00001 ,0.01), np.random.uniform(0.99, 1)),
+            # "p2": np.clip(individual['p2'], np.random.uniform(0.00001 ,0.01), np.random.uniform(0.99, 1)),
+            # "p3": np.clip(individual['p3'], np.random.uniform(0.00001 ,0.01), np.random.uniform(0.99, 1))
+            #           }
 
         return individual
 

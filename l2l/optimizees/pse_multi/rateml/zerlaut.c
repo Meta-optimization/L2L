@@ -48,7 +48,9 @@
 #include <curand_kernel.h>
 #include <curand.h>
 #include <stdbool.h>
-
+//#include "cuda_computations.h"
+//#include "cuda.h"
+//#include "cuda_runtime.h"
 
 //float b_e = 60.0;
 //float E_L_e = -63.0;
@@ -151,19 +153,48 @@ __global__ void zerlaut(
     // only threat those ID that have a corresponding parameters combination
     if (id >= size) return;
 
+//    if (id==0 && i_step==0)
+//    {
+//        int device;
+//        cudaError_t err = cudaGetDevice(&device);
+//        printf("   INFO  GPU device    =           %d \n", device);
+//        if (err == cudaSuccess)
+//            printf("succes for device");
+//        else
+//            printf("failure");
+//
+//        int val0;
+//        cudaDeviceGetAttribute(&val0, cudaDevAttrPciBusId, device);
+//        printf("   INFO  PCI BUS ID    =           %d \n", val0);
+//
+//        int val1;
+//        cudaDeviceGetAttribute(&val1, cudaDevAttrPciDeviceId, device);
+//        printf("   INFO  PCI DEVICE ID =           %d \n", val1);
+//
+//        int val2;
+//        cudaDeviceGetAttribute(&val2, cudaDevAttrMultiGpuBoardGroupID, device);
+//        printf("   INFO  MULTI GPU ID  =           %d \n", val2);
+//
+//        int val3;
+//        cudaDeviceGetAttribute(&val3, cudaDevAttrWarpSize, 1);
+//        printf("   INFO  cudaDevAttrMaxBlockDimX  =           %d \n", val3);
+//
+////        printf("err = %d, %s\n", err, cudaGetErrorString(err));
+//    }
+
     // unpack params
     // Goldman parameters/grid search demo
-    const float global_coupling = params(0);
-    const float b_e = params(1);
-    const float E_L_e = params(2);
-    const float E_L_i = params(3);
-    const float T = params(4);
+//    const float global_coupling = params(0);
+//    const float b_e = params(1);
+//    const float E_L_e = params(2);
+//    const float E_L_i = params(3);
+//    const float T = params(4);
 
-//      const float b_e = 72;
-//      const float global_coupling = 0.2;
-//      const float E_L_e = params(0);
-//      const float E_L_i = params(1);
-//      const float T = 40;
+      const float b_e = 72;
+      const float global_coupling = 0.2;
+      const float E_L_e = params(0);
+      const float E_L_i = params(1);
+      const float T = 40;
 
 //    const float tau_OU = params(0);
 //    const float weight_noise = params(1);

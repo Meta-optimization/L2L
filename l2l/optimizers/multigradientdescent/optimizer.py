@@ -206,11 +206,13 @@ class MultiGradientDescentOptimizer(Optimizer):
                 parameters = elem[key]
                 #print('parei', parameters)
                 for ix, e in enumerate(parameters):
-                    #print('eeeee', e)
-                    #print('eeee1', e[0])
-                    individual_exp[ind_id*inner_params+ix][key] = float(e)                   
+                    try:
+                        individual_exp[ind_id * inner_params + ix][key] = float(e)
+                    except ValueError:
+                        individual_exp[ind_id * inner_params + ix][key] = e
         #print('expa', individual_exp)
         return individual_exp
+
 
     def compress_individual(self, e_population, inner_params):
         e_population_reform = []
@@ -305,12 +307,20 @@ class MultiGradientDescentOptimizer(Optimizer):
         # Performs descending arg-sort of weighted fitness
         fitness_sorting_indices = list(reversed(np.argsort(weighted_fitness_list, axis=0)))
         #print('fsi', fitness_sorting_indices)
-        old_eval_pop_as_array = np.array([dict_to_list(x) for x in old_eval_pop])
+        # old_eval_pop_as_array = np.array([dict_to_list(x) for x in old_eval_pop])
         # print("innerparams, lenindivparams", traj.n_inner_params, len(traj.individual.params))
+        old_eval_pop_b4 = np.asarray(old_eval_pop_expanded)
+        print('oepa', old_eval_pop_b4.shape)
         # print('oepa', old_eval_pop_as_array, '', old_eval_pop_as_array.shape)
         # old_eval_pop_as_array = old_eval_pop_as_array[0].reshape(traj.n_inner_params, len(traj.individual.params))
-        old_eval_pop_as_array = old_eval_pop_as_array[0].reshape(len(traj.individual.params), traj.n_inner_params).T
-        # print('oepashapafter', old_eval_pop_as_array)
+        len_ind_par = len(traj.individual.params)
+
+        # changed to old_eval_pop_expanded instead of old_eval_pop, then we dont need the above reshape
+        old_eval_pop_as_array = np.array([dict_to_list(x) for x in old_eval_pop_expanded])
+        old_eval_pop_as_array = old_eval_pop_as_array.ravel()
+
+        # old_eval_pop_as_array = old_eval_pop_as_array[0].reshape(len_ind_par, traj.n_inner_params*len_ind_par).T
+        print('oepashapafter', old_eval_pop_as_array.shape)
         fitness_sorting_indices = np.array(fitness_sorting_indices).squeeze()
 
         # print('fitness_sorting_indices', fitness_sorting_indices.shape, ' ', )

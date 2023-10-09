@@ -31,6 +31,7 @@ class Trajectory:
         self._parameters.parameter = {}
         self.individuals = {}
         self.v_idx = 0
+        self.debug = keyword_args['debug']
 
     def f_add_parameter_group(self, name, comment=""):
         """

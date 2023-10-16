@@ -3,7 +3,7 @@ import os.path
 import pickle
 import time
 import logging
-import subprocess
+import glob
 
 logger = logging.getLogger("JUBERunner")
 
@@ -245,12 +245,18 @@ class JUBERunner():
             if not os.path.isfile(f):  # self.scheduler_config['ready_file']
                 done = False
         if self.debug_stderr:
-            print(os.path.join(self.path,"work/*/stderr"))
-            f = subprocess.Popen(['tail ' + os.path.join(self.path,"work/*/stderr")], shell=True,\
-                stdout=subprocess.PIPE)
-            line = f.stdout.readlines()
-            for l in line:
-                print(l.decode('UTF-8'))
+            print(os.path.join(self.path,"work/*/stderr") + "\n")
+
+            file_paths = glob.glob(os.path.join(os.path.join(self.path, "work"), "*", "stderr"))
+
+            for path in file_paths:
+                if(os.path.getsize(path)) > 0:
+                    print(path)
+                    with open(path, 'r') as file:
+                        lines = file.readlines()
+                        for line in lines:
+                            print(line)
+                    print("\n")
         return done
 
     def prepare_run_file(self, path_ready):

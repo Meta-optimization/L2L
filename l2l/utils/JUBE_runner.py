@@ -245,8 +245,6 @@ class JUBERunner():
             if not os.path.isfile(f):  # self.scheduler_config['ready_file']
                 done = False
         if self.debug_stderr:
-            print(os.path.join(self.path,"work/*/stderr") + "\n")
-
             file_paths = glob.glob(os.path.join(os.path.join(self.path, "work"), "*", "stderr"))
 
             for path in file_paths:

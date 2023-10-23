@@ -4,6 +4,7 @@ import pickle
 import time
 import logging
 import glob
+import sys
 
 logger = logging.getLogger("JUBERunner")
 
@@ -63,6 +64,7 @@ class JUBERunner():
 
         self.zeepath = os.path.join(self.path, "optimizee.bin")
         self.debug_stderr = self.trajectory.debug
+        self.stop_run = self.trajectory.stop_run
 
 
     def write_pop_for_jube(self, trajectory, generation):
@@ -255,6 +257,8 @@ class JUBERunner():
                         for line in lines:
                             print(line)
                     print("\n")
+                    if(self.stop_run):
+                        sys.exit("An error occured, the exectuion has stopped.")
         return done
 
     def prepare_run_file(self, path_ready):

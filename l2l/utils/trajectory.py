@@ -33,6 +33,7 @@ class Trajectory:
         self.v_idx = 0
         self.debug = keyword_args['debug']
         self.stop_run = keyword_args['stop_run']
+        self.timeout = keyword_args['timeout']
 
     def f_add_parameter_group(self, name, comment=""):
         """

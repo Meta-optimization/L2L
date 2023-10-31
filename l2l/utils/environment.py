@@ -22,7 +22,7 @@ class Environment:
         """
         if 'trajectory' in keyword_args:
             self.trajectory = Trajectory(name=keyword_args['trajectory'], debug = keyword_args['debug'], 
-                                         stop_run = keyword_args['stop_run'])
+                                         stop_run = keyword_args['stop_run'], timeout=keyword_args['timeout'])
         if 'filename' in keyword_args:
             self.filename = keyword_args['filename']
         self.postprocessing = None

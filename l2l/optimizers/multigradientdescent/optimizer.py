@@ -162,7 +162,7 @@ class MultiGradientDescentOptimizer(Optimizer):
                                                 ' common across a generation')
 
         # Explore the neighbourhood in the parameter space of current individual
-         new_individual_list = [
+        new_individual_list = [
             list_to_dict(self.current_individual + 
                          self.random_state.normal(0.0, parameters.exploration_step_size, self.current_individual.size),
                          self.optimizee_individual_dict_spec)

@@ -90,7 +90,7 @@ class Experiment(object):
             log_stdout=kwargs.get('log_stdout', False),  # Sends stdout to logs
             multiprocessing=kwargs.get('multiprocessing', True),
             debug = kwargs.get('debug', False),
-            stop_run = kwargs.get('stop_run', False)
+            stop_run = kwargs.get('stop_run', True)
         )
 
         create_shared_logger_data(

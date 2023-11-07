@@ -227,7 +227,7 @@ class JUBERunner():
         # Wait for ready files to be written
         if(self.timeout):
             def handler(signum, frame):
-                sys.exit("The execution has not finished. There is a timeout.")
+                sys.exit("The execution stopped due to a timeout.")
 
             signal.signal(signal.SIGALRM, handler)
             signal.alarm(7200)
@@ -268,7 +268,7 @@ class JUBERunner():
                             print(line)
                     print("\n")
                     if(self.stop_run):
-                        sys.exit("An error occured, the exectuion has stopped.")
+                        sys.exit("An error occured, the execution has stopped.")
         return done
 
     def prepare_run_file(self, path_ready):

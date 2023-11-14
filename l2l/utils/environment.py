@@ -21,7 +21,8 @@ class Environment:
         The trajectory object holds individual parameters and history per generation of the exploration process.
         """
         if 'trajectory' in keyword_args:
-            self.trajectory = Trajectory(name=keyword_args['trajectory'], debug = keyword_args['debug'])
+            self.trajectory = Trajectory(name=keyword_args['trajectory'], debug = keyword_args['debug'], 
+                                         stop_run = keyword_args['stop_run'], timeout=keyword_args['timeout'])
         if 'filename' in keyword_args:
             self.filename = keyword_args['filename']
         self.postprocessing = None

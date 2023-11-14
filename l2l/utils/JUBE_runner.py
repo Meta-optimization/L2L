@@ -4,6 +4,8 @@ import pickle
 import time
 import logging
 import glob
+import sys
+import signal
 
 logger = logging.getLogger("JUBERunner")
 
@@ -63,6 +65,8 @@ class JUBERunner():
 
         self.zeepath = os.path.join(self.path, "optimizee.bin")
         self.debug_stderr = self.trajectory.debug
+        self.stop_run = self.trajectory.stop_run
+        self.timeout = self.trajectory.timeout
 
 
     def write_pop_for_jube(self, trajectory, generation):
@@ -221,8 +225,16 @@ class JUBERunner():
         main(args)
 
         # Wait for ready files to be written
+        if(self.timeout):
+            def handler(signum, frame):
+                sys.exit("The execution stopped due to a timeout.")
+
+            signal.signal(signal.SIGALRM, handler)
+            signal.alarm(7200)
         while not self.is_done(ready_files):
             time.sleep(5)
+        if(self.timeout):
+            signal.alarm(0)
 
         # Touch done generation
         logger.info("JUBE finished generation: " + str(self.generation))
@@ -255,6 +267,8 @@ class JUBERunner():
                         for line in lines:
                             print(line)
                     print("\n")
+                    if(self.stop_run):
+                        sys.exit("An error occured, the execution has stopped.")
         return done
 
     def prepare_run_file(self, path_ready):

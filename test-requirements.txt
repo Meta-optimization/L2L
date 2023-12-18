@@ -4,7 +4,6 @@ scipy
 pyyaml
 sphinx
 sphinxjp.themes.basicstrap
-sklearn
 jinja2
 gitpython
 scikit-learn

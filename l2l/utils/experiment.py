@@ -1,5 +1,6 @@
 import logging.config
 import os
+import pickle
 
 from l2l.utils.environment import Environment
 
@@ -32,7 +33,7 @@ class Experiment(object):
         :param kwargs: optional dictionary, contains
             - name: str, name of the run, Default: L2L-run
             - trajectory_name: str, name of the trajectory, Default: trajectory
-            - trajectory_loaded: object, trajectory object
+            - checkpoint: object, trajectory object
             - log_stdout: bool, if stdout should be sent to logs, Default:False
             - jube_parameter: dict, User specified parameter for jube.
                 See notes section for default jube parameter
@@ -72,8 +73,8 @@ class Experiment(object):
             os.mkdir(os.path.abspath(self.root_dir_path))
             print('Created a folder at {}'.format(self.root_dir_path))
 
-        if('trajectory_loaded' in kwargs):
-            self.traj = kwargs['trajectory_loaded']
+        if('checkpoint' in kwargs):
+            self.traj = kwargs['checkpoint']
             trajectory_name = self.traj._name
         else:
             trajectory_name = kwargs.get('trajectory_name', 'trajectory')
@@ -89,7 +90,7 @@ class Experiment(object):
         # This initializes an environment
         if self.traj:  
              self.env = Environment(
-                loaded_trajectory=self.traj,
+                checkpoint=self.traj,
                 filename=self.paths.output_dir_path,
                 file_title='{} data'.format(name),
                 comment='{} data'.format(name),
@@ -115,6 +116,8 @@ class Experiment(object):
                 stop_run = kwargs.get('stop_run', True),
                 timeout = kwargs.get('stop_run', True)
             )
+            # Get the trajectory from the environment
+            self.traj = self.env.trajectory
 
         create_shared_logger_data(
             logger_names=['bin', 'optimizers'],
@@ -124,8 +127,6 @@ class Experiment(object):
             log_directory=self.paths.logs_path)
         configure_loggers()
 
-        # Get the trajectory from the environment
-        self.traj = self.env.trajectory
 
         # Set JUBE params
         default_jube_params = {
@@ -148,6 +149,9 @@ class Experiment(object):
             "work_path": self.paths.root_dir_path,
             "paths_obj": self.paths,
         }
+
+        #print(self.traj._parameters)
+        #print("\n")
         # Will contain all jube parameters
         all_jube_params = {}
         self.traj.f_add_parameter_group("JUBE_params",
@@ -172,6 +176,8 @@ class Experiment(object):
             else:
                 self.traj.f_add_parameter_to_group("JUBE_params", k, v)
                 all_jube_params[k] = v
+        #print(self.traj._parameters)
+        #print("\n")
         print('JUBE parameters used: {}'.format(all_jube_params))
         return self.traj, all_jube_params
 
@@ -212,3 +218,15 @@ class Experiment(object):
         # Finally disable logging and close all log-files
         self.env.disable_logging()
         return self.traj, self.paths
+    
+    def load_trajectory(self, traj_path):
+        """
+        Loads a trajectory from a given file
+        :param traj_path: path to the trajectory file
+        :return traj: trajectory object
+        """
+        traj_file = open(os.path.join(traj_path),
+                          "rb")
+        loaded_traj = pickle.load(traj_file)
+        traj_file.close()
+        return loaded_traj

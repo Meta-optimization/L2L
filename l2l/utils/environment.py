@@ -23,8 +23,8 @@ class Environment:
         if 'trajectory' in keyword_args:
             self.trajectory = Trajectory(name=keyword_args['trajectory'], debug = keyword_args['debug'], 
                                          stop_run = keyword_args['stop_run'], timeout=keyword_args['timeout'])
-        if 'loaded_trajectory' in keyword_args:
-            self.trajectory = keyword_args["loaded_trajectory"]
+        if 'checkpoint' in keyword_args:
+            self.trajectory = keyword_args["checkpoint"]
         if 'filename' in keyword_args:
             self.filename = keyword_args['filename']
         self.postprocessing = None

@@ -25,6 +25,7 @@ class Environment:
                                          stop_run = keyword_args['stop_run'], timeout=keyword_args['timeout'])
         if 'checkpoint' in keyword_args:
             self.trajectory = keyword_args["checkpoint"]
+            self.trajectory.is_loaded = True
         if 'filename' in keyword_args:
             self.filename = keyword_args['filename']
         self.postprocessing = None
@@ -41,7 +42,7 @@ class Environment:
         :return: the results of running a whole generation. Dictionary indexed by generation id.
         """
         result = {}
-        for it in range(self.trajectory.individual.generation, self.trajectory.par['n_iteration']):
+        for it in range(self.trajectory.individual.generation, self.trajectory.par['n_iteration']+self.trajectory.individual.generation):
             if self.multiprocessing:
                 # Multiprocessing is done through JUBE, either with or without scheduler
                 logging.info("Environment run starting JUBERunner for n iterations: " + str(self.trajectory.par['n_iteration']))

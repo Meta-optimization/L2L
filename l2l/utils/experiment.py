@@ -89,7 +89,7 @@ class Experiment(object):
         # Create an environment that handles running our simulation
         # This initializes an environment
         if self.traj:  
-             self.env = Environment(
+            self.env = Environment(
                 checkpoint=self.traj,
                 filename=self.paths.output_dir_path,
                 file_title='{} data'.format(name),
@@ -150,8 +150,6 @@ class Experiment(object):
             "paths_obj": self.paths,
         }
 
-        #print(self.traj._parameters)
-        #print("\n")
         # Will contain all jube parameters
         all_jube_params = {}
         self.traj.f_add_parameter_group("JUBE_params",
@@ -176,8 +174,6 @@ class Experiment(object):
             else:
                 self.traj.f_add_parameter_to_group("JUBE_params", k, v)
                 all_jube_params[k] = v
-        #print(self.traj._parameters)
-        #print("\n")
         print('JUBE parameters used: {}'.format(all_jube_params))
         return self.traj, all_jube_params
 

@@ -101,12 +101,28 @@ class GeneticAlgorithmOptimizer(Optimizer):
 
         # ------- Initialize Population and Trajectory -------- #
         # NOTE: The Individual object implements the list interface.
-        self.pop = toolbox.population(n=traj.pop_size)
+        # Extrahieren der array-Einträge
+        
+        if traj.is_loaded:
+            generation = traj.individual.generation
+            data = traj.individuals[generation]
+            # generate population
+            self.pop = toolbox.population(n=0) 
+            # add individuals to population
+            for ind_data in data:
+                coords = ind_data['coords']
+                ind = creator.Individual(coords.tolist())
+                self.pop.append(ind)
+
+            self.g = generation  # the current generation
+        else:
+            self.pop = toolbox.population(n=traj.pop_size)
+            self.g = 0  # the current generation
+
         self.eval_pop_inds = [ind for ind in self.pop if not ind.fitness.valid]
         self.eval_pop = [list_to_dict(ind, self.optimizee_individual_dict_spec)
-                         for ind in self.eval_pop_inds]
+                                for ind in self.eval_pop_inds]
 
-        self.g = 0  # the current generation
         self.toolbox = toolbox  # the DEAP toolbox
         self.hall_of_fame = HallOfFame(20)
         self.best_individual = None
@@ -118,6 +134,7 @@ class GeneticAlgorithmOptimizer(Optimizer):
         See :meth:`~l2l.optimizers.optimizer.Optimizer.post_process`
         """
         CXPB, MUTPB, NGEN = traj.cx_prob, traj.mut_prob, traj.n_iteration
+        iterations = 0
 
         logger.info("  Evaluating %i individuals" % len(fitnesses_results))
 
@@ -155,7 +172,7 @@ class GeneticAlgorithmOptimizer(Optimizer):
                                                       hof_ind.fitness.values))
 
         # ------- Create the next generation by crossover and mutation -------- #
-        if self.g < NGEN - 1:  # not necessary for the last generation
+        if iterations < NGEN - 1:  # not necessary for the last generation
             # Select the next generation individuals
             offspring = self.toolbox.select(self.pop, len(self.pop))
             # Clone the selected individuals
@@ -191,6 +208,7 @@ class GeneticAlgorithmOptimizer(Optimizer):
 
             self.g += 1  # Update generation counter
             self._expand_trajectory(traj)
+            iterations += 1
 
     def end(self, traj):
         """

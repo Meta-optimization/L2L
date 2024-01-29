@@ -34,6 +34,7 @@ class Trajectory:
         self.debug = keyword_args['debug']
         self.stop_run = keyword_args['stop_run']
         self.timeout = keyword_args['timeout']
+        self.is_loaded = False
 
     def f_add_parameter_group(self, name, comment=""):
         """

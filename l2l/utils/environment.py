@@ -75,7 +75,6 @@ class Environment:
             self.trajectory.current_results = result[it]
             # Perform the postprocessing step in order to generate the new parameter set
             self.postprocessing(self.trajectory, result[it])
-
         return result
 
     def add_postprocessing(self, func):

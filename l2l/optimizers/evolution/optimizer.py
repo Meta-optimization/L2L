@@ -54,18 +54,22 @@ class GeneticAlgorithmOptimizer(Optimizer):
         __, self.optimizee_individual_dict_spec = dict_to_list(optimizee_create_individual(), get_dict_spec=True)
 
         traj.f_add_parameter('seed', parameters.seed, comment='Seed for RNG')
-        traj.f_add_parameter('pop_size', parameters.pop_size, comment='Population size')  # 185
+        if traj.parameters["pop_size"] == parameters.pop_size:
+            traj.f_add_parameter('pop_size', parameters.pop_size, comment='Population size')  # 185
+        else: 
+            raise ValueError("The passed population size does not match the population size of the trajectory")
         traj.f_add_parameter('cx_prob', parameters.cx_prob, comment='Crossover term')
         traj.f_add_parameter('mut_prob', parameters.mut_prob, comment='Mutation probability')
         traj.f_add_parameter('n_iteration', parameters.n_iteration, comment='Number of generations')
 
         traj.f_add_parameter('ind_prob', parameters.ind_prob, comment='Mutation parameter')
         traj.f_add_parameter('tourn_size', parameters.tourn_size, comment='Selection parameter')
-
         # ------- Create and register functions with DEAP ------- #
         # delay_rate, slope, std_err, max_fraction_active
-        creator.create("FitnessMax", base.Fitness, weights=self.optimizee_fitness_weights)
-        creator.create("Individual", list, fitness=creator.FitnessMax)
+        #if an hall of fame is loaded the creator has already a FitnessMax and Individual object
+        if traj.hall_of_fame is None:
+            creator.create("FitnessMax", base.Fitness, weights=self.optimizee_fitness_weights)
+            creator.create("Individual", list, fitness=creator.FitnessMax)
 
         toolbox = base.Toolbox()
         # Structure initializers
@@ -124,9 +128,14 @@ class GeneticAlgorithmOptimizer(Optimizer):
                                 for ind in self.eval_pop_inds]
 
         self.toolbox = toolbox  # the DEAP toolbox
-        self.hall_of_fame = HallOfFame(20)
-        self.best_individual = None
 
+        if traj.hall_of_fame is None:
+            self.hall_of_fame = HallOfFame(2)
+            self.best_individual = None
+        else:
+            self.hall_of_fame = traj.hall_of_fame
+            best_inds = tools.selBest(self.eval_pop_inds, 2)
+            self.best_individual = list_to_dict(best_inds[0], self.optimizee_individual_dict_spec)
         self._expand_trajectory(traj)
 
     def post_process(self, traj, fitnesses_results):
@@ -165,6 +174,8 @@ class GeneticAlgorithmOptimizer(Optimizer):
                                                  best_ind.fitness.values))
 
         self.hall_of_fame.update(self.eval_pop_inds)
+        traj.hall_of_fame = self.hall_of_fame
+        print(traj.hall_of_fame)
 
         logger.info("-- Hall of fame --")
         for hof_ind in tools.selBest(self.hall_of_fame, 2):

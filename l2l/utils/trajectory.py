@@ -35,6 +35,7 @@ class Trajectory:
         self.stop_run = keyword_args['stop_run']
         self.timeout = keyword_args['timeout']
         self.is_loaded = False
+        self.hall_of_fame = None
 
     def f_add_parameter_group(self, name, comment=""):
         """

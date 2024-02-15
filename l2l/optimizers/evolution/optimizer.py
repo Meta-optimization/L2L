@@ -54,7 +54,9 @@ class GeneticAlgorithmOptimizer(Optimizer):
         __, self.optimizee_individual_dict_spec = dict_to_list(optimizee_create_individual(), get_dict_spec=True)
 
         traj.f_add_parameter('seed', parameters.seed, comment='Seed for RNG')
-        if traj.parameters["pop_size"] == parameters.pop_size:
+        if not traj.is_loaded:
+            traj.f_add_parameter('pop_size', parameters.pop_size, comment='Population size')  # 185
+        elif traj.is_loaded and traj.parameters["pop_size"] == parameters.pop_size:
             traj.f_add_parameter('pop_size', parameters.pop_size, comment='Population size')  # 185
         else: 
             raise ValueError("The passed population size does not match the population size of the trajectory")
@@ -131,11 +133,10 @@ class GeneticAlgorithmOptimizer(Optimizer):
 
         if traj.hall_of_fame is None:
             self.hall_of_fame = HallOfFame(2)
-            self.best_individual = None
         else:
             self.hall_of_fame = traj.hall_of_fame
-            best_inds = tools.selBest(self.eval_pop_inds, 2)
-            self.best_individual = list_to_dict(best_inds[0], self.optimizee_individual_dict_spec)
+        
+        self.best_individual = None
         self._expand_trajectory(traj)
 
     def post_process(self, traj, fitnesses_results):

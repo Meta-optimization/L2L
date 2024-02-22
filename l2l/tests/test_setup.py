@@ -22,7 +22,8 @@ class SetupTestCase(unittest.TestCase):
                 log_stdout=True,
                 add_time=True,
                 automatic_storing=True,
-                jube_parameter=jube_params)
+                jube_parameter=jube_params,
+                overwrite = True)
         except FileNotFoundError as fe:
             self.fail(
                 "{} \n L2L is not well configured. Missing path file.".format(
@@ -53,7 +54,8 @@ class SetupTestCase(unittest.TestCase):
             add_time=True,
             automatic_storing=True,
             log_stdout=False,
-            jube_parameter={}
+            jube_parameter={},
+            overwrite = True
         )
         self.trajectory.f_add_parameter_group("JUBE_params", "Contains JUBE parameters")
         self.trajectory.f_add_parameter_to_group("JUBE_params", "exec", "python " +

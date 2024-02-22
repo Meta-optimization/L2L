@@ -92,7 +92,7 @@ class Experiment(object):
                 ready_path = 'simulation/ready_files'
                 shutil.rmtree(os.path.join(self.paths.output_dir_path, ready_path))
             else: 
-                raise Exception("There are already exsiting outputfiles in this directory")
+                raise Exception("There are already exsiting outputfiles in this directory. Please change the path specification.")
 
         print("All output logs can be found in directory ",
               self.paths.logs_path)

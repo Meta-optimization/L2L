@@ -211,14 +211,16 @@ class JUBERunner():
         self.prepare_run_file(path_ready)
 
         # Dump all trajectories for each optimizee run in the generation
-        for ind in self.trajectory.individuals[generation]:
-            trajectory.individual = ind
-            trajfname = "trajectory_%s_%s.bin" % (ind.ind_idx, generation)
-            handle = open(os.path.join(self.work_paths["trajectories"], trajfname),
+        
+        trajfname = "trajectory_%s.bin" % (generation)
+        handle = open(os.path.join(self.work_paths["trajectories"], trajfname),
                           "wb")
-            pickle.dump(trajectory, handle, pickle.HIGHEST_PROTOCOL)
-            handle.close()
+        pickle.dump(trajectory, handle, pickle.HIGHEST_PROTOCOL)
+        handle.close()
+        for ind in self.trajectory.individuals[generation]:
             ready_files.append(path_ready + str(ind.ind_idx))
+
+        ready_files.append(path_ready + str(generation))
 
         # Call the main function from JUBE
         logger.info("JUBE running generation: " + str(self.generation))
@@ -280,7 +282,7 @@ class JUBERunner():
         :return true if all files are present, false otherwise
         """
         trajpath = os.path.join(self.work_paths["trajectories"],
-                                'trajectory_" + str(idx) + "_" + str(iteration) + ".bin')
+                                'trajectory_" + str(iteration) + ".bin')
         respath = os.path.join(self.work_paths['results'],
                                'results_" + str(idx) + "_" + str(iteration) + ".bin')
         f = open(os.path.join(self.work_paths["run_files"], "run_optimizee.py"), "w")
@@ -294,6 +296,7 @@ class JUBERunner():
                 'handle_optimizee = open("' + self.zeepath + '", "rb")\n' +
                 'optimizee = pickle.load(handle_optimizee)\n' +
                 'handle_optimizee.close()\n\n' +
+                'trajectory.individual = trajectory.individuals[int(iteration)][int(idx)] \n'+
                 'res = optimizee.simulate(trajectory)\n\n' +
                 'handle_res = open("' + respath + '", "wb")\n' +
                 'pickle.dump(res, handle_res, pickle.HIGHEST_PROTOCOL)\n' +

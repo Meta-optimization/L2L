@@ -132,11 +132,12 @@ class GeneticAlgorithmOptimizer(Optimizer):
         self.toolbox = toolbox  # the DEAP toolbox
 
         if traj.hall_of_fame is None:
-            self.hall_of_fame = HallOfFame(2)
+            self.hall_of_fame = HallOfFame(20)
+            best_inds = tools.selBest(self.eval_pop_inds, 2)
+            self.best_individual = list_to_dict(best_inds[0], self.optimizee_individual_dict_spec)
         else:
             self.hall_of_fame = traj.hall_of_fame
-        
-        self.best_individual = None
+            self.best_individual = None
         self._expand_trajectory(traj)
 
     def post_process(self, traj, fitnesses_results):
@@ -176,7 +177,6 @@ class GeneticAlgorithmOptimizer(Optimizer):
 
         self.hall_of_fame.update(self.eval_pop_inds)
         traj.hall_of_fame = self.hall_of_fame
-        print(traj.hall_of_fame)
 
         logger.info("-- Hall of fame --")
         for hof_ind in tools.selBest(self.hall_of_fame, 2):

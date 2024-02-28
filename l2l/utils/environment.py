@@ -73,6 +73,8 @@ class Environment:
             # Add results to the trajectory
             self.trajectory.results.f_add_result_to_group("all_results", it, result[it])
             self.trajectory.current_results = result[it]
+            # Update trajectory file
+            jube.dump_traj(self.trajectory)
             # Perform the postprocessing step in order to generate the new parameter set
             self.postprocessing(self.trajectory, result[it])
         return result

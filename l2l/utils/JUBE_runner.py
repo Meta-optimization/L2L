@@ -210,13 +210,10 @@ class JUBERunner():
         path_ready = os.path.join(self.work_paths["ready_files"], "ready_%d_"%generation)
         self.prepare_run_file(path_ready)
 
-        # Dump all trajectories for each optimizee run in the generation
-        
-        trajfname = "trajectory_%s.bin" % (generation)
-        handle = open(os.path.join(self.work_paths["trajectories"], trajfname),
-                          "wb")
-        pickle.dump(trajectory, handle, pickle.HIGHEST_PROTOCOL)
-        handle.close()
+        # Dump trajectory for each optimizee run in the generation
+        # each trajectory needs an individual to get the correct generation
+        trajectory.individual = self.trajectory.individuals[generation][0]
+        self.dump_traj(trajectory)
         for ind in self.trajectory.individuals[generation]:
             ready_files.append(path_ready + str(ind.ind_idx))
 
@@ -304,6 +301,15 @@ class JUBERunner():
                 'handle_res = open("' + path_ready + '" + str(idx), "wb")\n' +
                 'handle_res.close()')
         f.close()
+
+    def dump_traj(self, trajectory):
+        """Dumpes trajectory files.
+        :param trajectory, object to be dumped"""
+        trajfname = "trajectory_%s.bin" % (trajectory.individual.generation)
+        handle = open(os.path.join(self.work_paths["trajectories"], trajfname),
+                            "wb")
+        pickle.dump(trajectory, handle, pickle.HIGHEST_PROTOCOL)
+        handle.close()
 
 
 def prepare_optimizee(optimizee, path):

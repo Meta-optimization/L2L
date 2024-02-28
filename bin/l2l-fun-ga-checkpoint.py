@@ -14,9 +14,9 @@ from l2l.utils.experiment import Experiment
 def main():
     experiment = Experiment(root_dir_path='./results')
     name = 'L2L-FUN-GA'
-    loaded_traj = experiment.load_trajectory("/home/hanna/Documents/Meta-optimization/results/L2L-FUN-GA/simulation/trajectories/trajectory_0_0.bin")
-    traj, _ = experiment.prepare_experiment(name=name,checkpoint=loaded_traj, log_stdout=True, debug=True, stop_run=True)
-    
+    loaded_traj = experiment.load_trajectory("path_to_trajectory_file")
+    traj, _ = experiment.prepare_experiment(name=name,checkpoint=loaded_traj, log_stdout=True, debug=True, stop_run=True, overwrite=True)
+
     ## Benchmark function
     function_id = 4
     bench_functs = BenchmarkedFunctions()

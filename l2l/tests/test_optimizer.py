@@ -22,7 +22,8 @@ class OptimizerTestCase(unittest.TestCase):
         jube_params = {}
         self.trajectory, all_jube_params = self.experiment.prepare_experiment(name='L2L',
                                                                               log_stdout=True,
-                                                                              jube_parameter=jube_params)
+                                                                              jube_parameter=jube_params,
+                                                                              overwrite=True)
         self.optimizee_parameters = namedtuple('OptimizeeParameters', [])
         self.optimizee = FunctionGeneratorOptimizee(
             self.trajectory, benchmark_function, seed=1)

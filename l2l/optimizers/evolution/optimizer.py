@@ -54,18 +54,24 @@ class GeneticAlgorithmOptimizer(Optimizer):
         __, self.optimizee_individual_dict_spec = dict_to_list(optimizee_create_individual(), get_dict_spec=True)
 
         traj.f_add_parameter('seed', parameters.seed, comment='Seed for RNG')
-        traj.f_add_parameter('pop_size', parameters.pop_size, comment='Population size')  # 185
+        if not traj.is_loaded:
+            traj.f_add_parameter('pop_size', parameters.pop_size, comment='Population size')  # 185
+        elif traj.is_loaded and traj.parameters["pop_size"] == parameters.pop_size:
+            traj.f_add_parameter('pop_size', parameters.pop_size, comment='Population size')  # 185
+        else: 
+            raise ValueError("The passed population size does not match the population size of the trajectory")
         traj.f_add_parameter('cx_prob', parameters.cx_prob, comment='Crossover term')
         traj.f_add_parameter('mut_prob', parameters.mut_prob, comment='Mutation probability')
         traj.f_add_parameter('n_iteration', parameters.n_iteration, comment='Number of generations')
 
         traj.f_add_parameter('ind_prob', parameters.ind_prob, comment='Mutation parameter')
         traj.f_add_parameter('tourn_size', parameters.tourn_size, comment='Selection parameter')
-
         # ------- Create and register functions with DEAP ------- #
         # delay_rate, slope, std_err, max_fraction_active
-        creator.create("FitnessMax", base.Fitness, weights=self.optimizee_fitness_weights)
-        creator.create("Individual", list, fitness=creator.FitnessMax)
+        #if an hall of fame is loaded the creator has already a FitnessMax and Individual object
+        if traj.hall_of_fame is None:
+            creator.create("FitnessMax", base.Fitness, weights=self.optimizee_fitness_weights)
+            creator.create("Individual", list, fitness=creator.FitnessMax)
 
         toolbox = base.Toolbox()
         # Structure initializers
@@ -101,16 +107,37 @@ class GeneticAlgorithmOptimizer(Optimizer):
 
         # ------- Initialize Population and Trajectory -------- #
         # NOTE: The Individual object implements the list interface.
-        self.pop = toolbox.population(n=traj.pop_size)
+        # Extrahieren der array-Einträge
+        
+        if traj.is_loaded:
+            generation = traj.individual.generation
+            data = traj.individuals[generation]
+            # generate population
+            self.pop = toolbox.population(n=0) 
+            # add individuals to population
+            for ind_data in data:
+                coords = ind_data['coords']
+                ind = creator.Individual(coords.tolist())
+                self.pop.append(ind)
+
+            self.g = generation  # the current generation
+        else:
+            self.pop = toolbox.population(n=traj.pop_size)
+            self.g = 0  # the current generation
+
         self.eval_pop_inds = [ind for ind in self.pop if not ind.fitness.valid]
         self.eval_pop = [list_to_dict(ind, self.optimizee_individual_dict_spec)
-                         for ind in self.eval_pop_inds]
+                                for ind in self.eval_pop_inds]
 
-        self.g = 0  # the current generation
         self.toolbox = toolbox  # the DEAP toolbox
-        self.hall_of_fame = HallOfFame(20)
-        self.best_individual = None
 
+        if traj.hall_of_fame is None:
+            self.hall_of_fame = HallOfFame(20)
+            best_inds = tools.selBest(self.eval_pop_inds, 2)
+            self.best_individual = list_to_dict(best_inds[0], self.optimizee_individual_dict_spec)
+        else:
+            self.hall_of_fame = traj.hall_of_fame
+            self.best_individual = None
         self._expand_trajectory(traj)
 
     def post_process(self, traj, fitnesses_results):
@@ -118,6 +145,7 @@ class GeneticAlgorithmOptimizer(Optimizer):
         See :meth:`~l2l.optimizers.optimizer.Optimizer.post_process`
         """
         CXPB, MUTPB, NGEN = traj.cx_prob, traj.mut_prob, traj.n_iteration
+        iterations = 0
 
         logger.info("  Evaluating %i individuals" % len(fitnesses_results))
 
@@ -148,6 +176,7 @@ class GeneticAlgorithmOptimizer(Optimizer):
                                                  best_ind.fitness.values))
 
         self.hall_of_fame.update(self.eval_pop_inds)
+        traj.hall_of_fame = self.hall_of_fame
 
         logger.info("-- Hall of fame --")
         for hof_ind in tools.selBest(self.hall_of_fame, 2):
@@ -155,7 +184,7 @@ class GeneticAlgorithmOptimizer(Optimizer):
                                                       hof_ind.fitness.values))
 
         # ------- Create the next generation by crossover and mutation -------- #
-        if self.g < NGEN - 1:  # not necessary for the last generation
+        if iterations < NGEN - 1:  # not necessary for the last generation
             # Select the next generation individuals
             offspring = self.toolbox.select(self.pop, len(self.pop))
             # Clone the selected individuals
@@ -191,6 +220,7 @@ class GeneticAlgorithmOptimizer(Optimizer):
 
             self.g += 1  # Update generation counter
             self._expand_trajectory(traj)
+            iterations += 1
 
     def end(self, traj):
         """

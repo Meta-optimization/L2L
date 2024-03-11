@@ -1,5 +1,7 @@
 import logging.config
 import os
+import pickle
+import shutil
 
 from l2l.utils.environment import Environment
 
@@ -32,6 +34,7 @@ class Experiment(object):
         :param kwargs: optional dictionary, contains
             - name: str, name of the run, Default: L2L-run
             - trajectory_name: str, name of the trajectory, Default: trajectory
+            - checkpoint: object, trajectory object
             - log_stdout: bool, if stdout should be sent to logs, Default:False
             - jube_parameter: dict, User specified parameter for jube.
                 See notes section for default jube parameter
@@ -42,6 +45,8 @@ class Experiment(object):
                 execution, Default: True
             -timeout, bool, stops execution after 2 hours if it is not finished by then,
                 Default: True
+            -overwrite, bool, specifies whether existing files should be overwritten
+                Default: False
         :return traj, trajectory object
         :return all_jube_params, dict, a dictionary with all parameters for jube
             given by the user and default ones
@@ -71,30 +76,60 @@ class Experiment(object):
             os.mkdir(os.path.abspath(self.root_dir_path))
             print('Created a folder at {}'.format(self.root_dir_path))
 
-        trajectory_name = kwargs.get('trajectory_name', 'trajectory')
+        if('checkpoint' in kwargs):
+            self.traj = kwargs['checkpoint']
+            trajectory_name = self.traj._name
+        else:
+            trajectory_name = kwargs.get('trajectory_name', 'trajectory')
 
         self.paths = Paths(name, {},
                            root_dir_path=self.root_dir_path,
                            suffix="-" + trajectory_name)
+
+        overwrite = kwargs.get('overwrite', False)
+        if os.path.isdir(self.paths.output_dir_path):
+            if overwrite:
+                ready_path = 'simulation/ready_files'
+                if os.path.isdir(os.path.join(self.paths.output_dir_path, ready_path)):
+                    shutil.rmtree(os.path.join(self.paths.output_dir_path, ready_path))
+            else: 
+                raise Exception("There are already exsiting outputfiles in this directory. Please change the path specification.")
 
         print("All output logs can be found in directory ",
               self.paths.logs_path)
 
         # Create an environment that handles running our simulation
         # This initializes an environment
-        self.env = Environment(
-            trajectory=trajectory_name,
-            filename=self.paths.output_dir_path,
-            file_title='{} data'.format(name),
-            comment='{} data'.format(name),
-            add_time=True,
-            automatic_storing=True,
-            log_stdout=kwargs.get('log_stdout', False),  # Sends stdout to logs
-            multiprocessing=kwargs.get('multiprocessing', True),
-            debug = kwargs.get('debug', False),
-            stop_run = kwargs.get('stop_run', True),
-            timeout = kwargs.get('stop_run', True)
-        )
+        if self.traj:  
+            self.env = Environment(
+                checkpoint=self.traj,
+                filename=self.paths.output_dir_path,
+                file_title='{} data'.format(name),
+                comment='{} data'.format(name),
+                add_time=True,
+                automatic_storing=True,
+                log_stdout=kwargs.get('log_stdout', False),  # Sends stdout to logs
+                multiprocessing=kwargs.get('multiprocessing', True),
+                debug = kwargs.get('debug', False),
+                stop_run = kwargs.get('stop_run', True),
+                timeout = kwargs.get('stop_run', True)
+            )
+        else: 
+            self.env = Environment(
+                trajectory=trajectory_name,
+                filename=self.paths.output_dir_path,
+                file_title='{} data'.format(name),
+                comment='{} data'.format(name),
+                add_time=True,
+                automatic_storing=True,
+                log_stdout=kwargs.get('log_stdout', False),  # Sends stdout to logs
+                multiprocessing=kwargs.get('multiprocessing', True),
+                debug = kwargs.get('debug', False),
+                stop_run = kwargs.get('stop_run', True),
+                timeout = kwargs.get('stop_run', True)
+            )
+            # Get the trajectory from the environment
+            self.traj = self.env.trajectory
 
         create_shared_logger_data(
             logger_names=['bin', 'optimizers'],
@@ -104,8 +139,6 @@ class Experiment(object):
             log_directory=self.paths.logs_path)
         configure_loggers()
 
-        # Get the trajectory from the environment
-        self.traj = self.env.trajectory
 
         # Set JUBE params
         default_jube_params = {
@@ -128,6 +161,7 @@ class Experiment(object):
             "work_path": self.paths.root_dir_path,
             "paths_obj": self.paths,
         }
+
         # Will contain all jube parameters
         all_jube_params = {}
         self.traj.f_add_parameter_group("JUBE_params",
@@ -192,3 +226,15 @@ class Experiment(object):
         # Finally disable logging and close all log-files
         self.env.disable_logging()
         return self.traj, self.paths
+    
+    def load_trajectory(self, traj_path):
+        """
+        Loads a trajectory from a given file
+        :param traj_path: path to the trajectory file
+        :return traj: trajectory object
+        """
+        traj_file = open(os.path.join(traj_path),
+                          "rb")
+        loaded_traj = pickle.load(traj_file)
+        traj_file.close()
+        return loaded_traj

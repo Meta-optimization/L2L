@@ -14,6 +14,7 @@ class CheckpointTestCase(OptimizerTestCase):
 
         iterations = 1
 
+        #first run to create trajectory object to use as checkpoint
         optimizer_parameters = GeneticAlgorithmParameters(seed=0, pop_size=1, cx_prob=0.5,
                                                           mut_prob=0.3, n_iteration=iterations, ind_prob=0.02,
                                                           tourn_size=1, mate_par=0.5,
@@ -24,13 +25,9 @@ class CheckpointTestCase(OptimizerTestCase):
                                               optimizee_fitness_weights=(-0.1,),
                                               parameters=optimizer_parameters)
 
-        self.experiment.run_experiment(optimizee=self.optimizee,
-                                           optimizee_parameters=self.optimizee_parameters,
-                                           optimizer=optimizer,
-                                           optimizer_parameters=optimizer_parameters)
+        run_optimizer(self, optimizer, optimizer_parameters)
 
-        self.experiment.end_experiment(optimizer)
-
+        #load trajectory
         home_path =  os.environ.get("HOME")
         root_dir_path = os.path.join(home_path, 'results')
         loaded_traj = self.experiment.load_trajectory(root_dir_path + '/L2L/simulation/trajectories/trajectory_0.bin')
@@ -55,10 +52,13 @@ class CheckpointTestCase(OptimizerTestCase):
                                                           tourn_size=1, mate_par=0.5,
                                                           mut_par=1
                                                           )
-        
-        GeneticAlgorithmOptimizer(self.trajectory, optimizee_create_individual=self.optimizee.create_individual,
+        createOptimizer = lambda : {
+            GeneticAlgorithmOptimizer(self.trajectory, optimizee_create_individual=self.optimizee.create_individual,
                                               optimizee_fitness_weights=(-0.1,),
                                               parameters=optimizer_parameters_loaded)
+        }
+        
+        self.assertRaises(ValueError, createOptimizer)
 
         
 
@@ -71,6 +71,13 @@ def run():
     runner = unittest.TextTestRunner(verbosity=2)
     runner.run(suite())
 
+def run_optimizer(self, optimizer, optimizer_parameters):
+    self.experiment.run_experiment(optimizee=self.optimizee,
+                                           optimizee_parameters=self.optimizee_parameters,
+                                           optimizer=optimizer,
+                                           optimizer_parameters=optimizer_parameters)
+
+    self.experiment.end_experiment(optimizer)
 
 if __name__ == "__main__":
     run()

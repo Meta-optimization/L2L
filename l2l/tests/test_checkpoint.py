@@ -12,10 +12,10 @@ class CheckpointTestCase(OptimizerTestCase):
 
     def test_setup(self):
 
-        iterations = 1
+        iterations = 5
 
         #first run to create trajectory object to use as checkpoint
-        optimizer_parameters = GeneticAlgorithmParameters(seed=0, pop_size=1, cx_prob=0.5,
+        optimizer_parameters = GeneticAlgorithmParameters(seed=0, pop_size=50, cx_prob=0.5,
                                                           mut_prob=0.3, n_iteration=iterations, ind_prob=0.02,
                                                           tourn_size=1, mate_par=0.5,
                                                           mut_par=1
@@ -25,12 +25,12 @@ class CheckpointTestCase(OptimizerTestCase):
                                               optimizee_fitness_weights=(-0.1,),
                                               parameters=optimizer_parameters)
 
-        run_optimizer(self, optimizer, optimizer_parameters)
+        run_optimizer(optimizer=optimizer, optimizer_parameters=optimizer_parameters)
 
         #load trajectory
         home_path =  os.environ.get("HOME")
         root_dir_path = os.path.join(home_path, 'results')
-        loaded_traj = self.experiment.load_trajectory(root_dir_path + '/L2L/simulation/trajectories/trajectory_0.bin')
+        loaded_traj = self.experiment.load_trajectory(root_dir_path + '/L2L/simulation/trajectories/trajectory_4.bin')
         
         self.assertEqual(loaded_traj.individual.generation, iterations-1)
 
@@ -41,25 +41,37 @@ class CheckpointTestCase(OptimizerTestCase):
                                                                               overwrite=True,
                                                                               checkpoint=loaded_traj)
 
+
+        optimizer_parameters_checkpoint = GeneticAlgorithmParameters(seed=0, pop_size=50, cx_prob=0.5,
+                                                          mut_prob=0.3, n_iteration=1, ind_prob=0.02,
+                                                          tourn_size=1, mate_par=0.5,
+                                                          mut_par=1)
+
         optimizer_checkpoint = GeneticAlgorithmOptimizer(self.trajectory, optimizee_create_individual=self.optimizee.create_individual,
                                               optimizee_fitness_weights=(-0.1,),
-                                              parameters=optimizer_parameters)
+                                              parameters=optimizer_parameters_checkpoint)
 
         self.assertEqual(optimizer_checkpoint.g, iterations-1)
 
-        optimizer_parameters_loaded = GeneticAlgorithmParameters(seed=0, pop_size=50, cx_prob=0.5,
-                                                          mut_prob=0.3, n_iteration=iterations, ind_prob=0.02,
+        run_optimizer(optimizer=optimizer_checkpoint, optimizer_parameters=optimizer_parameters_checkpoint)
+
+        best = optimizer.best_individual['coords']
+        best_checkpoint = optimizer_checkpoint.best_individual['coords']
+        self.assertEqual(best[0], best_checkpoint[0])
+        self.assertEqual(best[1], best_checkpoint[1])
+
+        optimizer_parameters_error = GeneticAlgorithmParameters(seed=0, pop_size=55, cx_prob=0.5,
+                                                          mut_prob=0.3, n_iteration=1, ind_prob=0.02,
                                                           tourn_size=1, mate_par=0.5,
-                                                          mut_par=1
-                                                          )
+                                                          mut_par=1)
+    
         createOptimizer = lambda : {
             GeneticAlgorithmOptimizer(self.trajectory, optimizee_create_individual=self.optimizee.create_individual,
                                               optimizee_fitness_weights=(-0.1,),
-                                              parameters=optimizer_parameters_loaded)
+                                              parameters=optimizer_parameters_error)
         }
         
         self.assertRaises(ValueError, createOptimizer)
-
         
 
 def suite():

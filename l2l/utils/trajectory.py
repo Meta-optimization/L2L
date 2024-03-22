@@ -3,7 +3,7 @@ from l2l.utils.groups import ParameterGroup, ResultGroup, ParameterDict
 from l2l.utils.individual import Individual
 import logging
 
-logging = logging.getLogger("Trajectory")
+logger = logging.getLogger("utils.trajectory")
 
 
 class Trajectory:
@@ -44,7 +44,7 @@ class Trajectory:
         :param comment: ignored for the moment. Kept to match pypet interface.
         """
         self._parameters[name] = ParameterGroup()
-        logging.info("Added new parameter group: " + name)
+        logger.info("Added new parameter group: " + name)
 
     def f_add_parameter_to_group(self, group_name, key, val):
         """
@@ -119,7 +119,7 @@ class Trajectory:
             for j in params:
                 ind.f_add_parameter(j, params[j][i])
             self.individuals[generation].append(ind)
-        logging.info("Expanded trajectory for generation: " + str(generation))
+        logger.info("Expanded trajectory for generation: " + str(generation))
 
     def __str__(self):
         return str(self._parameters)

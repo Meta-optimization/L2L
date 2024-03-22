@@ -8,7 +8,7 @@ from l2l import list_to_dict
 from l2l.optimizers.optimizer import Optimizer
 from l2l import get_grouped_dict
 
-logger = logging.getLogger("optimizers.gradientdescent")
+logger = logging.getLogger("optimizers.multigradientdescent")
 
 MultiClassicGDParameters = namedtuple(
     'ClassicGDParameters',

@@ -2,7 +2,7 @@ from l2l.utils.trajectory import Trajectory
 from l2l.utils.JUBE_runner import JUBERunner
 import logging
 
-logger = logging.getLogger("utils.Environment")
+logger = logging.getLogger("utils.environment")
 
 
 class Environment:
@@ -45,7 +45,7 @@ class Environment:
         for it in range(self.trajectory.individual.generation, self.trajectory.par['n_iteration']+self.trajectory.individual.generation):
             if self.multiprocessing:
                 # Multiprocessing is done through JUBE, either with or without scheduler
-                logging.info("Environment run starting JUBERunner for n iterations: " + str(self.trajectory.par['n_iteration']))
+                logger.info(f"Environment run starting JUBERunner for n iterations: {it+1}/{self.trajectory.par['n_iteration']}")
                 jube = JUBERunner(self.trajectory)
                 result[it] = []
                 # Initialize new JUBE run and execute it

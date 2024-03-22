@@ -21,7 +21,7 @@ class Experiment(object):
         paths. Will check if the folder exists and create if not.
         """
         self.root_dir_path = os.path.abspath(root_dir_path)
-        self.logger = logging.getLogger('bin.l2l')
+        self.logger = logging.getLogger('utils.experiment')
         self.paths = None
         self.env = None
         self.traj = None
@@ -132,7 +132,7 @@ class Experiment(object):
             self.traj = self.env.trajectory
 
         create_shared_logger_data(
-            logger_names=['bin', 'optimizers'],
+            logger_names=['optimizers', 'utils'],
             log_levels=['INFO', 'INFO'],
             log_to_consoles=[True, True],
             sim_name=name,

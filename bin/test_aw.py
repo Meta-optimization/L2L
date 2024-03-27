@@ -22,7 +22,7 @@ def run_experiment():
     #jube_params = { "exec": "srun -n1 --cpus-per-task=1 --gres=gpu:0 --exact python"} 
     jube_params = { "exec": "python3.9"} 
     traj, _ = experiment.prepare_experiment(
-        jube_parameter=jube_params, name=f"aw_GeneticAlgorithm_popSize32_generations400")
+        jube_parameter=jube_params, name=f"aw_busy_GeneticAlgorithm_popSize32_generations400")
         
 
     # active wait optimizee

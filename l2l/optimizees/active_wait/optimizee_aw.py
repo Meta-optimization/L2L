@@ -28,11 +28,21 @@ class AWOptimizee(Optimizee):
         """
 
         print('Starting with Generation {}'.format(self.generation))
-
         start_time = time.time()
-        time.sleep(self.difficulty)
+        
+        
+        
+        ## sleep
+        #time.sleep(self.difficulty)
+        
+        # busy wait
+        while time.time() - start_time < self.difficulty:
+            pass
+                
+        
+        
+        
         fitness = 0
-
         print("gen, ind, duration in s, fitness")
         print(f"{self.generation}, {self.ind_idx}, {time.time() - start_time}, {fitness}")
 

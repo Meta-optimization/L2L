@@ -20,6 +20,14 @@ class AWOptimizee(Optimizee):
         # create individual
         individual = {}
         return individual
+    
+    def is_prime(self, n):
+        if n <= 1:
+            return False
+        for i in range(2, int(n**0.5) + 1):
+            if n % i == 0:
+                return False
+        return True
 
 
     def simulate(self, traj):
@@ -36,8 +44,28 @@ class AWOptimizee(Optimizee):
         #time.sleep(self.difficulty)
         
         # busy wait
-        while time.time() - start_time < self.difficulty:
-            pass
+        #while time.time() - start_time < self.difficulty:
+        #    pass
+
+        # active wait prime
+        primes = []
+        for number in range(1, self.difficulty):
+            if self.is_prime(number):
+                primes.append(number)
+
+        print(f"Calculated {len(primes)} primes in the range 1 to {self.difficulty}")
+
+
+
+
+
+
+
+
+
+
+
+
                 
         
         
@@ -47,6 +75,11 @@ class AWOptimizee(Optimizee):
         print(f"{self.generation}, {self.ind_idx}, {time.time() - start_time}, {fitness}")
 
         return (fitness,) 
+    
+
+    
+    
+    
 
 
 

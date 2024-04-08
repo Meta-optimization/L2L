@@ -28,10 +28,10 @@ class FunctionGeneratorOptimizee(Optimizee):
         self.bound = self.fg_instance.bound
 
         # create_individual can be called because __init__ is complete except for traj initializtion
-        indiv_dict = self.create_individual()
+        """indiv_dict = self.create_individual()
         for key, val in indiv_dict.items():
             traj.individual.f_add_parameter(key, val)
-        traj.individual.f_add_parameter('seed', seed)
+        traj.individual.f_add_parameter('seed', seed)"""
 
         self.random_state = np.random.RandomState(seed=seed)
 

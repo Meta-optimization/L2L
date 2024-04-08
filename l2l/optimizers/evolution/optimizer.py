@@ -111,14 +111,15 @@ class GeneticAlgorithmOptimizer(Optimizer):
         
         if traj.is_loaded:
             generation = traj.individual.generation
-            data = traj.individuals[generation]
+            value = traj.individuals[generation]
             # generate population
             self.pop = toolbox.population(n=0) 
             # add individuals to population
-            for ind_data in data:
-                coords = ind_data['coords']
-                ind = creator.Individual(coords.tolist())
-                self.pop.append(ind)
+            for ind_data in value:
+                for key in ind_data.params.keys():
+                    value = ind_data.params[key]
+                    ind = creator.Individual(value.tolist())
+                    self.pop.append(ind)
 
             self.g = generation  # the current generation
         else:

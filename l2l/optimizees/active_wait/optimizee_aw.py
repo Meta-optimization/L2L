@@ -35,6 +35,8 @@ class AWOptimizee(Optimizee):
         Simulate a run and return a fitness
         """
 
+        self.ind_idx = traj.individual.ind_idx
+        self.generation = traj.individual.generation
         print('Starting with Generation {}'.format(self.generation))
         start_time = time.time()
         
@@ -56,20 +58,6 @@ class AWOptimizee(Optimizee):
         print(f"Calculated {len(primes)} primes in the range 1 to {self.difficulty}")
 
 
-
-
-
-
-
-
-
-
-
-
-                
-        
-        
-        
         fitness = 0
         print("gen, ind, duration in s, fitness")
         print(f"{self.generation}, {self.ind_idx}, {time.time() - start_time}, {fitness}")

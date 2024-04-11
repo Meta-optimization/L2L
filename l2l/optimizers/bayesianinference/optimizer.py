@@ -1,0 +1,238 @@
+"""
+Optimizer for Simulation-based Inference based on the sbi python package
+"""
+
+import logging
+
+import sbi
+import torch
+import numpy as np
+
+from l2l.utils.tools import cartesian_product
+from l2l import dict_to_list, list_to_dict, get_grouped_dict
+from l2l.optimizers.optimizer import Optimizer
+
+from collections import namedtuple
+from os.path import join, isdir
+import os
+import dill
+
+logger = logging.getLogger("l2l-bi")
+
+SBIOptimizerParameters = namedtuple('SBIParameters',
+                                        ['pop_size', 'n_iteration', 'seed', 'inference_method', 'save_path', 'x_obs', 'restrict_prior'],
+                                    defaults=(None, None, 0))
+SBIOptimizerParameters.__doc__ = """
+:param seed: Random seed
+"""
+
+class SBIOptimizer(Optimizer):
+    """
+    Implements simulation-based inference based on the sbi python package.
+
+    This is the base class for the Optimizers i.e. the outer loop algorithms. These algorithms generate parameters, \
+    give them to the inner loop to be evaluated, and with the resulting fitness modify the parameters in some way.
+
+    :param  ~l2l.utils.trajectory.Trajectory traj: Use this trajectory to store the parameters of the specific runs.
+        The parameters should be initialized based on the values in :param parameters:
+
+    :param optimizee_create_individual: A function which when called returns one instance of parameter (or "individual")
+
+    :param optimizee_fitness_weights: The weights which should be multiplied with the fitness returned from the
+        :class:`~l2l.optimizees.optimizee.Optimizee` -- one for each element of the fitness (fitness can be
+        multi-dimensional). If some element is negative, the Optimizer minimizes that element of fitness instead of
+        maximizing. By default, the `Optimizer` maximizes all fitness dimensions.
+
+    :param parameters: A named tuple containing the parameters for the Optimizer class
+
+    """
+
+    def __init__(self, traj,
+                 optimizee_create_individual,
+                 optimizee_fitness_weights,
+                 optimizee_bounding_func,
+                 parameters):
+        super().__init__(traj,
+                         optimizee_create_individual=optimizee_create_individual,
+                         optimizee_fitness_weights=optimizee_fitness_weights,
+                         parameters=parameters, optimizee_bounding_func=optimizee_bounding_func)
+
+        # check parameters and add to trajectory
+        traj.f_add_parameter('pop_size', parameters.pop_size, comment='Population size')
+        traj.f_add_parameter('n_iteration', parameters.n_iteration, comment='Number of iterations to run')
+        traj.f_add_parameter('seed', parameters.seed, comment='Seed for RNG')
+        traj.f_add_parameter('inference_method', parameters.inference_method, comment='SBI method to use for inference')
+        traj.f_add_parameter('save_path', parameters.save_path, comment='Path for saving the models')
+        traj.f_add_parameter('x_obs', parameters.x_obs, comment='Observation to use for multi-round inference')
+        traj.f_add_parameter('restrict_prior', parameters.restrict_prior, comment='Number of generations to run with the restriction estimator. Value 0 indicates to use no restriction at all.')
+
+        if traj.save_path:
+            if not os.path.isdir(traj.save_path):
+                raise ValueError(f'Path {traj.save_path} (save_path) does not exist.')
+            sbi.utils.io.get_log_root = lambda: join(traj.save_path, 'sbi-logs')
+
+        if traj.x_obs is None and traj.n_iteration > traj.restrict_prior+1:
+            raise ValueError('You have to define an observation x_obs if you are doing multi-round inference.')
+
+        # initialize models
+        if traj.is_loaded: # TODO
+            raise NotImplementedError()
+            # logger.info('Loading previous models')
+            # last_idx = ?
+            # self.prior = self._load_obj(join(traj.save_path, f'restricted_prior_{last_idx}.pkl'))
+            # self.restriction_estimator = self._load_obj(join(traj.save_path, f'restriction_estimator_{last_idx}.pkl'))
+
+            # self.g = last_idx
+        else:
+            logger.info('Creating new models')
+            ind_dict = optimizee_create_individual()
+            self.prior = ind_dict['prior']
+            if traj.restrict_prior > 0:
+                self.restriction_estimator = sbi.utils.RestrictionEstimator(prior=self.prior)
+            self.inference = traj.inference_method(prior=self.prior)
+
+            self.g = 0  # the current generation
+
+        logger.info('Initializing individuals')
+        samples = self.prior.sample((traj.pop_size,))
+        self.eval_pop = [{'parameters': sample} for sample in samples] # TODO parameter vector?
+
+        self._expand_trajectory(traj)
+
+    def post_process(self, traj, fitnesses_results):
+        """
+        This is the key function of this class. Given a set of :obj:`fitnesses_results`,  and the :obj:`traj`, it uses
+        the fitness to decide on the next set of parameters to be evaluated. Then it fills the :attr:`.Optimizer.eval_pop` with the
+        list of parameters it wants evaluated at the next simulation cycle, increments :attr:`.Optimizer.g` and calls
+        :meth:`._expand_trajectory`
+
+        :param  ~l2l.utils.trajectory.Trajectory traj: The trajectory that contains the parameters and the
+            individual that we want to simulate. The individual is accessible using `traj.individual` and parameter e.g.
+            param1 is accessible using `traj.param1`
+
+        :param list fitnesses_results: This is a list of fitness results that contain tuples run index and the fitness.
+            It is of the form `[(run_idx, run), ...]`
+
+        """
+        logger.info('Gathering simulation results')
+        x = torch.Tensor([traj.current_results[i][1] for i in range(traj.pop_size)])
+        individuals = traj.individuals[self.g]
+        theta = torch.stack([individuals[i].parameters for i in range(traj.pop_size)]) # TODO best way?
+
+        # check if there are any valid simulations
+        mask = torch.isnan(x).any(dim=1)
+        if mask.all():
+            raise ValueError(f'There was no valid simulation in generation {self.g}. Please check your prior and your simulation.')
+
+        if traj.save_path:
+            logger.info('Saving data')
+            tmp_path = join(traj.save_path, f'gen{self.g}')
+            os.mkdir(tmp_path)
+            torch.save(x[~mask], join(tmp_path, f'x_{self.g}.pt'))
+            torch.save(theta[~mask], join(tmp_path, f'theta_{self.g}.pt'))
+            if mask.any():
+                torch.save(theta[mask], join(tmp_path, f'invalid_theta_{self.g}.pt'))
+
+        # check if it is time for running the inference
+        inference_round = (self.g >= traj.restrict_prior)
+
+        #########################
+        # restriction estimator #
+        #########################
+
+        if not inference_round and mask.any():
+            logger.info('Fitting the restriction estimator')
+            self.restriction_estimator.append_simulations(theta, x)
+            self.restriction_estimator.train()
+            self.prior = self.restriction_estimator.restrict_prior()
+
+            if traj.save_path:
+                logger.info('Saving the restriction estimator and the restricted prior to disk')
+                self._save_obj(self.restriction_estimator, join(tmp_path, f'restriction_estimator_{self.g}.pkl'))
+                self._save_obj(self.prior, join(tmp_path, f'restricted_prior_{self.g}.pkl'))
+
+                # TODO sampeln und analysieren, Lernkurven? nur bei bestimmtem Flag?
+                np.save(join(tmp_path, f'restr_validation_log_probs_{self.g}.npy'), self.restriction_estimator._validation_log_probs)
+        else:
+            logger.info('No need to fit the restriction estimator')
+
+        ####################
+        # inference method #
+        ####################
+
+        self.inference = self.inference.append_simulations(theta[~mask], x[~mask], proposal=self.prior)
+        if inference_round:
+            logger.info('Running the inference method')
+            self.density_estimator = self.inference.train()
+            self.posterior = self.inference.build_posterior(self.density_estimator)
+            self.prior = self.posterior.set_default_x(traj.x_obs) # for multi-round inference
+
+            if traj.save_path:
+                logger.info('Saving the inference model data and posterior to disk')
+                self._save_obj(self.inference, join(tmp_path, f'inference_{self.g}.pkl'))
+                self._save_obj(self.density_estimator, join(tmp_path, f'density_estimator_{self.g}.pkl'))
+                self._save_obj(self.posterior, join(tmp_path, f'posterior_{self.g}.pkl'))
+
+                # TODO sampeln und analysieren, Lernkurven? nur bei bestimmtem Flag?
+                np.save(join(tmp_path, f'training_log_probs_{self.g}.npy'), self.inference._summary["training_log_probs"])
+                np.save(join(tmp_path, f'validation_log_probs_{self.g}.npy'), self.inference._summary["validation_log_probs"])
+                np.save(join(tmp_path, f'epoch_durations_{self.g}.npy'), self.inference._summary["epoch_durations_sec"])
+
+        if not self.g+1 == traj.n_iteration: # TODO ist das erlaubt?
+            logger.info('Sampling the new population')
+            samples = self.prior.sample((traj.pop_size,))
+            self.eval_pop = [{'parameters': sample} for sample in samples]
+            self.g += 1
+            self._expand_trajectory(traj)
+
+    def end(self, traj):
+        """
+        Run any code required to clean-up, print final individuals etc.
+
+        :param  ~l2l.utils.trajectory.Trajectory traj: The  trajectory that contains the parameters and the
+            individual that we want to simulate. The individual is accessible using `traj.individual` and parameter e.g.
+            param1 is accessible using `traj.param1`
+
+        """
+        pass
+
+    def _save_obj(self, obj, path):
+        """
+        This function saves an object using dill.
+        """
+        with open(path, 'wb') as handle:
+            dill.dump(obj, handle)
+
+    def _load_obj(self, path):
+        """
+        This function laods an object from file using dill.
+        """
+        with open(path, "rb") as handle:
+            obj = dill.load(handle)
+        return obj
+
+    def _expand_trajectory(self, traj):
+        """
+        Add as many explored runs as individuals that need to be evaluated. Furthermore, add the individuals as explored
+        parameters.
+
+        :param  ~l2l.utils.trajectory.Trajectory traj: The  trajectory that contains the parameters and the
+            individual that we want to simulate. The individual is accessible using `traj.individual` and parameter e.g.
+            param1 is accessible using `traj.param1`
+
+        :return:
+        """
+
+        grouped_params_dict = get_grouped_dict(self.eval_pop)
+        grouped_params_dict = {'individual.' + key: val for key, val in grouped_params_dict.items()}
+
+        final_params_dict = {'generation': [self.g],
+                             'ind_idx': range(len(self.eval_pop))}
+        final_params_dict.update(grouped_params_dict)
+
+        # We need to convert them to lists or write our own custom IndividualParameter ;-)
+        # Note the second argument to `cartesian_product`: This is for only having the cartesian product
+        # between ``generation x (ind_idx AND individual)``, so that every individual has just one
+        # unique index within a generation.
+        traj.f_expand(cartesian_product(final_params_dict,
+                                        [('ind_idx',) + tuple(grouped_params_dict.keys()), 'generation']))

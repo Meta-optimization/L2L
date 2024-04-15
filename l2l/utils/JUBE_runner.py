@@ -7,7 +7,7 @@ import glob
 import sys
 import signal
 
-logger = logging.getLogger("JUBERunner")
+logger = logging.getLogger("utils.JUBE_runner")
 
 
 class JUBERunner():

@@ -111,13 +111,14 @@ class GeneticAlgorithmOptimizer(Optimizer):
         
         if traj.is_loaded:
             generation = traj.individual.generation
-            value = traj.individuals[generation]
+            data = traj.individuals[generation]
             # generate population
             self.pop = toolbox.population(n=0) 
             # add individuals to population
-            for ind_data in value:
+            for ind_data in data:
                 for key in ind_data.params.keys():
                     value = ind_data.params[key]
+                    print(key, " ", value)
                     ind = creator.Individual(value.tolist())
                     self.pop.append(ind)
 

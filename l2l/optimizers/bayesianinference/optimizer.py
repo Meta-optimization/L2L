@@ -66,10 +66,8 @@ class SBIOptimizer(Optimizer):
         traj.f_add_parameter('x_obs', parameters.x_obs, comment='Observation to use for multi-round inference')
         traj.f_add_parameter('restrict_prior', parameters.restrict_prior, comment='Number of generations to run with the restriction estimator. Value 0 indicates to use no restriction at all.')
 
-        if traj.save_path:
-            if not os.path.isdir(traj.save_path):
+        if traj.save_path and not os.path.isdir(traj.save_path):
                 raise ValueError(f'Path {traj.save_path} (save_path) does not exist.')
-            sbi.utils.io.get_log_root = lambda: join(traj.save_path, 'sbi-logs')
 
         if traj.x_obs is None and traj.n_iteration > traj.restrict_prior+1:
             raise ValueError('You have to define an observation x_obs if you are doing multi-round inference.')
@@ -85,8 +83,8 @@ class SBIOptimizer(Optimizer):
             # self.g = last_idx
         else:
             logger.info('Creating new models')
-            ind_dict = optimizee_create_individual()
-            self.prior = ind_dict['prior']
+            ind_dict, self.prior = optimizee_create_individual()
+            #_, self.dict_spec = dict_to_list(ind_dict, True)
             if traj.restrict_prior > 0:
                 self.restriction_estimator = sbi.utils.RestrictionEstimator(prior=self.prior)
             self.inference = traj.inference_method(prior=self.prior)
@@ -94,8 +92,12 @@ class SBIOptimizer(Optimizer):
             self.g = 0  # the current generation
 
         logger.info('Initializing individuals')
-        samples = self.prior.sample((traj.pop_size,))
-        self.eval_pop = [{'parameters': sample} for sample in samples] # TODO parameter vector?
+        #samples = self.prior.sample((traj.pop_size,))
+        self.eval_pop, self.samples = self.optimizee_create_individual(traj.pop_size)
+        #self.eval_pop = samples
+        #self.eval_pop = [list_to_dict(sample, self.dict_spec) for sample in samples]
+        print(self.eval_pop)
+        #self.eval_pop = [{'parameters': sample} for sample in samples] # TODO parameter vector?
 
         self._expand_trajectory(traj)
 
@@ -115,9 +117,21 @@ class SBIOptimizer(Optimizer):
 
         """
         logger.info('Gathering simulation results')
-        x = torch.Tensor([traj.current_results[i][1] for i in range(traj.pop_size)])
-        individuals = traj.individuals[self.g]
-        theta = torch.stack([individuals[i].parameters for i in range(traj.pop_size)]) # TODO best way?
+        # x = torch.Tensor([traj.current_results[i][1] for i in range(traj.pop_size)])
+        # individuals = traj.individuals[self.g]
+        # theta = torch.stack([individuals[i].parameters for i in range(traj.pop_size)]) # TODO best way?
+        theta = self.samples # TODO aufpassen bei invalid, falls ersetzt wird
+        x = torch.zeros((len(theta), len(fitnesses_results[0])))
+
+        for i, (run_index, fitness) in enumerate(fitnesses_results):
+            # We need to convert the current run index into an ind_idx
+            # (index of individual within one generation
+            traj.v_idx = run_index
+            ind_index = traj.par.ind_idx
+            x[ind_index] = torch.Tensor(fitness)
+
+        print('theta', theta)
+        print('x', x)
 
         # check if there are any valid simulations
         mask = torch.isnan(x).any(dim=1)
@@ -180,8 +194,7 @@ class SBIOptimizer(Optimizer):
 
         if not self.g+1 == traj.n_iteration: # TODO ist das erlaubt?
             logger.info('Sampling the new population')
-            samples = self.prior.sample((traj.pop_size,))
-            self.eval_pop = [{'parameters': sample} for sample in samples]
+            self.eval_pop, self.samples = self.optimizee_create_individual(traj.pop_size, prior=self.prior)
             self.g += 1
             self._expand_trajectory(traj)
 

@@ -2,6 +2,7 @@ from collections import namedtuple
 from l2l.optimizees.optimizee import Optimizee
 import torch
 from sbi import utils
+from .prior import prior, labels
 
 import numpy as np
 
@@ -25,7 +26,7 @@ class TestSBIOptimizee(Optimizee):
             raise ValueError("Invalid type. Type must be 'valid', 'invalid' or 'mixed'")
         self.prior = utils.BoxUniform(low=torch.Tensor([0.0, -200.0, 0.1, 0.0, 0.0]), high=torch.Tensor([200.0, 0.0, 5.0, 1.0, 1.0]))
 
-    def create_individual(self):
+    def create_individual(self, n=1, prior=prior, labels=labels):
         """
         Create one individual i.e. one instance of parameters. This instance must be a dictionary with dot-separated
         parameter names as keys and parameter values as values. This is used by the optimizers via the
@@ -34,8 +35,11 @@ class TestSBIOptimizee(Optimizee):
 
         :return dict: A dictionary containing the names of the parameters and their values
         """
-        return {'parameters': self.prior.sample(),
-                'prior': self.prior}
+        samples = prior.sample((n,))
+        pop = [dict(zip(labels, sample)) for sample in samples]
+        if n == 1:
+            return pop[0], prior # TODO okay?
+        return pop, samples
 
     def simulate(self, traj):
         """
@@ -54,9 +58,12 @@ class TestSBIOptimizee(Optimizee):
         elif self.type == 'invalid':
             return (np.nan, np.nan)
         else:
-            return np.random.rand(2).tolist() if np.random.rand()<0.5 else (np.nan, np.nan)
+            tmp = np.random.rand(2).tolist() if np.random.rand()<0.5 else (np.nan, np.nan)
+            print(traj.individual)
+            print(tmp)
+            return tmp
 
-    def bounding_func(self, individual): # TODO nötig?
+    def bounding_func(self, individual):
         """
         placeholder
         """

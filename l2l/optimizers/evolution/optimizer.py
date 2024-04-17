@@ -118,7 +118,6 @@ class GeneticAlgorithmOptimizer(Optimizer):
             for ind_data in data:
                 for key in ind_data.params.keys():
                     value = ind_data.params[key]
-                    print(key, " ", value)
                     ind = creator.Individual(value.tolist())
                     self.pop.append(ind)
 

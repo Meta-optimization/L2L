@@ -1,7 +1,5 @@
 from collections import namedtuple
 from l2l.optimizees.optimizee import Optimizee
-from .definitions import Network, prior
-import nest
 
 SBIOptimizeeParameters = namedtuple('SBIOptimizeeParameters', [])
 
@@ -30,6 +28,7 @@ class SBIOptimizee(Optimizee):
 
         :return dict: A dictionary containing the names of the parameters and their values
         """
+        from .prior import prior
         return {'parameters': prior.sample(),
                 'prior': prior}
 
@@ -45,18 +44,21 @@ class SBIOptimizee(Optimizee):
             multi-dimensional fitness function.
 
         """
+        from .network import Network
+        import nest
+
         # TODO Zeitmessung?
         seed = 1#traj.individual.seed # TODO seed?
         nest.SetKernelStatus({'resolution': 0.1, 'rng_seed': seed, 'local_num_threads': 3})
         simtime = 400#2000
 
-        network = Network(*traj.individual.parameters.tolist())
+        network = Network(**traj.individual) # TODO geht?
         network.create_nodes()
         network.connect_nodes()
         obs = network.simulate(simtime)
         return obs
 
-    def bounding_func(self, individual): # TODO nötig?
+    def bounding_func(self, individual):
         """
         placeholder
         """

@@ -17,12 +17,12 @@ def run_experiment():
                                                           log_stdout=True)
 
     # Optimizee
-    optimizee_parameters = TestSBIOptimizeeParameters(sim_type='invalid')
+    optimizee_parameters = TestSBIOptimizeeParameters(sim_type='mixed')
     optimizee = TestSBIOptimizee(traj, optimizee_parameters)
 
     # Optimizer
-    optimizer_parameters = SBIOptimizerParameters(pop_size=50, n_iteration=2, seed=0, save_path='/home/todt/Dokumente/L2L/results/data',
-                                                  inference_method=SNPE, restrict_prior=0, x_obs=[0.5, 0.5])
+    optimizer_parameters = SBIOptimizerParameters(pop_size=50, n_iteration=3, seed=0, save_path='/home/todt/Dokumente/L2L/results/data',
+                                                  inference_method=SNPE, restrict_prior=1, x_obs=[0.5, 0.5])
     optimizer = SBIOptimizer(traj, optimizee_create_individual=optimizee.create_individual,
                                 optimizee_fitness_weights=(0.5, 0.5),
                                 parameters=optimizer_parameters,

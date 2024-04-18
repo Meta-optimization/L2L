@@ -22,7 +22,7 @@ def run_experiment():
 
     # Optimizer
     optimizer_parameters = SBIOptimizerParameters(pop_size=50, n_iteration=3, seed=0, save_path='/home/todt/Dokumente/L2L/results/data',
-                                                  inference_method=SNPE, restrict_prior=1, x_obs=[0.5, 0.5])
+                                                  inference_method=SNPE, restrict_prior=1, x_obs=[0.5, 0.5], tensorboard=True)
     optimizer = SBIOptimizer(traj, optimizee_create_individual=optimizee.create_individual,
                                 optimizee_fitness_weights=(0.5, 0.5),
                                 parameters=optimizer_parameters,

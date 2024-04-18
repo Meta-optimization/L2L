@@ -18,10 +18,11 @@ import os
 import dill
 
 logger = logging.getLogger("l2l-bi")
+logger.setLevel(logging.INFO)
 
 SBIOptimizerParameters = namedtuple('SBIParameters',
-                                        ['pop_size', 'n_iteration', 'seed', 'inference_method', 'save_path', 'x_obs', 'restrict_prior'],
-                                    defaults=(None, None, 0))
+                                        ['pop_size', 'n_iteration', 'seed', 'inference_method', 'save_path', 'x_obs', 'restrict_prior', 'tensorboard'],
+                                    defaults=(None, None, 0, False))
 SBIOptimizerParameters.__doc__ = """
 :param seed: Random seed
 """
@@ -65,12 +66,17 @@ class SBIOptimizer(Optimizer):
         traj.f_add_parameter('save_path', parameters.save_path, comment='Path for saving the models')
         traj.f_add_parameter('x_obs', parameters.x_obs, comment='Observation to use for multi-round inference')
         traj.f_add_parameter('restrict_prior', parameters.restrict_prior, comment='Number of generations to run with the restriction estimator. Value 0 indicates to use no restriction at all.')
+        traj.f_add_parameter('tensorboard', parameters.tensorboard, comment='Whether to use TensorBoard or not')
 
         if traj.save_path and not os.path.isdir(traj.save_path):
                 raise ValueError(f'Path {traj.save_path} (save_path) does not exist.')
 
         if traj.x_obs is None and traj.n_iteration > traj.restrict_prior+1:
             raise ValueError('You have to define an observation x_obs if you are doing multi-round inference.')
+
+        summary_writer = None
+        if traj.tensorboard:
+            summary_writer = torch.utils.tensorboard.writer.SummaryWriter() # TODO anderen Path angeben?
 
         # initialize models
         if traj.is_loaded: # TODO
@@ -87,7 +93,7 @@ class SBIOptimizer(Optimizer):
             #_, self.dict_spec = dict_to_list(ind_dict, True)
             if traj.restrict_prior > 0:
                 self.restriction_estimator = sbi.utils.RestrictionEstimator(prior=self.prior)
-            self.inference = traj.inference_method(prior=self.prior)
+            self.inference = traj.inference_method(prior=self.prior, summary_writer=summary_writer)
 
             self.g = 0  # the current generation
 
@@ -121,7 +127,7 @@ class SBIOptimizer(Optimizer):
         # individuals = traj.individuals[self.g]
         # theta = torch.stack([individuals[i].parameters for i in range(traj.pop_size)]) # TODO best way?
         theta = self.samples # TODO aufpassen bei invalid, falls ersetzt wird
-        x = torch.zeros((len(theta), len(fitnesses_results[0])))
+        x = torch.zeros((len(theta), len(fitnesses_results[0]))) # TODO change zeros to empty
 
         for i, (run_index, fitness) in enumerate(fitnesses_results):
             # We need to convert the current run index into an ind_idx
@@ -174,7 +180,7 @@ class SBIOptimizer(Optimizer):
         # inference method #
         ####################
 
-        self.inference = self.inference.append_simulations(theta[~mask], x[~mask], proposal=self.prior)
+        self.inference = self.inference.append_simulations(theta[~mask], x[~mask], proposal=self.prior) # TODO lieber alle?
         if inference_round:
             logger.info('Running the inference method')
             self.density_estimator = self.inference.train()

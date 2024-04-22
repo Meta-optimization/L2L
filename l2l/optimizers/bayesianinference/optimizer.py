@@ -17,8 +17,8 @@ from os.path import join, isdir
 import os
 import dill
 
-logger = logging.getLogger("l2l-bi")
-logger.setLevel(logging.INFO)
+logger = logging.getLogger("optimizers.sbi")
+#logger.setLevel(logging.INFO)
 
 SBIOptimizerParameters = namedtuple('SBIParameters',
                                         ['pop_size', 'n_iteration', 'seed', 'inference_method', 'save_path', 'x_obs', 'restrict_prior', 'tensorboard'],
@@ -134,7 +134,7 @@ class SBIOptimizer(Optimizer):
             # (index of individual within one generation
             traj.v_idx = run_index
             ind_index = traj.par.ind_idx
-            x[ind_index] = torch.Tensor(fitness)
+            x[ind_index] = torch.Tensor(fitness[1]) # only need simulation results
 
         print('theta', theta)
         print('x', x)
@@ -155,6 +155,7 @@ class SBIOptimizer(Optimizer):
 
         # check if it is time for running the inference
         inference_round = (self.g >= traj.restrict_prior)
+        evaluation_round = False
 
         #########################
         # restriction estimator #
@@ -168,13 +169,16 @@ class SBIOptimizer(Optimizer):
 
             if traj.save_path:
                 logger.info('Saving the restriction estimator and the restricted prior to disk')
-                self._save_obj(self.restriction_estimator, join(tmp_path, f'restriction_estimator_{self.g}.pkl'))
-                self._save_obj(self.prior, join(tmp_path, f'restricted_prior_{self.g}.pkl'))
+                save_dict = {'restriction_estimator': self.restriction_estimator,
+                             'restricted_prior': self.prior,
+                             'validation_log_probs': self.restriction_estimator._validation_log_probs}
+                self._save_obj(save_dict, join(tmp_path, f'restriction_{self.g}.dill'))
 
                 # TODO sampeln und analysieren, Lernkurven? nur bei bestimmtem Flag?
-                np.save(join(tmp_path, f'restr_validation_log_probs_{self.g}.npy'), self.restriction_estimator._validation_log_probs)
+        elif inference_round:
+            logger.info('No need to fit the restriction estimator (inference round)')
         else:
-            logger.info('No need to fit the restriction estimator')
+            logger.info('No need to fit the restriction estimator (no invalid simulation data)')
 
         ####################
         # inference method #
@@ -189,16 +193,26 @@ class SBIOptimizer(Optimizer):
 
             if traj.save_path:
                 logger.info('Saving the inference model data and posterior to disk')
-                self._save_obj(self.inference, join(tmp_path, f'inference_{self.g}.pkl'))
-                self._save_obj(self.density_estimator, join(tmp_path, f'density_estimator_{self.g}.pkl'))
-                self._save_obj(self.posterior, join(tmp_path, f'posterior_{self.g}.pkl'))
+                save_dict = {'inference': self.inference,
+                             'density_estimator': self.density_estimator,
+                             'posterior': self.posterior,
+                             'summary': self.inference.summary}
+                self._save_obj(save_dict, join(tmp_path, f'inference_{self.g}.dill'))
 
                 # TODO sampeln und analysieren, Lernkurven? nur bei bestimmtem Flag?
-                np.save(join(tmp_path, f'training_log_probs_{self.g}.npy'), self.inference._summary["training_log_probs"])
-                np.save(join(tmp_path, f'validation_log_probs_{self.g}.npy'), self.inference._summary["validation_log_probs"])
-                np.save(join(tmp_path, f'epoch_durations_{self.g}.npy'), self.inference._summary["epoch_durations_sec"])
 
-        if not self.g+1 == traj.n_iteration: # TODO ist das erlaubt?
+        ##############
+        # evaluation #
+        ##############
+
+        if evaluation_round:
+            logger.info('Evaluating')
+
+            # TODO Daten speichern/Plot erstellen bzgl. Posterior Predictive Check
+            # TODO bei amortized: Simulation-based Calibration?
+
+        # TODO schon eine generation vorher müssen die richtigen Parameter für die Evaluation gewählt werden
+        if not self.g+1 == traj.n_iteration: # skip last generation
             logger.info('Sampling the new population')
             self.eval_pop, self.samples = self.optimizee_create_individual(traj.pop_size, prior=self.prior)
             self.g += 1

@@ -2,7 +2,7 @@ from collections import namedtuple
 from l2l.optimizees.optimizee import Optimizee
 import torch
 from sbi import utils
-from .prior import prior, labels
+from .prior import prior, labels, x_obs
 
 import numpy as np
 
@@ -54,14 +54,14 @@ class TestSBIOptimizee(Optimizee):
 
         """
         if self.type == 'valid':
-            return np.random.rand(2).tolist()
+            res = np.random.rand(2).tolist()
         elif self.type == 'invalid':
-            return (np.nan, np.nan)
+            res = (np.nan, np.nan)
         else:
-            tmp = np.random.rand(2).tolist() if np.random.rand()<0.5 else (np.nan, np.nan)
-            print(traj.individual)
-            print(tmp)
-            return tmp
+            res = np.random.rand(2).tolist() if np.random.rand()<0.5 else (np.nan, np.nan)
+
+        mse = np.mean(np.square(np.subtract(res, x_obs)))
+        return mse, res
 
     def bounding_func(self, individual):
         """

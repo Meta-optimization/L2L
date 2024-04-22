@@ -18,7 +18,6 @@ import os
 import dill
 
 logger = logging.getLogger("optimizers.sbi")
-#logger.setLevel(logging.INFO)
 
 SBIOptimizerParameters = namedtuple('SBIParameters',
                                         ['pop_size', 'n_iteration', 'seed', 'inference_method', 'save_path', 'x_obs', 'restrict_prior', 'tensorboard'],

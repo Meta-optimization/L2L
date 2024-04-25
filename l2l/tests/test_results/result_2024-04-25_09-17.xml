@@ -1,0 +1,41 @@
+<testsuite name="nose2-junit" errors="0" failures="0" skipped="0" tests="13" time="40.820">
+  <testcase timestamp="2024-04-25T07:17:14.746489" time="5.049038" classname="l2l.tests.test_ga_optimizer.GAOptimizerTestCase" name="test_setup">
+    <system-out />
+    </testcase>
+  <testcase timestamp="2024-04-25T07:17:19.795653" time="0.000935" classname="l2l.tests.test_all" name="test_suite">
+    <system-out />
+    </testcase>
+  <testcase timestamp="2024-04-25T07:17:19.796699" time="5.377075" classname="l2l.tests.test_gs_optimizer.GSOptimizerTestCase" name="test_gd">
+    <system-out />
+    </testcase>
+  <testcase timestamp="2024-04-25T07:17:25.173891" time="5.047201" classname="l2l.tests.test_sa_optimizer.SAOptimizerTestCase" name="test_sa">
+    <system-out />
+    </testcase>
+  <testcase timestamp="2024-04-25T07:17:30.221208" time="5.079254" classname="l2l.tests.test_es_optimizer.ESOptimizerTestCase" name="test_setup">
+    <system-out />
+    </testcase>
+  <testcase timestamp="2024-04-25T07:17:35.300598" time="5.060515" classname="l2l.tests.test_gd_optimizer.GDOptimizerTestCase" name="test_gd">
+    <system-out />
+    </testcase>
+  <testcase timestamp="2024-04-25T07:17:40.361244" time="0.001837" classname="l2l.tests.test_setup.SetupTestCase" name="test_environment_trajectory_setup">
+    <system-out />
+    </testcase>
+  <testcase timestamp="2024-04-25T07:17:40.363139" time="0.005408" classname="l2l.tests.test_setup.SetupTestCase" name="test_juberunner_setup">
+    <system-out />
+    </testcase>
+  <testcase timestamp="2024-04-25T07:17:40.368628" time="0.001863" classname="l2l.tests.test_setup.SetupTestCase" name="test_paths">
+    <system-out />
+    </testcase>
+  <testcase timestamp="2024-04-25T07:17:40.370545" time="0.002096" classname="l2l.tests.test_setup.SetupTestCase" name="test_trajectory_parms_setup">
+    <system-out />
+    </testcase>
+  <testcase timestamp="2024-04-25T07:17:40.372735" time="5.066740" classname="l2l.tests.test_face_optimizer.FACEOptimizerTestCase" name="test_setup">
+    <system-out />
+    </testcase>
+  <testcase timestamp="2024-04-25T07:17:45.439619" time="5.062270" classname="l2l.tests.test_pt_optimizer.PTOptimizerTestCase" name="test_sa">
+    <system-out />
+    </testcase>
+  <testcase timestamp="2024-04-25T07:17:50.502038" time="5.064612" classname="l2l.tests.test_ce_optimizer.CEOptimizerTestCase" name="test_setup">
+    <system-out />
+    </testcase>
+  </testsuite>

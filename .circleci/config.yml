@@ -39,7 +39,7 @@ jobs:
       - run:
           name: Run tests
           # This assumes nose is installed via the install-package step above
-          command: nose2 --with-coverage --start-dir=l2l/ --junit-xml --junit-xml-path ./l2l/tests/test_results/result_$(date +"%Y-%m-%d_%H-%M").xml
+          command: nose2 --with-coverage --start-dir=l2l/ --junit-xml --plugin nose2.plugins.junitxml --junit-xml-path ./l2l/tests/test_results/result_$(date +"%Y-%m-%d_%H-%M").xml
       - store_test_results:
           path: ../l2l/tests/test_results
 

@@ -17,18 +17,18 @@ class GDOptimizerTestCase(OptimizerTestCase):
                                        n_iteration=1, stop_criterion=np.Inf, seed=99)
 
         optimizer = GradientDescentOptimizer(self.trajectory,
-                                             optimizee_create_individual=self.optimizee.create_individual,
+                                             optimizee_create_individual=self.optimizee_functionGenerator.create_individual,
                                              optimizee_fitness_weights=(0.1,),
                                              parameters=optimizer_parameters,
-                                             optimizee_bounding_func=self.optimizee.bounding_func)
+                                             optimizee_bounding_func=self.optimizee_functionGenerator.bounding_func)
         self.assertIsNotNone(optimizer.parameters)
         self.assertIsNotNone(self.experiment)
 
 
         try:
 
-            self.experiment.run_experiment(optimizee=self.optimizee,
-                                  optimizee_parameters=self.optimizee_parameters,
+            self.experiment.run_experiment(optimizee=self.optimizee_functionGenerator,
+                                  optimizee_parameters=self.optimizee_parameters_functionGenerator,
                                   optimizer=optimizer,
                                   optimizer_parameters=optimizer_parameters)
         except Exception as e:

@@ -13,9 +13,9 @@ class GSOptimizerTestCase(OptimizerTestCase):
     def test_gd(self):
         n_grid_divs_per_axis = 2
         optimizer_parameters = GridSearchParameters(param_grid={
-            'coords': (self.optimizee.bound[0], self.optimizee.bound[1], n_grid_divs_per_axis)
+            'coords': (self.optimizee_functionGenerator.bound[0], self.optimizee_functionGenerator.bound[1], n_grid_divs_per_axis)
         })
-        optimizer = GridSearchOptimizer(self.trajectory, optimizee_create_individual=self.optimizee.create_individual,
+        optimizer = GridSearchOptimizer(self.trajectory, optimizee_create_individual=self.optimizee_functionGenerator.create_individual,
                                         optimizee_fitness_weights=(-0.1,),
                                         parameters=optimizer_parameters)
         self.assertIsNotNone(optimizer.parameters)
@@ -23,8 +23,8 @@ class GSOptimizerTestCase(OptimizerTestCase):
 
         try:
 
-            self.experiment.run_experiment(optimizee=self.optimizee,
-                                           optimizee_parameters=self.optimizee_parameters,
+            self.experiment.run_experiment(optimizee=self.optimizee_functionGenerator,
+                                           optimizee_parameters=self.optimizee_parameters_functionGenerator,
                                            optimizer=optimizer,
                                            optimizer_parameters=optimizer_parameters)
         except Exception as e:

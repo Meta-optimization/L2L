@@ -1,6 +1,7 @@
 import unittest
 import os
 
+from l2l.optimizees.active_wait.optimizee_aw import AWOptimizee, AWOptimizeeParameters
 from l2l.utils.experiment import Experiment
 
 from l2l.optimizees.functions.benchmarked_functions import BenchmarkedFunctions
@@ -24,6 +25,9 @@ class OptimizerTestCase(unittest.TestCase):
                                                                               log_stdout=True,
                                                                               jube_parameter=jube_params,
                                                                               overwrite=True)
-        self.optimizee_parameters = namedtuple('OptimizeeParameters', [])
-        self.optimizee = FunctionGeneratorOptimizee(
+        self.optimizee_parameters_functionGenerator = namedtuple('OptimizeeParameters', [])
+        self.optimizee_functionGenerator = FunctionGeneratorOptimizee(
             self.trajectory, benchmark_function, seed=1)
+        
+        self.optimizee_parameters_activeWait = AWOptimizeeParameters(difficulty=5)
+        self.optimizee_activeWait = AWOptimizee(self.trajectory, self.optimizee_parameters_activeWait)

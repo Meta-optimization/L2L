@@ -12,17 +12,17 @@ class SAOptimizerTestCase(OptimizerTestCase):
                                                   stop_criterion=np.Inf, seed=np.random.randint(1e5),
                                                   cooling_schedule=AvailableCoolingSchedules.QUADRATIC_ADDAPTIVE)
 
-        optimizer = SimulatedAnnealingOptimizer(self.trajectory, optimizee_create_individual=self.optimizee_functionGenerator.create_individual,
+        optimizer = SimulatedAnnealingOptimizer(self.trajectory_functionGenerator, optimizee_create_individual=self.optimizee_functionGenerator.create_individual,
                                                 optimizee_fitness_weights=(-1,),
                                                 parameters=optimizer_parameters,
                                                 optimizee_bounding_func=self.optimizee_functionGenerator.bounding_func)
         self.assertIsNotNone(optimizer.parameters)
-        self.assertIsNotNone(self.experiment)
+        self.assertIsNotNone(self.experiment_functionGenerator)
 
         try:
 
-            self.experiment.run_experiment(optimizee=self.optimizee_functionGenerator,
-                                  optimizee_parameters=self.optimizee_parameters_functionGenerator,
+            self.experiment_functionGenerator.run_experiment(optimizee=self.optimizee_functionGenerator,
+                                  optimizee_parameters=self.optimizee_functionGenerator_parameters,
                                   optimizer=optimizer,
                                   optimizer_parameters=optimizer_parameters)
         except Exception as e:

@@ -18,7 +18,7 @@ class AWOptimizee(Optimizee):
         Creates and returns the individual
         """
         # create individual
-        individual = {}
+        individual = {'difficulty':self.difficulty}
         return individual
     
     def is_prime(self, n):
@@ -32,36 +32,18 @@ class AWOptimizee(Optimizee):
 
     def simulate(self, traj):
         """
-        Simulate a run and return a fitness
+        Calculates primes and returns fitness=0
         """
-
         self.ind_idx = traj.individual.ind_idx
         self.generation = traj.individual.generation
-        print('Starting with Generation {}'.format(self.generation))
-        start_time = time.time()
         
-        
-        
-        ## sleep
-        #time.sleep(self.difficulty)
-        
-        # busy wait
-        #while time.time() - start_time < self.difficulty:
-        #    pass
-
-        # active wait prime
+        # Active wait by calculating all primes up to 'difficulty'
         primes = []
         for number in range(1, self.difficulty):
             if self.is_prime(number):
                 primes.append(number)
-
-        print(f"Calculated {len(primes)} primes in the range 1 to {self.difficulty}")
-
-
+        
         fitness = 0
-        print("gen, ind, duration in s, fitness")
-        print(f"{self.generation}, {self.ind_idx}, {time.time() - start_time}, {fitness}")
-
         return (fitness,) 
     
 

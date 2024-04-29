@@ -19,15 +19,23 @@ class OptimizerTestCase(unittest.TestCase):
             bench_functs.get_function_by_index(function_id, noise=True)
         home_path =  os.environ.get("HOME")
         root_dir_path = os.path.join(home_path, 'results')
-        self.experiment = Experiment(root_dir_path=root_dir_path)
+
+        #set up funtiongenerator optimizee
+        self.experiment_functionGenerator = Experiment(root_dir_path=root_dir_path)
         jube_params = {}
-        self.trajectory, all_jube_params = self.experiment.prepare_experiment(name='L2L',
+        self.trajectory_functionGenerator, all_jube_params = self.experiment_functionGenerator.prepare_experiment(name='L2L',
                                                                               log_stdout=True,
                                                                               jube_parameter=jube_params,
                                                                               overwrite=True)
-        self.optimizee_parameters_functionGenerator = namedtuple('OptimizeeParameters', [])
+        self.optimizee_functionGenerator_parameters = namedtuple('OptimizeeParameters', [])
         self.optimizee_functionGenerator = FunctionGeneratorOptimizee(
-            self.trajectory, benchmark_function, seed=1)
+            self.trajectory_functionGenerator, benchmark_function, seed=1)
         
-        self.optimizee_parameters_activeWait = AWOptimizeeParameters(difficulty=5)
-        self.optimizee_activeWait = AWOptimizee(self.trajectory, self.optimizee_parameters_activeWait)
+        #set up activeWait optimizee
+        self.experiment_activeWait = Experiment(root_dir_path=root_dir_path)
+        self.trajectory_activeWait, all_jube_params = self.experiment_activeWait.prepare_experiment(name='L2L',
+                                                                              log_stdout=True,
+                                                                              jube_parameter=jube_params,
+                                                                              overwrite=True)
+        self.optimizee_activeWait_parameters = AWOptimizeeParameters(difficulty=10000)
+        self.optimizee_activeWait = AWOptimizee(self.trajectory_activeWait, self.optimizee_activeWait_parameters)

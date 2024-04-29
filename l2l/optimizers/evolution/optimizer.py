@@ -118,7 +118,10 @@ class GeneticAlgorithmOptimizer(Optimizer):
             for ind_data in data:
                 for key in ind_data.params.keys():
                     value = ind_data.params[key]
-                    ind = creator.Individual(value.tolist())
+                    if( isinstance(value, float) or isinstance(value, int)):
+                         ind = creator.Individual([value])
+                    else:
+                        ind = creator.Individual(value.tolist())
                     self.pop.append(ind)
 
             self.g = generation  # the current generation

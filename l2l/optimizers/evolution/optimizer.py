@@ -5,6 +5,7 @@ from collections import namedtuple
 
 from deap import base, creator, tools
 from deap.tools import HallOfFame
+import numpy
 
 from l2l import dict_to_list, list_to_dict
 from l2l.optimizers.optimizer import Optimizer
@@ -116,14 +117,17 @@ class GeneticAlgorithmOptimizer(Optimizer):
             self.pop = toolbox.population(n=0) 
             # add individuals to population
             for ind_data in data:
+                ind = []
                 for key in ind_data.params.keys():
                     value = ind_data.params[key]
-                    if( isinstance(value, float) or isinstance(value, int)):
-                         ind = creator.Individual([value])
+                    if( isinstance(value, float) or isinstance(value, numpy.int64)):
+                        ind.append(value)
+                    elif isinstance(value, dict):
+                        ind.extend(value.tolist())
                     else:
-                        ind = creator.Individual(value.tolist())
-                    self.pop.append(ind)
-
+                        ind.extend(value)
+                ind = creator.Individual(ind)
+                self.pop.append(ind)
             self.g = generation  # the current generation
         else:
             self.pop = toolbox.population(n=traj.pop_size)

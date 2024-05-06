@@ -117,13 +117,17 @@ class GeneticAlgorithmOptimizer(Optimizer):
             self.pop = toolbox.population(n=0) 
             # add individuals to population
             for ind_data in data:
+                ind = []
                 for key in ind_data.params.keys():
                     value = ind_data.params[key]
                     if( isinstance(value, float) or isinstance(value, numpy.int64)):
-                         ind = creator.Individual([value])
+                        ind.append(value)
+                    elif isinstance(value, dict):
+                        ind.extend(value.tolist())
                     else:
-                        ind = creator.Individual(value.tolist())
-                    self.pop.append(ind)
+                        ind.extend(value)
+                ind = creator.Individual(ind)
+                self.pop.append(ind)
 
             self.g = generation  # the current generation
         else:

@@ -9,7 +9,7 @@ from deap.tools import HallOfFame
 from l2l import dict_to_list, list_to_dict
 from l2l.optimizers.optimizer import Optimizer
 
-logger = logging.getLogger("l2l-ga")
+logger = logging.getLogger("optimizers.geneticalgorithm")
 
 GeneticAlgorithmParameters = namedtuple('GeneticAlgorithmParameters',
                                         ['seed', 'pop_size', 'cx_prob', 'mut_prob', 'n_iteration', 'ind_prob', 'tourn_size', 'mate_par',

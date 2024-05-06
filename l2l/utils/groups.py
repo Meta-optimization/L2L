@@ -1,7 +1,7 @@
 from l2l import sdictm
 import logging
 
-logging = logging.getLogger("util.groups")
+logger = logging.getLogger("utils.groups")
 
 
 class ParameterGroup:
@@ -69,7 +69,7 @@ class ResultGroup(sdictm):
             if subkey[0] in self._data.keys():
                 self._data[subkey[0]].f_add_result(subkey[1], val)
             else:
-                logging.exception("Key not found when adding to result group")
+                logger.exception("Key not found when adding to result group")
                 raise Exception("Group name not found when adding value to result group")
         else:
             self._data[key] = val
@@ -85,7 +85,7 @@ class ResultGroup(sdictm):
         if group_name in self._data.keys():
             self._data[group_name].f_add_result(key, val)
         else:
-            logging.exception("Key not found when adding to result group")
+            logger.exception("Key not found when adding to result group")
             raise Exception("Group name not found when adding value to result group")
 
     def __str__(self):

@@ -13,7 +13,6 @@ class CheckpointTestCase(OptimizerTestCase):
     def test_setup(self):
 
         iterations = 5
-
         #test checkpointing for GA with function Generator
         optimizer_parameters = GeneticAlgorithmParameters(seed=0, pop_size=50, cx_prob=0.5,
                                                           mut_prob=0.3, n_iteration=iterations, ind_prob=0.02,
@@ -27,6 +26,7 @@ class CheckpointTestCase(OptimizerTestCase):
         
         self.load_trajectory(optimizer, optimizer_parameters, iterations, self.optimizee_functionGenerator, self.optimizee_functionGenerator_parameters, self.experiment_functionGenerator)
 
+        #created optimizer with loaded trajectory
         optimizer_parameters_checkpoint = GeneticAlgorithmParameters(seed=0, pop_size=50, cx_prob=0.5,
                                                           mut_prob=0.3, n_iteration=1, ind_prob=0.02,
                                                           tourn_size=1, mate_par=0.5,
@@ -41,13 +41,22 @@ class CheckpointTestCase(OptimizerTestCase):
                                                           mut_prob=0.3, n_iteration=1, ind_prob=0.02,
                                                           tourn_size=1, mate_par=0.5,
                                                           mut_par=1)
+        
+        createErrorOptimizer = lambda : {
+            GeneticAlgorithmOptimizer(self.trajectory_checkpoint, optimizee_create_individual=self.optimizee_functionGenerator.create_individual,
+                                              optimizee_fitness_weights=(-0.1,),
+                                              parameters=optimizer_parameters_error)
+        }
     
-        self.checkpointing(optimizer= optimizer,
-                            optimizer_checkpoint= optimizer_checkpoint,
+        #checks
+        self.checkpointing(optimizer_checkpoint= optimizer_checkpoint,
                             optimizer_parameters_checkpoint=optimizer_checkpoint,
-                            optimizer_parameters_error=optimizer_parameters_error,
-                            iterations=iterations, optimizee=self.optimizee_functionGenerator,
-                            optimizee_parameters=self.optimizee_functionGenerator_parameters)
+                            iterations=iterations, errorOptimizer=createErrorOptimizer,)
+        
+        best = optimizer.best_individual['coords']
+        best_checkpoint = optimizer_checkpoint.best_individual['coords']
+        self.assertEqual(best[0], best_checkpoint[0])
+        self.assertEqual(best[1], best_checkpoint[1])
         
         #test checkpointing for ga with activeWait
         optimizer_parameters = GeneticAlgorithmParameters(seed=0, pop_size=50, cx_prob=0.5,
@@ -62,6 +71,7 @@ class CheckpointTestCase(OptimizerTestCase):
         
         self.load_trajectory(optimizer, optimizer_parameters, iterations, self.optimizee_activeWait, self.optimizee_activeWait_parameters, self.experiment_activeWait)
 
+        #created optimizer with loaded trajectory
         optimizer_parameters_checkpoint = GeneticAlgorithmParameters(seed=0, pop_size=50, cx_prob=0.5,
                                                           mut_prob=0.3, n_iteration=1, ind_prob=0.02,
                                                           tourn_size=1, mate_par=0.5,
@@ -77,15 +87,17 @@ class CheckpointTestCase(OptimizerTestCase):
                                                           tourn_size=1, mate_par=0.5,
                                                           mut_par=1)
     
-        #check fuer Korrektheit muss noch gefunden werden
-        """self.checkpointing(optimizer= optimizer,
-                            optimizer_checkpoint= optimizer_checkpoint,
+        #checks
+        self.checkpointing(optimizer_checkpoint= optimizer_checkpoint,
                             optimizer_parameters_checkpoint=optimizer_checkpoint,
-                            optimizer_parameters_error=optimizer_parameters_error,
-                            iterations=iterations)"""
+                            iterations=iterations, errorOptimizer=createErrorOptimizer)
+        
+        best = optimizer.best_individual['difficulty']
+        best_checkpoint = optimizer_checkpoint.best_individual['difficulty']
+        #self.assertEqual(best, best_checkpoint)
         
     def load_trajectory(self, optimizer, optimizer_parameters, iterations, optimizee, optimizee_parameters, experiment):
-         #first run to create trajectory object to use as checkpoint
+        #first run to create trajectory object to use as checkpoint
         run_optimizer(optimizer=optimizer, optimizer_parameters=optimizer_parameters, experiment=experiment, optimizee=optimizee, optimizee_parameter=optimizee_parameters)
 
         #load trajectory
@@ -101,28 +113,16 @@ class CheckpointTestCase(OptimizerTestCase):
                                                                               jube_parameter=jube_params,
                                                                               overwrite=True,
                                                                               checkpoint=loaded_traj)
-         
 
-    def checkpointing(self, optimizer, optimizer_checkpoint, 
-                           optimizer_parameters_checkpoint, optimizer_parameters_error, iterations,
-                           optimizee, optimizee_parameters):
+    def checkpointing(self, optimizer_checkpoint, 
+                        optimizer_parameters_checkpoint,iterations,
+                        errorOptimizer):
 
         self.assertEqual(optimizer_checkpoint.g, iterations-1)
 
         run_optimizer(experiment=self.experiment_functionGenerator, optimizer=optimizer_checkpoint, optimizer_parameters=optimizer_parameters_checkpoint, optimizee=self.optimizee_functionGenerator, optimizee_parameter=self.optimizee_functionGenerator_parameters)
 
-        best = optimizer.best_individual['coords']
-        best_checkpoint = optimizer_checkpoint.best_individual['coords']
-        self.assertEqual(best[0], best_checkpoint[0])
-        self.assertEqual(best[1], best_checkpoint[1])
-    
-        createOptimizer = lambda : {
-            GeneticAlgorithmOptimizer(self.trajectory_checkpoint, optimizee_create_individual=self.optimizee_functionGenerator.create_individual,
-                                              optimizee_fitness_weights=(-0.1,),
-                                              parameters=optimizer_parameters_error)
-        }
-        
-        self.assertRaises(ValueError, createOptimizer)
+        self.assertRaises(ValueError, errorOptimizer)
         
 
 def suite():

@@ -141,11 +141,12 @@ class GeneticAlgorithmOptimizer(Optimizer):
 
         if traj.hall_of_fame is None:
             self.hall_of_fame = HallOfFame(20)
-            best_inds = tools.selBest(self.eval_pop_inds, 2)
-            self.best_individual = list_to_dict(best_inds[0], self.optimizee_individual_dict_spec)
+            self.best_individual = None
         else:
             self.hall_of_fame = traj.hall_of_fame
-            self.best_individual = None
+            best_inds = tools.selBest(self.eval_pop_inds, 2)
+            self.best_individual = list_to_dict(best_inds[0], self.optimizee_individual_dict_spec)
+            
         self._expand_trajectory(traj)
 
     def post_process(self, traj, fitnesses_results):

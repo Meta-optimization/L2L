@@ -28,6 +28,9 @@ class AWOptimizee(Optimizee):
             if n % i == 0:
                 return False
         return True
+    
+    def bounding_func(self, individual):
+        return individual
 
 
     def simulate(self, traj):

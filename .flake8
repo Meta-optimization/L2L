@@ -12,14 +12,7 @@ extend-ignore =
 select = C,E,F,W,B,B950
 max_complexity = 15
 extend-exclude =
-               # 3rd party
-               ext,
                # auto-generated
-               doc/scripts/inputs.py
-               doc/scripts/make_images.py
+               doc/*,
                # hidden
                .*,
-               # artifacts
-               build,
-               # nah, don't care
-               spack/package.py

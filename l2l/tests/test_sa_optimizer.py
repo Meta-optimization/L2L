@@ -28,6 +28,20 @@ class SAOptimizerTestCase(OptimizerTestCase):
         except Exception as e:
             self.fail(e.__name__)
 
+        #activeWait Optimizee
+        optimizer = SimulatedAnnealingOptimizer(self.trajectory_activeWait, optimizee_create_individual=self.optimizee_activeWait.create_individual,
+                                                optimizee_fitness_weights=(-1,),
+                                                parameters=optimizer_parameters,
+                                                optimizee_bounding_func=self.optimizee_activeWait.bounding_func)
+
+        try:
+            self.experiment_activeWait.run_experiment(optimizee=self.optimizee_activeWait,
+                                  optimizee_parameters=self.optimizee_activeWait_parameters,
+                                  optimizer=optimizer,
+                                  optimizer_parameters=optimizer_parameters)
+        except Exception as e:
+            self.fail(e.__name__)
+
 def suite():
     suite = unittest.makeSuite(SAOptimizerTestCase, 'test')
     return suite

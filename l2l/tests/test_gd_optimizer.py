@@ -42,7 +42,7 @@ class GDOptimizerTestCase(OptimizerTestCase):
         self.experiment_functionGenerator.end_experiment(optimizer)
 
         #test with active wait opimizee
-        """optimizer = GradientDescentOptimizer(self.trajectory_activeWait,
+        optimizer = GradientDescentOptimizer(self.trajectory_activeWait,
                                              optimizee_create_individual=self.optimizee_activeWait.create_individual,
                                              optimizee_fitness_weights=(0.1,),
                                              parameters=optimizer_parameters,
@@ -55,9 +55,11 @@ class GDOptimizerTestCase(OptimizerTestCase):
                                            optimizer_parameters=optimizer_parameters)
         except Exception as e:
             self.fail(Exception.__name__)
-        best = self.experiment_activeWait.optimizer.best_individual['difficulty']
+
+        best = list_to_dict(self.experiment_activeWait.optimizer.current_individual.tolist(),
+                             self.experiment_activeWait.optimizer.optimizee_individual_dict_spec)['difficulty']
         self.assertEqual(best, 10000)
-        self.experiment_activeWait.end_experiment(optimizer)"""
+        self.experiment_activeWait.end_experiment(optimizer)
 
 
 def suite():

@@ -37,9 +37,9 @@ class GSOptimizerTestCase(OptimizerTestCase):
         self.experiment_functionGenerator.end_experiment(optimizer)
 
         #test with active wait opimizee
-        """n_grid_divs_per_axis = 1
+        n_grid_divs_per_axis = 2
         optimizer_parameters = GridSearchParameters(param_grid={
-            'difficulty': (self.optimizee_activeWait.bound[0], n_grid_divs_per_axis)
+            'difficulty': (self.optimizee_activeWait.bound[0],self.optimizee_activeWait.bound[1], n_grid_divs_per_axis)
         })
         optimizer = GridSearchOptimizer(self.trajectory_activeWait, optimizee_create_individual=self.optimizee_activeWait.create_individual,
                                         optimizee_fitness_weights=(-0.1,),
@@ -54,7 +54,7 @@ class GSOptimizerTestCase(OptimizerTestCase):
             self.fail(Exception.__name__)
         best = self.experiment_activeWait.optimizer.best_individual['difficulty']
         self.assertEqual(best, 10000)
-        self.experiment_activeWait.end_experiment(optimizer)"""
+        self.experiment_activeWait.end_experiment(optimizer)
 
 
 def suite():

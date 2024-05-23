@@ -12,6 +12,7 @@ class AWOptimizee(Optimizee):
         self.difficulty = parameters.difficulty
         self.ind_idx = traj.individual.ind_idx
         self.generation = traj.individual.generation
+        self.bound = [self.difficulty, self.difficulty]
 
     def create_individual(self):
         """

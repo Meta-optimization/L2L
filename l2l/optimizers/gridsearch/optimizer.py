@@ -4,7 +4,7 @@ from collections import namedtuple
 import numpy as np
 from l2l.utils.tools import cartesian_product
 
-from l2l import DictEntryType
+from l2l import DictEntryType, get_grouped_dict
 from l2l import dict_to_list
 from l2l.optimizers.optimizer import Optimizer
 

@@ -45,7 +45,7 @@ class NestBenchmarkNetwork():
         'path_name': '.',  # path where all files will have to be written
         'log_file': 'logfile',  # naming scheme for the log files
         'step_data_keys': {},  # metrics to be recorded at each time step
-        'profile_memory': True, # record memory profile
+        'profile_memory': False, # record memory profile
     }
 
     tau_syn = 0.32582722403722841
@@ -90,14 +90,14 @@ class NestBenchmarkNetwork():
     }
 
 
-    def __init__(self, NE, NI, CE, CI, weight_excitatory, weight_inhibitory, delay, extra_kernel_params=None):
+    def __init__(self, scale, pCE, pCI, weight_excitatory, weight_inhibitory, delay, extra_kernel_params=None):
         nest.ResetKernel()
         nest.set_verbosity(M_INFO)
         
-        self.NE = NE
-        self.NI = NI
-        self.CE = CE
-        self.CI = CI
+        self.NE = int(9000 * scale)
+        self.NI = int(2250 * scale)
+        self.pCE = pCE
+        self.pCI = pCI
 
         self.weight_excitatory = weight_excitatory
         self.weight_inhibitory = weight_inhibitory
@@ -163,13 +163,16 @@ class NestBenchmarkNetwork():
         model_params['tau_m'], model_params['tau_syn_ex'], model_params['C_m'])
         JE_pA = conversion_factor * self.brunel_params['JE']
 
+        # NOTE: The original implementation used the number of excitatory connections CE to clculate the stimulus
+        #       Here we use an estimation of CE from pCE and NE
+        CE_expected = self.pCE * self.NE
         nu_thresh = model_params['V_th'] / (
-                self.CE * model_params['tau_m'] / model_params['C_m'] *
+                CE_expected * model_params['tau_m'] / model_params['C_m'] *
                 JE_pA * np.exp(1.) * self.tau_syn)
         nu_ext = nu_thresh * self.brunel_params['eta']
 
         E_stimulus = nest.Create('poisson_generator', 1, {
-            'rate': nu_ext * self.CE * 1000.})
+            'rate': nu_ext * CE_expected * 1000.})
 
 
         # spike recorder
@@ -197,7 +200,7 @@ class NestBenchmarkNetwork():
 
         
         
-        self.connect_neurons(E_neurons, I_neurons, self.CE, self.CI, E_stimulus)
+        self.connect_neurons(E_neurons, I_neurons, self.pCE, self.pCI, E_stimulus)
         
 
         
@@ -246,7 +249,7 @@ class NestBenchmarkNetwork():
 
 
 
-    def connect_neurons(self, E_neurons, I_neurons, CE, CI, E_stimulus):
+    def connect_neurons(self, E_neurons, I_neurons, pCE, pCI, E_stimulus):
 
         nest.SetDefaults('static_synapse_hpc', {'delay': self.delay})
         nest.CopyModel('static_synapse_hpc', 'syn_ex',
@@ -254,7 +257,7 @@ class NestBenchmarkNetwork():
         nest.CopyModel('static_synapse_hpc', 'syn_in',
                        {'weight': self.weight_inhibitory})
 
-        # Connect Poisson generator to neuron
+        # Connect Poisson generator to neurons
         nest.message(M_INFO, 'build_network', 'Connecting stimulus generators.')
         nest.Connect(E_stimulus, E_neurons, {'rule': 'all_to_all'},
                      {'synapse_model': 'syn_ex'})
@@ -266,7 +269,7 @@ class NestBenchmarkNetwork():
         nest.message(M_INFO, 'build_network',
                      'Connecting excitatory -> excitatory population.')
         nest.Connect(E_neurons, E_neurons,
-                     {'rule': 'fixed_indegree', 'indegree': CE,
+                     {'rule': 'pairwise_bernoulli', 'p': pCE,
                       'allow_autapses': False, 'allow_multapses': True},
                      {'synapse_model': 'syn_ex'})
 
@@ -274,7 +277,7 @@ class NestBenchmarkNetwork():
         nest.message(M_INFO, 'build_network',
                      'Connecting inhibitory -> excitatory population.')
         nest.Connect(I_neurons, E_neurons,
-                     {'rule': 'fixed_indegree', 'indegree': CI,
+                     {'rule': 'pairwise_bernoulli', 'p': pCI,
                       'allow_autapses': False, 'allow_multapses': True},
                      {'synapse_model': 'syn_in'})
 
@@ -282,7 +285,7 @@ class NestBenchmarkNetwork():
         nest.message(M_INFO, 'build_network',
                      'Connecting excitatory -> inhibitory population.')
         nest.Connect(E_neurons, I_neurons,
-                     {'rule': 'fixed_indegree', 'indegree': CE,
+                     {'rule': 'pairwise_bernoulli', 'p': pCE,
                       'allow_autapses': False, 'allow_multapses': True},
                      {'synapse_model': 'syn_ex'})
 
@@ -290,7 +293,7 @@ class NestBenchmarkNetwork():
         nest.message(M_INFO, 'build_network',
                      'Connecting inhibitory -> inhibitory population.')
         nest.Connect(I_neurons, I_neurons,
-                     {'rule': 'fixed_indegree', 'indegree': CI,
+                     {'rule': 'pairwise_bernoulli', 'p': pCI,
                       'allow_autapses': False, 'allow_multapses': True},
                      {'synapse_model': 'syn_in'})
 
@@ -421,34 +424,25 @@ class NestBenchmarkNetwork():
 
             d.update(memory_dict)
 
-# NOTE: Logging needed?
-# TODO: output logs as simple prints in individual
-#
-#        d.update(build_dict)
-#        final_kernel_status = nest.kernel_status
-#        d.update(final_kernel_status)
-#
-#        # Subtract timer information from presimulation period
-#        timers = ['time_collocate_spike_data', 'time_communicate_prepare',
-#                  'time_communicate_spike_data', 'time_deliver_spike_data',
-#                  'time_gather_spike_data', 'time_update', 'time_simulate']
-#
-#        for timer in timers:
-#            try:
-#                d[timer + '_presim'] = intermediate_kernel_status[timer]
-#                d[timer] -= intermediate_kernel_status[timer]
-#            except KeyError:
-#                # KeyError if compiled without detailed timers, except time_simulate
-#                continue
-#        print(d)
+        d.update(build_dict)
+        final_kernel_status = nest.kernel_status
+        d.update(final_kernel_status)
+
+        # Subtract timer information from presimulation period
+        timers = ['time_collocate_spike_data', 'time_communicate_prepare',
+                  'time_communicate_spike_data', 'time_deliver_spike_data',
+                  'time_gather_spike_data', 'time_update', 'time_simulate']
+
+        for timer in timers:
+            try:
+                d[timer + '_presim'] = intermediate_kernel_status[timer]
+                d[timer] -= intermediate_kernel_status[timer]
+            except KeyError:
+                # KeyError if compiled without detailed timers, except time_simulate
+                continue
+        print(d)
 
         nest.Cleanup()
-
-#        fn = '{fn}_{rank}.dat'.format(fn=self.params['log_file'], rank=nest.Rank())
-#        with open(fn, 'w') as f:
-#            for key, value in d.items():
-#                f.write(key + ' ' + str(value) + '\n')
-
 
         if self.params['profile_memory']:
             fn = '{fn}_{rank}_steps.dat'.format(fn=self.params['log_file'], rank=nest.Rank())

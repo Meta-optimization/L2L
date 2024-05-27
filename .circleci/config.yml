@@ -40,7 +40,8 @@ jobs:
       - run:
           name: Run tests
           # This assumes nose is installed via the install-package step above
-          command: nose2 --with-coverage --start-dir=l2l/ --junit-xml --plugin nose2.plugins.junitxml --junit-xml-path result_$(date +"%Y-%m-%d_%H-%M").xml --split-by=filesize
+          command: nose2 --with-coverage --start-dir=l2l/ --junit-xml --plugin nose2.plugins.junitxml --junit-xml-path result_$(date +"%Y-%m-%d_%H-%M").xml
+                  | circleci tests split --split-by=filesize
       - store_test_results:
           path: .
   lint:

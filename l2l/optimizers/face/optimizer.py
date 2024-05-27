@@ -86,7 +86,7 @@ class FACEOptimizer(Optimizer):
             raise Exception("smoothing has to be in interval [0, 1)")
         if parameters.seed is None:
             raise Exception("The 'seed' must be set")
-
+        
         # The following parameters are recorded
         traj.f_add_parameter('min_pop_size', parameters.min_pop_size,
                              comment='Number of minimal individuals simulated in each run')
@@ -110,6 +110,10 @@ class FACEOptimizer(Optimizer):
         self.random_state = np.random.RandomState(seed=traj.par.seed)
         temp_indiv, self.optimizee_individual_dict_spec = dict_to_list(self.optimizee_create_individual(),
                                                                        get_dict_spec=True)
+        #there are some problems calculation the covariance with only one dimiension
+        if(len(self.optimizee_individual_dict_spec) <= 1 and self.optimizee_individual_dict_spec[0][2] <= 1):
+            raise Exception("There have to be more than one parameter or the parameter has to have a shape > 1.")
+        
         traj.f_add_derived_parameter('dimension', len(temp_indiv),
                                      comment='The dimension of the parameter space of the optimizee')
 

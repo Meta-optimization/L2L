@@ -124,6 +124,8 @@ class EvolutionStrategiesOptimizer(Optimizer):
 
         self.current_individual_arr, self.optimizee_individual_dict_spec = dict_to_list(
             self.optimizee_create_individual(), get_dict_spec=True)
+        
+        self.current_individual_arr = self.current_individual_arr.astype(np.float64)
 
         noise_std_shape = np.array(parameters.noise_std).shape
         assert noise_std_shape == () or noise_std_shape == self.current_individual_arr.shape

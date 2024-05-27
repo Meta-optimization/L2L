@@ -27,6 +27,7 @@ jobs:
     # Here we're making sure we use just use the system-wide pip. By default it uses the project root's requirements.txt.
     # Then run your tests!
     # CircleCI will report the results back to your VCS provider.
+    parallelism: 4
     steps:
       - checkout
       - python/install-packages:
@@ -39,7 +40,7 @@ jobs:
       - run:
           name: Run tests
           # This assumes nose is installed via the install-package step above
-          command: nose2 --with-coverage --start-dir=l2l/ --junit-xml --plugin nose2.plugins.junitxml --junit-xml-path result_$(date +"%Y-%m-%d_%H-%M").xml
+          command: nose2 --with-coverage --start-dir=l2l/ --junit-xml --plugin nose2.plugins.junitxml --junit-xml-path result_$(date +"%Y-%m-%d_%H-%M").xml --split-by=filesize
       - store_test_results:
           path: .
   lint:

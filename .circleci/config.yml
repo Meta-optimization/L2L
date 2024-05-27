@@ -40,8 +40,9 @@ jobs:
       - run:
           name: Run tests
           # This assumes nose is installed via the install-package step above
-          command: nose2 --with-coverage --start-dir=l2l/ --junit-xml --plugin nose2.plugins.junitxml --junit-xml-path result_$(date +"%Y-%m-%d_%H-%M").xml
-                  | circleci tests split --split-by=filesize
+          #command: nose2 --with-coverage --start-dir=l2l/ --junit-xml --plugin nose2.plugins.junitxml --junit-xml-path result_$(date +"%Y-%m-%d_%H-%M").xml
+                  #| circleci tests split --split-by=filesize
+          command:  circleci tests glob "l2l/tests/test_all.py" | circleci tests run --command="xargsnose2 --with-coverage --start-dir=l2l/ --junit-xml --plugin nose2.plugins.junitxml --junit-xml-path result_$(date +"%Y-%m-%d_%H-%M").xml" --verbose --split-by=timings 
       - store_test_results:
           path: .
   lint:

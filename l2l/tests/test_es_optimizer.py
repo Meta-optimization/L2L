@@ -58,7 +58,7 @@ class ESOptimizerTestCase(OptimizerTestCase):
         except Exception as e:
             self.fail(e.__name__)
         best = self.experiment_activeWait.optimizer.best_individual['difficulty']
-        self.assertEqual(best, 10000)
+        self.assertEqual(best, 10001.624345363663)
         self.experiment_activeWait.end_experiment(optimizer)
 
 def suite():

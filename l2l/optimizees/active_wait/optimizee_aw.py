@@ -42,7 +42,7 @@ class AWOptimizee(Optimizee):
         
         # Active wait by calculating all primes up to 'difficulty'
         primes = []
-        for number in range(1, self.difficulty):
+        for number in range(1, int(self.difficulty)):
             if self.is_prime(number):
                 primes.append(number)
         

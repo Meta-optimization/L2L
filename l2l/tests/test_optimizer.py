@@ -37,5 +37,5 @@ class OptimizerTestCase(unittest.TestCase):
                                                                               log_stdout=True,
                                                                               jube_parameter=jube_params,
                                                                               overwrite=True)
-        self.optimizee_activeWait_parameters = AWOptimizeeParameters(difficulty=10000)
+        self.optimizee_activeWait_parameters = AWOptimizeeParameters(difficulty=10000.0)
         self.optimizee_activeWait = AWOptimizee(self.trajectory_activeWait, self.optimizee_activeWait_parameters)

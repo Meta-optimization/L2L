@@ -42,6 +42,24 @@ class ESOptimizerTestCase(OptimizerTestCase):
         self.assertEqual(best[1], 1.5914885207715055)
         self.experiment_functionGenerator.end_experiment(optimizer)
 
+        #active wait optimizee
+        optimizer = EvolutionStrategiesOptimizer(
+            self.trajectory_activeWait,
+            optimizee_create_individual=self.optimizee_activeWait.create_individual,
+            optimizee_fitness_weights=(-1.,),
+            parameters=optimizer_parameters,
+            optimizee_bounding_func=self.optimizee_activeWait.bounding_func)
+
+        try:
+            self.experiment_activeWait.run_experiment(optimizee=self.optimizee_activeWait,
+                                           optimizee_parameters=self.optimizee_activeWait_parameters,
+                                           optimizer=optimizer,
+                                           optimizer_parameters=optimizer_parameters)
+        except Exception as e:
+            self.fail(e.__name__)
+        best = self.experiment_activeWait.optimizer.best_individual['difficulty']
+        self.assertEqual(best, 10000)
+        self.experiment_activeWait.end_experiment(optimizer)
 
 def suite():
     suite = unittest.makeSuite(ESOptimizerTestCase, 'test')

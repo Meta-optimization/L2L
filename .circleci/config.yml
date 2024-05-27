@@ -43,7 +43,7 @@ jobs:
           #command: nose2 --with-coverage --start-dir=l2l/ --junit-xml --plugin nose2.plugins.junitxml --junit-xml-path result_$(date +"%Y-%m-%d_%H-%M").xml
                   #| circleci tests split --split-by=filesize
           #command:  circleci tests glob "../l2l/tests/*.py" | circleci tests run --command="xargs nose2 --with-coverage --start-dir=l2l/ --junit-xml --plugin nose2.plugins.junitxml --junit-xml-path result_$(date +"%Y-%m-%d_%H-%M").xml" --verbose --split-by=filesize
-          command: TESTFILES=$(circleci tests glob "l2l/tests/*.py" | circleci tests split --split-by=filesize) nose2 --with-coverage --start-dir=$TESTFILES --junit-xml --plugin nose2.plugins.junitxml --junit-xml-path result_$(date +"%Y-%m-%d_%H-%M").xml $TESTFILES
+          command: TESTFILES=$(circleci tests glob "l2l/tests/*.py" | circleci tests split --split-by=filesize)>/tmp/tests-to-run nose2 --with-coverage --start-dir=tmp --junit-xml --plugin nose2.plugins.junitxml --junit-xml-path result_$(date +"%Y-%m-%d_%H-%M").xml $TESTFILES
       - store_test_results:
           path: .
   lint:

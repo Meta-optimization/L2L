@@ -15,7 +15,7 @@ def run_experiment():
         
 
     # nest HPC benchmark Optimizee
-    optimizee_parameters = HPCBMOptimizeeParameters(scale=0.1)
+    optimizee_parameters = HPCBMOptimizeeParameters(scale=0.05)
     optimizee = HPCBMOptimizee(traj, optimizee_parameters)
 
 

@@ -22,8 +22,8 @@ class HPCBMOptimizee(Optimizee):
         Creates and returns a random individual
         """
 
-        individual = {'weight_ex':  random.uniform(1     , 20),
-                      'weight_in':  random.uniform(-100  , -5),
+        individual = {'weight_ex':  random.uniform(0     , 200),
+                      'weight_in':  random.uniform(-1000  , 0),
                       'pCE':        random.uniform(0     , 1),
                       'pCI':        random.uniform(0     , 1),
                       'delay':      random.uniform(0.1   , 10),
@@ -38,13 +38,14 @@ class HPCBMOptimizee(Optimizee):
         """
         """
         # TODO what are reasonable bounds?
-        # delay             originally: 1.5                                now range: [0.1, 10]?
-        # weight_ex         originally: JE_pA = 10.77                      now range: [1, 20]?
-        # weight_in         originally: g*JE_pA = -5*10.77 = -53.85        now range: [-100, -5]?
+        # weight_ex         originally: JE_pA = 10.77                      now range: [1, 20]?   better [0, 200]
+        # weight_in         originally: g*JE_pA = -5*10.77 = -53.85        now range: [-100, -5]? better [-1000, 0]
         # CE                originally: 9000 fixed                         now: pairwise bernoulli range: [0, 1]
         # CI                originally: 2250 fixed                         now: pairwise bernoulli range: [0, 1]
-        individual = {'weight_ex':  np.clip(individual['weight_ex'] , 1     , 20),
-                      'weight_in':  np.clip(individual['weight_in'] , -100  , -5),
+        # delay             originally: 1.5                                now range: [0.1, 10]
+
+        individual = {'weight_ex':  np.clip(individual['weight_ex'] , 0     , 200),
+                      'weight_in':  np.clip(individual['weight_in'] , -1000  , -0),
                       'pCE':        np.clip(individual['pCE']       , 0     , 1),
                       'pCI':        np.clip(individual['pCI']       , 0     , 1),
                       'delay':      np.clip(individual['delay']     , 0.1   , 10),
@@ -77,7 +78,7 @@ class HPCBMOptimizee(Optimizee):
 
 
         
-        desired_rate = 0.1
+        desired_rate = 50
         fitness = -abs(average_rate - desired_rate) # TODO: is this a sensible way to calculate fitness?
         print("fitness:", fitness)
         return (fitness,) 

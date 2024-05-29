@@ -2,12 +2,20 @@ from network import NestBenchmarkNetwork
 import random
 
 scale = 0.1
-individual = {  'weight_ex':  random.uniform(1     , 20),
-                'weight_in':  random.uniform(-100  , -5),
+
+#individual = {  'weight_ex':  random.uniform(1     , 20),
+#                'weight_in':  random.uniform(-100  , -5),
+#                'pCE':        random.uniform(0     , 1),
+#                'pCI':        random.uniform(0     , 1),
+#                'delay':      random.uniform(0.1   , 10),
+#                }  
+  
+individual = {  'weight_ex':  random.uniform(0     , 200),
+                'weight_in':  random.uniform(-1000  , 0),
                 'pCE':        random.uniform(0     , 1),
                 'pCI':        random.uniform(0     , 1),
                 'delay':      random.uniform(0.1   , 10),
-                }    
+                }   
 
 
 weight_ex = individual['weight_ex']

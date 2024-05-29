@@ -30,7 +30,7 @@ class AWOptimizee(Optimizee):
                 return False
         return True
 
-     def bounding_func(self, individual):
+    def bounding_func(self, individual):
         return individual
 
     def simulate(self, traj):

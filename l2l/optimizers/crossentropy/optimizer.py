@@ -138,7 +138,7 @@ class CrossEntropyOptimizer(Optimizer):
         temp_indiv, self.optimizee_individual_dict_spec = dict_to_list(self.optimizee_create_individual(),
                                                                        get_dict_spec=True)
         if(len(self.optimizee_individual_dict_spec) <= 1 and self.optimizee_individual_dict_spec[0][2] <= 1):
-            raise Exception("There have to be more than one parameter or the parameter has to have a shape > 1.")
+            raise Exception("For this optimizer, there have to be more than one parameter or the parameter has to have a shape > 1.")
         
         if optimizee_bounding_func is not None:
             current_eval_pop = [self.optimizee_bounding_func(ind) for ind in current_eval_pop]

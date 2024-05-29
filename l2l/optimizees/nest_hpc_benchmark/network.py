@@ -35,6 +35,7 @@ def convert_synapse_weight(tau_m, tau_syn, C_m):
 
 
 class NestBenchmarkNetwork():
+
     params = {
         'num_threads': 1, #{threads_per_task},  # total number of threads per process
         'simtime': 200, #{model_time_sim},  # total simulation time in ms
@@ -90,7 +91,7 @@ class NestBenchmarkNetwork():
     }
 
 
-    def __init__(self, scale, pCE, pCI, weight_excitatory, weight_inhibitory, delay, extra_kernel_params=None):
+    def __init__(self, scale, pCE, pCI, weight_excitatory, weight_inhibitory, delay, nrec, extra_kernel_params=None):
         nest.ResetKernel()
         nest.set_verbosity(M_INFO)
         
@@ -104,7 +105,7 @@ class NestBenchmarkNetwork():
 
         self.delay = delay
 
-
+        self.nrec = min(nrec, self.NE)
 
         # set global kernel parameters
         nest.SetKernelStatus({'local_num_threads': self.params['num_threads'],
@@ -129,13 +130,9 @@ class NestBenchmarkNetwork():
         """Builds the network including setting of simulation and neuron
         parameters, creation of neurons and connections
         """
-
         tic = time.time()  # start timer on construction
 
-        model_params = self.brunel_params['model_params']
-        #stdp_params = self.brunel_params['stdp_params']
-
- 
+        model_params = self.brunel_params['model_params'] 
 
         nest.message(M_INFO, 'build_network', 'Creating excitatory population.')
         E_neurons = nest.Create('iaf_psc_alpha', self.NE, params=model_params)
@@ -187,9 +184,7 @@ class NestBenchmarkNetwork():
             'record_to': 'ascii',
             'label': recorder_label
         })
-        # TODO save spieks to .dat or just print something???
-
-
+        # TODO save spieks to .dat or just print something?
 
         BuildNodeTime = time.time() - tic
         node_memory = str(get_vmsize())
@@ -214,19 +209,19 @@ class NestBenchmarkNetwork():
         else:
             local_neurons = E_neurons
 
-        #if len(local_neurons) < self.brunel_params['Nrec']:
-        #    nest.message(
-        #        M_ERROR, 'build_network',
-        #        """Spikes can only be recorded from local neurons, but the
-        #        number of local neurons is smaller than the number of neurons
-        #        spikes should be recorded from. Aborting the simulation!""")
-        #    exit(1)
+        if len(local_neurons) < self.nrec:
+            nest.message(
+                M_ERROR, 'build_network',
+                """Spikes can only be recorded from local neurons, but the
+                number of local neurons is smaller than the number of neurons
+                spikes should be recorded from. Aborting the simulation!""")
+            exit(1)
 
         nest.message(M_INFO, 'build_network', 'Connecting spike recorders.')
-        #nest.Connect(local_neurons[:self.brunel_params['Nrec']], E_recorder,
-        #             'all_to_all', 'static_synapse_hpc')
-        nest.Connect(local_neurons, E_recorder,
+        nest.Connect(local_neurons[:self.nrec], E_recorder,
                      'all_to_all', 'static_synapse_hpc')
+        #nest.Connect(local_neurons, E_recorder,
+        #             'all_to_all', 'static_synapse_hpc')
 
         # read out time used for building
         BuildEdgeTime = time.time() - tic
@@ -465,9 +460,7 @@ class NestBenchmarkNetwork():
         """
 
         n_local_spikes = sr.n_events
-        #n_local_neurons = self.brunel_params['Nrec']
-        # TODO: make Nrec a parameter adjuastable in environment level?
-        n_local_neurons = self.NE
+        n_local_neurons = self.nrec
         simtime = self.params['simtime']
         return 1. * n_local_spikes / (n_local_neurons * simtime) * 1e3
 

@@ -6,7 +6,7 @@ import numpy as np
 import random
 
 HPCBMOptimizeeParameters = namedtuple(
-    'HPCBMOptimizeeParameters', ['scale']) # TODO: add pre-sim-time, sim-time and dt as parameters
+    'HPCBMOptimizeeParameters', ['scale', 'nrec']) # TODO: add pre-sim-time, sim-time, dt? as parameters
 
 class HPCBMOptimizee(Optimizee):
     def __init__(self, traj, parameters):
@@ -15,6 +15,7 @@ class HPCBMOptimizee(Optimizee):
         self.generation = traj.individual.generation
 
         self.scale = parameters.scale
+        self.nrec = parameters.nrec
 
 
     def create_individual(self):
@@ -66,18 +67,16 @@ class HPCBMOptimizee(Optimizee):
         pCE = traj.individual.pCE
         pCI = traj.individual.pCI
         delay = traj.individual.delay
-        # scale, pCE, pCI, weight_excitatory, weight_inhibitory, delay, extra_kernel_params=None
         net = NestBenchmarkNetwork(scale=self.scale, 
                                    pCE=pCE, 
                                    pCI=pCI, 
                                    weight_excitatory=weight_ex, 
                                    weight_inhibitory=weight_in, 
-                                   delay=delay
+                                   delay=delay,
+                                   nrec=self.nrec
                                    )
         average_rate = net.run_simulation()
 
-
-        
         desired_rate = 50
         fitness = -abs(average_rate - desired_rate) # TODO: is this a sensible way to calculate fitness?
         print("fitness:", fitness)

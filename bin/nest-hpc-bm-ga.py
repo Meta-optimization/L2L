@@ -15,13 +15,13 @@ def run_experiment():
         
 
     # nest HPC benchmark Optimizee
-    optimizee_parameters = HPCBMOptimizeeParameters()
+    optimizee_parameters = HPCBMOptimizeeParameters(scale=0.1)
     optimizee = HPCBMOptimizee(traj, optimizee_parameters)
 
 
     # Genetic Algorithm Optimizer
     optimizer_parameters = GeneticAlgorithmParameters(seed=1580211, 
-                                                      pop_size=3,
+                                                      pop_size=10,
                                                       cx_prob=0.7,
                                                       mut_prob=0.7,
                                                       n_iteration=10,

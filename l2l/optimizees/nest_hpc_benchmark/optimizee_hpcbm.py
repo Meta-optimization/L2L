@@ -1,7 +1,7 @@
 import time
 from collections import namedtuple
 from l2l.optimizees.optimizee import Optimizee
-from network import NestBenchmarkNetwork
+from .network import NestBenchmarkNetwork
 import numpy as np
 import random
 
@@ -27,12 +27,14 @@ class HPCBMOptimizee(Optimizee):
                       'pCE':        random.uniform(0     , 1),
                       'pCI':        random.uniform(0     , 1),
                       'delay':      random.uniform(0.1   , 10),
-                      }    
+                      }   
+
+        print("random individual:", individual) 
         
         return individual
     
 
-    def bounding_func(individual):
+    def bounding_func(self, individual):
         """
         """
         # TODO what are reasonable bounds?
@@ -57,20 +59,27 @@ class HPCBMOptimizee(Optimizee):
         self.ind_idx = traj.individual.ind_idx
         self.generation = traj.individual.generation
 
-        weight_excitatory = traj.individual.weight_excitatory
-        weight_inhibitory = traj.individual.weight_inhibitory
+        weight_ex = traj.individual.weight_ex
+        weight_in = traj.individual.weight_in
+
         pCE = traj.individual.pCE
         pCI = traj.individual.pCI
         delay = traj.individual.delay
-
-        net = NestBenchmarkNetwork(self.scale, pCE, pCI, weight_excitatory, weight_inhibitory, delay=delay)
+        # scale, pCE, pCI, weight_excitatory, weight_inhibitory, delay, extra_kernel_params=None
+        net = NestBenchmarkNetwork(scale=self.scale, 
+                                   pCE=pCE, 
+                                   pCI=pCI, 
+                                   weight_excitatory=weight_ex, 
+                                   weight_inhibitory=weight_in, 
+                                   delay=delay
+                                   )
         average_rate = net.run_simulation()
 
 
         
         desired_rate = 0.1
-        fitness = abs(average_rate - desired_rate) # TODO: is this a sensible way to calculate fitness?
-        
+        fitness = -abs(average_rate - desired_rate) # TODO: is this a sensible way to calculate fitness?
+        print("fitness:", fitness)
         return (fitness,) 
     
 

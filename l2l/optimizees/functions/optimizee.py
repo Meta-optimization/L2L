@@ -26,13 +26,6 @@ class FunctionGeneratorOptimizee(Optimizee):
         self.dims = self.fg_instance.dims
         self.cost_fn = self.fg_instance.cost_function
         self.bound = self.fg_instance.bound
-
-        # create_individual can be called because __init__ is complete except for traj initializtion
-        indiv_dict = self.create_individual()
-        for key, val in indiv_dict.items():
-            traj.individual.f_add_parameter(key, val)
-        traj.individual.f_add_parameter('seed', seed)
-
         self.random_state = np.random.RandomState(seed=seed)
 
     def create_individual(self):

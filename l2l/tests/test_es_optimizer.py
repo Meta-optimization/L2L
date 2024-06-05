@@ -20,28 +20,46 @@ class ESOptimizerTestCase(OptimizerTestCase):
             seed=1)
 
         optimizer = EvolutionStrategiesOptimizer(
-            self.trajectory,
-            optimizee_create_individual=self.optimizee.create_individual,
+            self.trajectory_functionGenerator,
+            optimizee_create_individual=self.optimizee_functionGenerator.create_individual,
             optimizee_fitness_weights=(-1.,),
             parameters=optimizer_parameters,
-            optimizee_bounding_func=self.optimizee.bounding_func)
+            optimizee_bounding_func=self.optimizee_functionGenerator.bounding_func)
 
         self.assertIsNotNone(optimizer.parameters)
-        self.assertIsNotNone(self.experiment)
+        self.assertIsNotNone(self.experiment_functionGenerator)
 
         try:
 
-            self.experiment.run_experiment(optimizee=self.optimizee,
-                                           optimizee_parameters=self.optimizee_parameters,
+            self.experiment_functionGenerator.run_experiment(optimizee=self.optimizee_functionGenerator,
+                                           optimizee_parameters=self.optimizee_functionGenerator_parameters,
                                            optimizer=optimizer,
                                            optimizer_parameters=optimizer_parameters)
         except Exception as e:
             self.fail(e.__name__)
-        best = self.experiment.optimizer.best_individual['coords']
+        best = self.experiment_functionGenerator.optimizer.best_individual['coords']
         self.assertEqual(best[0], 0.7945654106889819)
         self.assertEqual(best[1], 1.5914885207715055)
-        self.experiment.end_experiment(optimizer)
+        self.experiment_functionGenerator.end_experiment(optimizer)
 
+        #active wait optimizee
+        optimizer = EvolutionStrategiesOptimizer(
+            self.trajectory_activeWait,
+            optimizee_create_individual=self.optimizee_activeWait.create_individual,
+            optimizee_fitness_weights=(-1.,),
+            parameters=optimizer_parameters,
+            optimizee_bounding_func=self.optimizee_activeWait.bounding_func)
+
+        try:
+            self.experiment_activeWait.run_experiment(optimizee=self.optimizee_activeWait,
+                                           optimizee_parameters=self.optimizee_activeWait_parameters,
+                                           optimizer=optimizer,
+                                           optimizer_parameters=optimizer_parameters)
+        except Exception as e:
+            self.fail(e.__name__)
+        best = self.experiment_activeWait.optimizer.best_individual['difficulty']
+        self.assertEqual(best, 10001.624345363663)
+        self.experiment_activeWait.end_experiment(optimizer)
 
 def suite():
     suite = unittest.makeSuite(ESOptimizerTestCase, 'test')

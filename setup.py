@@ -1,6 +1,5 @@
 from setuptools import setup
 from setuptools import find_packages
-import re
 from l2l.version import FULL_VERSION
 
 """
@@ -16,11 +15,11 @@ def get_requirements(filename):
     """
     dependency_links = []
     with open(filename) as requirements_file:
-        requirements = requirements_file.read().strip('\n').splitlines()
+        requirements = requirements_file.read().strip("\n").splitlines()
     return requirements, dependency_links
 
 
-requirements, dependency_links = get_requirements('requirements.txt')
+requirements, dependency_links = get_requirements("requirements.txt")
 setup(
     name="L2L",
     version=FULL_VERSION,
@@ -28,10 +27,9 @@ setup(
     author="Anand Subramoney, Arjun Rao",
     author_email="anand@igi.tugraz.at, arjun@igi.tugraz.at",
     description="This module provides the infrastructure create optimizers and "
-                "optimizees in order to implement learning-to-learn",
-    setup_requires=['Cython', 'numpy'],
+    "optimizees in order to implement learning-to-learn",
+    setup_requires=["Cython", "numpy"],
     install_requires=requirements,
-    provides=['l2l'],
+    provides=["l2l"],
     dependency_links=dependency_links,
 )
-

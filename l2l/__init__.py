@@ -10,9 +10,9 @@ from numbers import Integral, Real
 from timeit import default_timer as timer
 
 
-__author__ = 'anand'
+__author__ = "anand"
 
-logger = logging.getLogger('l2l')
+logger = logging.getLogger("l2l")
 
 
 def static_vars(**kwargs):
@@ -35,7 +35,8 @@ class sdictm(object):
     A dictionary which allows accessing it's values using a dot notation. i.e. `d['a']` can be accessed as `d.a`
     Mutable version
     """
-    _INSTANCE_VAR_LIST = ['_data']
+
+    _INSTANCE_VAR_LIST = ["_data"]
 
     def __init__(self, obj):
         self._data = OrderedDict()
@@ -61,7 +62,7 @@ class sdictm(object):
         return self._data.__repr__()
 
     def __getattr__(self, attr):
-        if attr == '__getstate__':
+        if attr == "__getstate__":
             raise AttributeError()
         if attr in self._INSTANCE_VAR_LIST:
             return object.__getattribute__(self, attr)
@@ -130,7 +131,11 @@ class sdictm(object):
 
         for key, value in kwargs.items():
             if key in self._data:
-                logger.debug("Replacing {} with {} for key {}".format(self._data[key], value, key))
+                logger.debug(
+                    "Replacing {} with {} for key {}".format(
+                        self._data[key], value, key
+                    )
+                )
             else:
                 logger.debug("Adding new key {} with value {}".format(key, value))
             self._data[key] = value
@@ -200,7 +205,7 @@ def dict_to_list(input_dict, get_dict_spec=False):
 
 
       Dict-Specification:
-        The Dict-Specification tuple is required to convert back from the list to dictionary. 
+        The Dict-Specification tuple is required to convert back from the list to dictionary.
 
         It is a tuple of tuples, one tuple for each key of the dictionary. Each tuple is of the
         following form:
@@ -257,11 +262,13 @@ def list_to_dict(input_list, dict_spec):
         value_type = dict_entry[1]
         value_len = dict_entry[2]
         if value_type == DictEntryType.Sequence:
-            return_dict[key] = np.array(input_list[cursor:cursor + value_len])
+            return_dict[key] = np.array(input_list[cursor : cursor + value_len])
         elif value_type == DictEntryType.Scalar:
             return_dict[key] = input_list[cursor]
         cursor += value_len
-    assert cursor == len(input_list), "Incorrect Parameter List length, Somethings not right"
+    assert cursor == len(
+        input_list
+    ), "Incorrect Parameter List length, Somethings not right"
     return return_dict
 
 
@@ -365,7 +372,7 @@ def stdout_redirected(filename):
 
     inspired from the article
     http://eli.thegreenplace.net/2015/redirecting-all-kinds-of-stdout-in-python/
-    
+
     :param filename: The filename (NOT file stream object, this is to ensure that
         the stream is always a valid file object) to which the stdout is to be
         redirected
@@ -383,7 +390,7 @@ def stdout_redirected(filename):
 
     def _redirect_stdout(filestream):
         os.dup2(filestream.fileno(), os_stdout_fd)  # os_stdout_fd writes to 'to' file
-        sys.stdout = os.fdopen(os_stdout_fd, 'w')  # Python writes to os_stdout_fd
+        sys.stdout = os.fdopen(os_stdout_fd, "w")  # Python writes to os_stdout_fd
 
     def _revert_stdout():
         sys.stdout.close()
@@ -391,7 +398,7 @@ def stdout_redirected(filename):
         os.close(old_stdout_fd_dup)
         sys.stdout = old_stdout
 
-    with open(filename, 'w') as file:
+    with open(filename, "w") as file:
         _redirect_stdout(filestream=file)
         try:
             yield  # allow code to be run with the redirected stdout
@@ -430,7 +437,7 @@ class DummyTrajectory:
 
 
 @contextmanager
-def timed(logger, section_name='Run'):
+def timed(logger, section_name="Run"):
     start = timer()
     yield
     end = timer()

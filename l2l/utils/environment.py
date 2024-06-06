@@ -20,18 +20,22 @@ class Environment:
         :param keyword_args: arguments by keyword. Relevant keywords are trajectory and filename.
         The trajectory object holds individual parameters and history per generation of the exploration process.
         """
-        if 'trajectory' in keyword_args:
-            self.trajectory = Trajectory(name=keyword_args['trajectory'], debug = keyword_args['debug'], 
-                                         stop_run = keyword_args['stop_run'], timeout=keyword_args['timeout'])
-        if 'checkpoint' in keyword_args:
+        if "trajectory" in keyword_args:
+            self.trajectory = Trajectory(
+                name=keyword_args["trajectory"],
+                debug=keyword_args["debug"],
+                stop_run=keyword_args["stop_run"],
+                timeout=keyword_args["timeout"],
+            )
+        if "checkpoint" in keyword_args:
             self.trajectory = keyword_args["checkpoint"]
             self.trajectory.is_loaded = True
-        if 'filename' in keyword_args:
-            self.filename = keyword_args['filename']
+        if "filename" in keyword_args:
+            self.filename = keyword_args["filename"]
         self.postprocessing = None
         self.multiprocessing = True
-        if 'multiprocessing' in keyword_args:
-            self.multiprocessing = keyword_args['multiprocessing']
+        if "multiprocessing" in keyword_args:
+            self.multiprocessing = keyword_args["multiprocessing"]
         self.run_id = 0
         self.enable_logging()
 
@@ -42,19 +46,26 @@ class Environment:
         :return: the results of running a whole generation. Dictionary indexed by generation id.
         """
         result = {}
-        for it in range(self.trajectory.individual.generation, self.trajectory.par['n_iteration']+self.trajectory.individual.generation):
+        for it in range(
+            self.trajectory.individual.generation,
+            self.trajectory.par["n_iteration"] + self.trajectory.individual.generation,
+        ):
             if self.multiprocessing:
                 # Multiprocessing is done through JUBE, either with or without scheduler
-                logger.info(f"Environment run starting JUBERunner for n iterations: {it+1}/{self.trajectory.par['n_iteration']}")
+                logger.info(
+                    f"Environment run starting JUBERunner for n iterations: {it+1}/{self.trajectory.par['n_iteration']}"
+                )
                 jube = JUBERunner(self.trajectory)
                 result[it] = []
                 # Initialize new JUBE run and execute it
                 try:
-                    jube.write_pop_for_jube(self.trajectory,it)
-                    result[it] = jube.run(self.trajectory,it)
+                    jube.write_pop_for_jube(self.trajectory, it)
+                    result[it] = jube.run(self.trajectory, it)
                 except Exception as e:
                     if self.logging:
-                        logger.exception("Error launching JUBE run: " + str(e.__cause__))
+                        logger.exception(
+                            "Error launching JUBE run: " + str(e.__cause__)
+                        )
                     raise e
 
             else:
@@ -66,7 +77,7 @@ class Environment:
                         self.trajectory.individual = ind
                         result[it].append((ind.ind_idx, runfunc(self.trajectory)))
                         self.run_id = self.run_id + 1
-                except:
+                except Exception:
                     if self.logging:
                         logger.exception("Error during serial execution of individuals")
                     raise

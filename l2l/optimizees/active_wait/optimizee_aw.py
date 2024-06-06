@@ -1,9 +1,7 @@
-import time
 from collections import namedtuple
 from l2l.optimizees.optimizee import Optimizee
 
-AWOptimizeeParameters = namedtuple(
-    'AWOptimizeeParameters', ['difficulty'])
+AWOptimizeeParameters = namedtuple("AWOptimizeeParameters", ["difficulty"])
 
 
 class AWOptimizee(Optimizee):
@@ -19,9 +17,9 @@ class AWOptimizee(Optimizee):
         Creates and returns the individual
         """
         # create individual
-        individual = {'difficulty':self.difficulty}
+        individual = {"difficulty": self.difficulty}
         return individual
-    
+
     def is_prime(self, n):
         if n <= 1:
             return False
@@ -39,22 +37,13 @@ class AWOptimizee(Optimizee):
         """
         self.ind_idx = traj.individual.ind_idx
         self.generation = traj.individual.generation
-        
+
         # Active wait by calculating all primes up to 'difficulty'
         primes = []
 
         for number in range(1, int(self.difficulty)):
             if self.is_prime(number):
                 primes.append(number)
-        
+
         fitness = 0
-        return (fitness,) 
-    
-
-    
-    
-    
-
-
-
-
+        return (fitness,)

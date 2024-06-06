@@ -6,9 +6,9 @@ from .optimizer import RMSPropParameters
 from .optimizer import GradientDescentOptimizer
 
 __all__ = [
-    'ClassicGDParameters',
-    'StochasticGDParameters',
-    'AdamParameters',
-    'RMSPropParameters',
-    'GradientDescentOptimizer',
+    "ClassicGDParameters",
+    "StochasticGDParameters",
+    "AdamParameters",
+    "RMSPropParameters",
+    "GradientDescentOptimizer",
 ]

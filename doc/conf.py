@@ -20,8 +20,8 @@
 import os
 import sys
 
-sys.path.insert(0, os.path.abspath('../bin'))
-sys.path.insert(0, os.path.abspath('..'))
+sys.path.insert(0, os.path.abspath("../bin"))
+sys.path.insert(0, os.path.abspath(".."))
 
 from l2l.version import MAJOR_VERSION, FULL_VERSION  # noqa: E402
 
@@ -35,40 +35,39 @@ from l2l.version import MAJOR_VERSION, FULL_VERSION  # noqa: E402
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'sphinx.ext.autodoc',
-    'sphinx.ext.todo',
-    'sphinx.ext.viewcode',
-    'sphinx.ext.githubpages',
-    'sphinx.ext.intersphinx',
-    'sphinxjp.themes.basicstrap'
+    "sphinx.ext.autodoc",
+    "sphinx.ext.todo",
+    "sphinx.ext.viewcode",
+    "sphinx.ext.githubpages",
+    "sphinx.ext.intersphinx",
+    "sphinxjp.themes.basicstrap",
 ]
 intersphinx_mapping = {
-    'python': ('https://docs.python.org/3', None),
-    'sklearn': ('http://scikit-learn.org/stable', None),
-    'numpy': ('http://docs.scipy.org/doc/numpy/', None)
-
+    "python": ("https://docs.python.org/3", None),
+    "sklearn": ("http://scikit-learn.org/stable", None),
+    "numpy": ("http://docs.scipy.org/doc/numpy/", None),
 }
 
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ['_templates']
+templates_path = ["_templates"]
 
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
 #
 # source_suffix = ['.rst', '.md']
-source_suffix = '.rst'
+source_suffix = ".rst"
 
 # The encoding of source files.
 #
 # source_encoding = 'utf-8-sig'
 
 # The master toctree document.
-master_doc = 'index'
+master_doc = "index"
 
 # General information about the project.
-project = 'L2L'
-copyright = '2017, Anand Subramoney'
-author = 'Anand Subramoney'
+project = "L2L"
+copyright = "2017, Anand Subramoney"
+author = "Anand Subramoney"
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -98,7 +97,7 @@ language = None
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This patterns also effect to html_static_path and html_extra_path
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
+exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
 # The reST default role (used for this markup: `text`) to use for all
 # documents.
@@ -120,7 +119,7 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 # show_authors = False
 
 # The name of the Pygments (syntax highlighting) style to use.
-pygments_style = 'sphinx'
+pygments_style = "sphinx"
 
 # A list of ignored prefixes for module index sorting.
 # modindex_common_prefix = []
@@ -136,7 +135,7 @@ todo_include_todos = True
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'basicstrap'
+html_theme = "basicstrap"
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -195,7 +194,9 @@ html_baseurl = "https://igitugraz.github.io/L2L/"
 
 # Custom sidebar templates, maps document names to template names.
 #
-html_sidebars = {'**': ['globaltoc.html', 'relations.html', 'sourcelink.html', 'searchbox.html'], }
+html_sidebars = {
+    "**": ["globaltoc.html", "relations.html", "sourcelink.html", "searchbox.html"],
+}
 
 # Additional templates that should be rendered to pages, maps page names to
 # template names.
@@ -254,7 +255,7 @@ html_sidebars = {'**': ['globaltoc.html', 'relations.html', 'sourcelink.html', '
 # html_search_scorer = 'scorer.js'
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'L2Ldoc'
+htmlhelp_basename = "L2Ldoc"
 
 # -- Options for LaTeX output ---------------------------------------------
 
@@ -262,15 +263,12 @@ latex_elements = {
     # The paper size ('letterpaper' or 'a4paper').
     #
     # 'papersize': 'letterpaper',
-
     # The font size ('10pt', '11pt' or '12pt').
     #
     # 'pointsize': '10pt',
-
     # Additional stuff for the LaTeX preamble.
     #
     # 'preamble': '',
-
     # Latex figure (float) alignment
     #
     # 'figure_align': 'htbp',
@@ -280,8 +278,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'L2L.tex', 'L2L Documentation',
-     'Anand Subramoney', 'manual'),
+    (master_doc, "L2L.tex", "L2L Documentation", "Anand Subramoney", "manual"),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -321,10 +318,7 @@ latex_documents = [
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [
-    (master_doc, 'l2l', 'L2L Documentation',
-     [author], 1)
-]
+man_pages = [(master_doc, "l2l", "L2L Documentation", [author], 1)]
 
 # If true, show URL addresses after external links.
 #
@@ -337,9 +331,15 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'L2L', 'L2L Documentation',
-     author, 'L2L', 'One line description of project.',
-     'Miscellaneous'),
+    (
+        master_doc,
+        "L2L",
+        "L2L Documentation",
+        author,
+        "L2L",
+        "One line description of project.",
+        "Miscellaneous",
+    ),
 ]
 
 # Documents to append as an appendix to all manuals.
@@ -358,13 +358,13 @@ texinfo_documents = [
 #
 # texinfo_no_detailmenu = False
 
-autodoc_mock_imports = ['nest', 'nest.raster_plot', 'deap', 'deap.tools']
-autodoc_member_order = 'bysource'
+autodoc_mock_imports = ["nest", "nest.raster_plot", "deap", "deap.tools"]
+autodoc_member_order = "bysource"
 
 
 def no_namedtuple_attrib_docstring(app, what, name, obj, options, lines):
-    is_namedtuple_docstring = (
-        len(lines) == 2 and lines[0].startswith('Alias for field number')
+    is_namedtuple_docstring = len(lines) == 2 and lines[0].startswith(
+        "Alias for field number"
     )
     if is_namedtuple_docstring:
         # We don't return, so we need to purge in-place
@@ -373,12 +373,15 @@ def no_namedtuple_attrib_docstring(app, what, name, obj, options, lines):
 
 def setup(app):
     app.connect(
-        'autodoc-process-docstring',
+        "autodoc-process-docstring",
         no_namedtuple_attrib_docstring,
     )
 
 
 nitpicky = True
-nitpick_ignore = [('py:obj', 'traj'),
-                  ('py:obj', 'traj.individual'),
-                  ('py:obj', 'fitnesses_results'), ('py:meth', 'l2l.optimizers.optimizer.Optimizer.__init__')]
+nitpick_ignore = [
+    ("py:obj", "traj"),
+    ("py:obj", "traj.individual"),
+    ("py:obj", "fitnesses_results"),
+    ("py:meth", "l2l.optimizers.optimizer.Optimizer.__init__"),
+]

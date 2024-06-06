@@ -16,7 +16,10 @@ def plot(fn, random_state):
     X = np.arange(fn.bound[0], fn.bound[1], 0.05)
     Y = np.arange(fn.bound[0], fn.bound[1], 0.05)
     XX, YY = np.meshgrid(X, Y)
-    Z = [fn.cost_function([x, y], random_state=random_state) for x, y in zip(XX.ravel(), YY.ravel())]
+    Z = [
+        fn.cost_function([x, y], random_state=random_state)
+        for x, y in zip(XX.ravel(), YY.ravel())
+    ]
     Z = np.array(Z).reshape(XX.shape)
 
     # Plot the surface.
@@ -25,11 +28,11 @@ def plot(fn, random_state):
     # Customize the z axis.
     # ax.set_zlim(-1.01, 1.01)
     ax.zaxis.set_major_locator(LinearLocator(10))
-    ax.zaxis.set_major_formatter(FormatStrFormatter('%.02f'))
+    ax.zaxis.set_major_formatter(FormatStrFormatter("%.02f"))
     W = np.where(Z == np.min(Z))
-    ax.set(title='Min value is %.2f at (%.2f, %.2f)' % (np.min(Z), X[W[0]], Y[W[1]]))
+    ax.set(title="Min value is %.2f at (%.2f, %.2f)" % (np.min(Z), X[W[0]], Y[W[1]]))
 
     # Add a color bar which maps values to colors.
     fig.colorbar(surf, shrink=0.5, aspect=5)
-    plt.savefig('function.png')
+    plt.savefig("function.png")
     plt.show()

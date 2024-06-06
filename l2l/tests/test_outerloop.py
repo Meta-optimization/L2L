@@ -1,4 +1,3 @@
-
 import unittest
 
 
@@ -7,8 +6,9 @@ class OuterLoopTestCase(unittest.TestCase):
     def setUp(self):
         return
 
+
 def suite():
-    suite = unittest.makeSuite(OuterLoopTestCase, 'test')
+    suite = unittest.makeSuite(OuterLoopTestCase, "test")
     return suite
 
 

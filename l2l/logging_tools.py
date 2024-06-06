@@ -5,8 +5,9 @@ import socket
 import copy
 
 
-def create_shared_logger_data(logger_names, log_levels, log_to_consoles,
-                              sim_name, log_directory):
+def create_shared_logger_data(
+    logger_names, log_levels, log_to_consoles, sim_name, log_directory
+):
     """
     This function must be called to create a shared copy of information that will be
     required to setup logging across processes. This must be run exactly once in the
@@ -31,11 +32,15 @@ def create_shared_logger_data(logger_names, log_levels, log_to_consoles,
     """
 
     # process / validate input
-    assert len(logger_names) == len(log_levels) == len(log_to_consoles), \
-        "The sizes of logger_names, log_levels, log_to_consoles are inconsistent"
-    assert all(isinstance(x, str) for x in logger_names + log_levels), \
-        "'logger_names' and 'log_levels' must be lists of strings"
-    assert os.path.isdir(log_directory), "The log_directory {} is not a vlid log directory".format(log_directory)
+    assert (
+        len(logger_names) == len(log_levels) == len(log_to_consoles)
+    ), "The sizes of logger_names, log_levels, log_to_consoles are inconsistent"
+    assert all(
+        isinstance(x, str) for x in logger_names + log_levels
+    ), "'logger_names' and 'log_levels' must be lists of strings"
+    assert os.path.isdir(
+        log_directory
+    ), "The log_directory {} is not a vlid log directory".format(log_directory)
 
     log_to_consoles = [bool(x) for x in log_to_consoles]
 
@@ -78,29 +83,35 @@ def configure_loggers(exactly_once=False):
     sim_name = sim_name_global
     log_directory = log_directory_global
 
-    file_name_prefix = '%s_' % (sim_name,)
+    file_name_prefix = "%s_" % (sim_name,)
 
     config_dict_copy = copy.deepcopy(configure_loggers.basic_config_dict)
 
-    config_dict_copy['loggers'] = {}
+    config_dict_copy["loggers"] = {}
 
     # Configuring the output files
-    log_fname = os.path.join(log_directory,
-                             file_name_prefix + config_dict_copy['handlers']['file_log']['filename'])
-    error_fname = os.path.join(log_directory,
-                               file_name_prefix + config_dict_copy['handlers']['file_error']['filename'])
-    config_dict_copy['handlers']['file_log']['filename'] = log_fname
-    config_dict_copy['handlers']['file_error']['filename'] = error_fname
+    log_fname = os.path.join(
+        log_directory,
+        file_name_prefix + config_dict_copy["handlers"]["file_log"]["filename"],
+    )
+    error_fname = os.path.join(
+        log_directory,
+        file_name_prefix + config_dict_copy["handlers"]["file_error"]["filename"],
+    )
+    config_dict_copy["handlers"]["file_log"]["filename"] = log_fname
+    config_dict_copy["handlers"]["file_error"]["filename"] = error_fname
 
     # Creating logger entries
-    for logger_name, log_level, log_to_console in zip(logger_names, log_levels, log_to_consoles):
-        config_dict_copy['loggers'][logger_name] = {}
-        logger_dict = config_dict_copy['loggers'][logger_name]
-        logger_dict['level'] = log_level
+    for logger_name, log_level, log_to_console in zip(
+        logger_names, log_levels, log_to_consoles
+    ):
+        config_dict_copy["loggers"][logger_name] = {}
+        logger_dict = config_dict_copy["loggers"][logger_name]
+        logger_dict["level"] = log_level
         if log_to_console:
-            logger_dict['handlers'] = ['console', 'file_log', 'file_error']
+            logger_dict["handlers"] = ["console", "file_log", "file_error"]
         else:
-            logger_dict['handlers'] = ['file_log', 'file_error']
+            logger_dict["handlers"] = ["file_log", "file_error"]
 
     logging.config.dictConfig(config_dict_copy)
     configure_loggers._already_configured = True
@@ -108,37 +119,40 @@ def configure_loggers(exactly_once=False):
 
 configure_loggers._already_configured = False
 configure_loggers.basic_config_dict = {
-    'version': 1,
-    'formatters': {
-        'file': {
-            'format': '%(asctime)s %(name)s {} %(process)d %(levelname)-8s: %(message)s'.format(socket.gethostname())
+    "version": 1,
+    "formatters": {
+        "file": {
+            "format": "%(asctime)s %(name)s {} %(process)d %(levelname)-8s: %(message)s".format(
+                socket.gethostname()
+            )
         },
-        'stream': {
-            'format': '%(processName)-10s %(name)s {} %(process)d %(levelname)-8s: %(message)s'.format(
-                socket.gethostname())
-        },
-    },
-    'handlers': {
-        'console': {
-            'class': 'logging.StreamHandler',
-            'stream': 'ext://sys.stdout',
-            'formatter': 'stream',
-        },
-        'file_log': {
-            'class': 'logging.FileHandler',
-            'formatter': 'file',
-            'filename': 'LOG.txt',
-        },
-        'file_error': {
-            'class': 'logging.FileHandler',
-            'formatter': 'file',
-            'filename': 'ERROR.txt',
-            'level': 'ERROR',
+        "stream": {
+            "format": "%(processName)-10s %(name)s {} %(process)d %(levelname)-8s: %(message)s".format(
+                socket.gethostname()
+            )
         },
     },
-    'loggers': {},
-    'root': {
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "stream": "ext://sys.stdout",
+            "formatter": "stream",
+        },
+        "file_log": {
+            "class": "logging.FileHandler",
+            "formatter": "file",
+            "filename": "LOG.txt",
+        },
+        "file_error": {
+            "class": "logging.FileHandler",
+            "formatter": "file",
+            "filename": "ERROR.txt",
+            "level": "ERROR",
+        },
+    },
+    "loggers": {},
+    "root": {
         # 'level': 'INFO',
-        'handlers': []
-    }
+        "handlers": []
+    },
 }

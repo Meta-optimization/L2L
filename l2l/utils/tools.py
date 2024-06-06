@@ -40,7 +40,7 @@ import itertools as itools
 
 
 def cartesian_product(parameter_dict, combined_parameters=()):
-    """ Generates a Cartesian product of the input parameter dictionary.
+    """Generates a Cartesian product of the input parameter dictionary.
 
     For example:
 

@@ -1,6 +1,6 @@
 from collections import namedtuple
 
-OptimizeeParameters = namedtuple('OptimizeeParameters', [])
+OptimizeeParameters = namedtuple("OptimizeeParameters", [])
 
 
 class Optimizee:
@@ -17,7 +17,7 @@ class Optimizee:
         especially necessary to add all explored parameters (i.e. parameters that are returned via create_individual) to
         the trajectory.
         """
-        traj.f_add_parameter_group('individual', 'Contains parameters of the optimizee')
+        traj.f_add_parameter_group("individual", "Contains parameters of the optimizee")
 
     def create_individual(self):
         """

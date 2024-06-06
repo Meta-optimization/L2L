@@ -10,7 +10,7 @@ import signal
 logger = logging.getLogger("utils.JUBE_runner")
 
 
-class JUBERunner():
+class JUBERunner:
     """
     JUBERunner is a class that takes care of handling the interaction with JUBE and generating the
     right files in order to specify the JUBE runs with the parameters defined by the optimzier.
@@ -27,35 +27,43 @@ class JUBERunner():
         """
         self.trajectory = trajectory
         self.done = False
-        if 'JUBE_params' not in self.trajectory.par.keys():
-            raise KeyError("The trajectory must contain the parameter group JUBE_params")
+        if "JUBE_params" not in self.trajectory.par.keys():
+            raise KeyError(
+                "The trajectory must contain the parameter group JUBE_params"
+            )
         args = self.trajectory.parameters["JUBE_params"].params
 
-
-        self._prefix = args.get('fileprefix', "")
+        self._prefix = args.get("fileprefix", "")
         self.jube_config = {
-            'submit_cmd': args.get('submit_cmd', ""),
-            'job_file': args.get('job_file', ""),
-            'nodes': args.get('nodes', ""),
-            'walltime': args.get('walltime', ""),
-            'ppn': args.get('ppn', ""),
-            'ready_file': args.get('ready_file', ""),
-            'mail_mode': args.get('mail_mode', ""),
-            'mail_address': args.get('mail_address', ""),
-            'err_file': args.get('err_file', "error.out"),
-            'out_file': args.get('out_file', "jout.out"),
-            'tasks_per_job': args.get('tasks_per_job', "1"),
-            'cpu_pp': args.get('cpu_pp', "1"),
+            "submit_cmd": args.get("submit_cmd", ""),
+            "job_file": args.get("job_file", ""),
+            "nodes": args.get("nodes", ""),
+            "walltime": args.get("walltime", ""),
+            "ppn": args.get("ppn", ""),
+            "ready_file": args.get("ready_file", ""),
+            "mail_mode": args.get("mail_mode", ""),
+            "mail_address": args.get("mail_address", ""),
+            "err_file": args.get("err_file", "error.out"),
+            "out_file": args.get("out_file", "jout.out"),
+            "tasks_per_job": args.get("tasks_per_job", "1"),
+            "cpu_pp": args.get("cpu_pp", "1"),
         }
         self.scheduler = "None"
-        if 'scheduler' in args.keys():
-            self.scheduler = args.get('scheduler'),
+        if "scheduler" in args.keys():
+            self.scheduler = (args.get("scheduler"),)
 
-        self.executor = args['exec']
+        self.executor = args["exec"]
         self.filename = ""
-        self.path = args['paths_obj'].simulation_path
+        self.path = args["paths_obj"].simulation_path
         # Create directories for workspace
-        subdirs = ['jube_xml', 'run_files', 'ready_files', 'trajectories', 'results', 'work']
+        subdirs = [
+            "jube_xml",
+            "run_files",
+            "ready_files",
+            "trajectories",
+            "results",
+            "work",
+        ]
         self.work_paths = {sdir: os.path.join(self.path, sdir) for sdir in subdirs}
 
         os.makedirs(self.path, exist_ok=True)
@@ -68,7 +76,6 @@ class JUBERunner():
         self.stop_run = self.trajectory.stop_run
         self.timeout = self.trajectory.timeout
 
-
     def write_pop_for_jube(self, trajectory, generation):
         """
         Writes an XML file which contains the parameters for JUBE
@@ -79,11 +86,11 @@ class JUBERunner():
         eval_pop = trajectory.individuals[generation]
         self.generation = generation
         fname = "_jube_%s.xml" % str(self.generation)
-        self.filename = os.path.join(self.work_paths['jube_xml'], fname)
+        self.filename = os.path.join(self.work_paths["jube_xml"], fname)
 
-        f = open(self.filename, 'w')
+        f = open(self.filename, "w")
         f.write('<?xml version="1.0" encoding="UTF-8"?>\n')
-        f.write('<jube>\n')
+        f.write("<jube>\n")
         f.write('  <benchmark name="l2l_inner_loop" outpath="bench_run">\n')
 
         # Write the parameters for this run
@@ -94,75 +101,131 @@ class JUBERunner():
         indexes = ",".join(str(i) for i in inds)
 
         f.write(indexes)
-        f.write('</parameter>\n')
-        f.write('    </parameterset>\n\n')
+        f.write("</parameter>\n")
+        f.write("    </parameterset>\n\n")
 
-        f.write('    <!-- benchmark configuration -->\n')
+        f.write("    <!-- benchmark configuration -->\n")
 
-        f.write('    <!-- Job configuration -->\n')
+        f.write("    <!-- Job configuration -->\n")
         f.write('    <parameterset name="execute_set">\n')
-        f.write('    <parameter name="exec">' + self.executor + '</parameter>\n')
-        f.write('    <parameter name="tasks_per_job">' + self.jube_config['tasks_per_job'] + '</parameter>\n')
-        if self.scheduler != 'None':
-            jobfname = self.jube_config['job_file'] + '$index ' + str(generation)
-            f.write('    <parameter name="submit_cmd">' + self.jube_config['submit_cmd'] + '</parameter>\n')
-            f.write('    <parameter name="job_file">' + jobfname + '</parameter>\n')
-            f.write('    <parameter name="nodes" type="int">' + self.jube_config['nodes'] + '</parameter>\n')
-            f.write('    <parameter name="walltime">' + self.jube_config['walltime'] + '</parameter>\n')
-            f.write('    <parameter name="ppn" type="int">' + self.jube_config['ppn'] + '</parameter>\n')
-            f.write('    <parameter name="ready_file_scheduler" mode="python" type="string"> ' +
-                    os.path.join(self.work_paths['ready_files'], 'ready_${index} ') +
-                    '</parameter>\n')
-            f.write('    <parameter name="ready_file">' + self.jube_config['ready_file'] +
-                    str(self.generation) + '</parameter>\n')
-            f.write('    <parameter name="mail_mode">' + self.jube_config['mail_mode'] + '</parameter>\n')
-            f.write('    <parameter name="mail_address\">' + self.jube_config['mail_address'] + '</parameter>\n')
-            f.write('    <parameter name="err_file">' + self.jube_config['err_file'] + '</parameter>\n')
-            f.write('    <parameter name="out_file">' + self.jube_config['out_file'] + '</parameter>\n')
+        f.write('    <parameter name="exec">' + self.executor + "</parameter>\n")
+        f.write(
+            '    <parameter name="tasks_per_job">'
+            + self.jube_config["tasks_per_job"]
+            + "</parameter>\n"
+        )
+        if self.scheduler != "None":
+            jobfname = self.jube_config["job_file"] + "$index " + str(generation)
+            f.write(
+                '    <parameter name="submit_cmd">'
+                + self.jube_config["submit_cmd"]
+                + "</parameter>\n"
+            )
+            f.write('    <parameter name="job_file">' + jobfname + "</parameter>\n")
+            f.write(
+                '    <parameter name="nodes" type="int">'
+                + self.jube_config["nodes"]
+                + "</parameter>\n"
+            )
+            f.write(
+                '    <parameter name="walltime">'
+                + self.jube_config["walltime"]
+                + "</parameter>\n"
+            )
+            f.write(
+                '    <parameter name="ppn" type="int">'
+                + self.jube_config["ppn"]
+                + "</parameter>\n"
+            )
+            f.write(
+                '    <parameter name="ready_file_scheduler" mode="python" type="string"> '
+                + os.path.join(self.work_paths["ready_files"], "ready_${index} ")
+                + "</parameter>\n"
+            )
+            f.write(
+                '    <parameter name="ready_file">'
+                + self.jube_config["ready_file"]
+                + str(self.generation)
+                + "</parameter>\n"
+            )
+            f.write(
+                '    <parameter name="mail_mode">'
+                + self.jube_config["mail_mode"]
+                + "</parameter>\n"
+            )
+            f.write(
+                '    <parameter name="mail_address">'
+                + self.jube_config["mail_address"]
+                + "</parameter>\n"
+            )
+            f.write(
+                '    <parameter name="err_file">'
+                + self.jube_config["err_file"]
+                + "</parameter>\n"
+            )
+            f.write(
+                '    <parameter name="out_file">'
+                + self.jube_config["out_file"]
+                + "</parameter>\n"
+            )
 
-        f.write('    </parameterset>\n')
+        f.write("    </parameterset>\n")
 
         # Write the specific scheduler file
-        if self.scheduler != 'None':
+        if self.scheduler != "None":
             self.write_scheduler_file(f)
 
-        f.write('    <!-- Operation -->\n')
-        f.write('    <step name="submit" work_dir="' + \
-                os.path.join(self.work_paths['work'], 'jobsystem_bench_${jube_benchmark_id}_${jube_wp_id}') + \
-                '" >\n')
-        f.write('    <use>l2l_parameters</use>\n')
-        f.write('    <use>execute_set</use>\n')
+        f.write("    <!-- Operation -->\n")
+        f.write(
+            '    <step name="submit" work_dir="'
+            + os.path.join(
+                self.work_paths["work"],
+                "jobsystem_bench_${jube_benchmark_id}_${jube_wp_id}",
+            )
+            + '" >\n'
+        )
+        f.write("    <use>l2l_parameters</use>\n")
+        f.write("    <use>execute_set</use>\n")
 
-        if self.scheduler != 'None':
-            f.write('    <use>files,sub_job</use>\n')
-            f.write('    <do done_file="' +
-                    os.path.join(self.work_paths['ready_files'], 'ready_w_%s' % self.generation) +
-                    '">$submit_cmd $job_file </do> <!-- shell command -->\n')
+        if self.scheduler != "None":
+            f.write("    <use>files,sub_job</use>\n")
+            f.write(
+                '    <do done_file="'
+                + os.path.join(
+                    self.work_paths["ready_files"], "ready_w_%s" % self.generation
+                )
+                + '">$submit_cmd $job_file </do> <!-- shell command -->\n'
+            )
         else:
-            f.write('    <do done_file="' +
-                    os.path.join(self.work_paths['ready_files'], 'ready_w_%s' % self.generation) +
-                    '">$exec $index ' + str(self.generation) +
-                    ' -n $tasks_per_job </do> <!-- shell command -->\n')
+            f.write(
+                '    <do done_file="'
+                + os.path.join(
+                    self.work_paths["ready_files"], "ready_w_%s" % self.generation
+                )
+                + '">$exec $index '
+                + str(self.generation)
+                + " -n $tasks_per_job </do> <!-- shell command -->\n"
+            )
 
-        f.write('    </step>   \n')
+        f.write("    </step>   \n")
 
         # Close
-        f.write('  </benchmark>\n')
-        f.write('</jube>\n')
+        f.write("  </benchmark>\n")
+        f.write("</jube>\n")
         f.close()
-        logger.info('Generated JUBE XML file for generation: ' + str(self.generation))
+        logger.info("Generated JUBE XML file for generation: " + str(self.generation))
 
     def write_scheduler_file(self, f):
         """
         Writes the scheduler specific part of the JUBE XML specification file
         :param f: the handle to the XML configuration file
         """
-        f.write('    <!-- Load jobfile -->\n')
+        f.write("    <!-- Load jobfile -->\n")
         f.write('    <fileset name="files">\n')
-        f.write('    <copy>${job_file}.in</copy>\n')
-        f.write('    </fileset>\n')
+        f.write("    <copy>${job_file}.in</copy>\n")
+        f.write("    </fileset>\n")
 
-        f.write('    <!-- Substitute jobfile -->\n')
+        f.write("    <!-- Substitute jobfile -->\n")
         f.write('    <substituteset name="sub_job">\n')
         f.write('    <iofile in="${job_file}.in" out="$job_file" />\n')
         f.write('    <sub source="#NODES#" dest="$nodes" />\n')
@@ -172,9 +235,17 @@ class JUBERunner():
         f.write('    <sub source="#OUT_FILEPATH#" dest="$out_file" />\n')
         f.write('    <sub source="#MAIL_ADDRESS#" dest="$mail_address" />\n')
         f.write('    <sub source="#MAIL_MODE#" dest="$mail_mode" />\n')
-        f.write('    <sub source="#EXEC#" dest="$exec $index ' + str(self.generation) + ' -n $tasks_per_job"/>\n')
-        f.write('    <sub source="#READY#" dest="$ready_file' + str(self.generation) + '" />\n')
-        f.write('    </substituteset> \n')
+        f.write(
+            '    <sub source="#EXEC#" dest="$exec $index '
+            + str(self.generation)
+            + ' -n $tasks_per_job"/>\n'
+        )
+        f.write(
+            '    <sub source="#READY#" dest="$ready_file'
+            + str(self.generation)
+            + '" />\n'
+        )
+        f.write("    </substituteset> \n")
 
     def collect_results_from_run(self, generation, individuals):
         """
@@ -207,7 +278,9 @@ class JUBERunner():
         args.append(self.filename)
         self.done = False
         ready_files = []
-        path_ready = os.path.join(self.work_paths["ready_files"], "ready_%d_"%generation)
+        path_ready = os.path.join(
+            self.work_paths["ready_files"], "ready_%d_" % generation
+        )
         self.prepare_run_file(path_ready)
 
         # Dump trajectory for each optimizee run in the generation
@@ -224,7 +297,8 @@ class JUBERunner():
         main(args)
 
         # Wait for ready files to be written
-        if(self.timeout):
+        if self.timeout:
+
             def handler(signum, frame):
                 sys.exit("The execution stopped due to a timeout.")
 
@@ -232,7 +306,7 @@ class JUBERunner():
             signal.alarm(7200)
         while not self.is_done(ready_files):
             time.sleep(5)
-        if(self.timeout):
+        if self.timeout:
             signal.alarm(0)
 
         # Touch done generation
@@ -242,7 +316,9 @@ class JUBERunner():
         f.close()
 
         self.done = True
-        results = self.collect_results_from_run(generation, self.trajectory.individuals[generation])
+        results = self.collect_results_from_run(
+            generation, self.trajectory.individuals[generation]
+        )
         return results
 
     def is_done(self, files):
@@ -256,17 +332,19 @@ class JUBERunner():
             if not os.path.isfile(f):  # self.scheduler_config['ready_file']
                 done = False
         if self.debug_stderr:
-            file_paths = glob.glob(os.path.join(os.path.join(self.path, "work"), "*", "stderr"))
+            file_paths = glob.glob(
+                os.path.join(os.path.join(self.path, "work"), "*", "stderr")
+            )
 
             for path in file_paths:
-                if(os.path.getsize(path)) > 0:
+                if (os.path.getsize(path)) > 0:
                     print(path)
-                    with open(path, 'r') as file:
+                    with open(path, "r") as file:
                         lines = file.readlines()
                         for line in lines:
                             print(line)
                     print("\n")
-                    if(self.stop_run):
+                    if self.stop_run:
                         sys.exit("An error occured, the execution has stopped.")
         return done
 
@@ -278,36 +356,48 @@ class JUBERunner():
         :param path_ready: path to store the ready files
         :return true if all files are present, false otherwise
         """
-        trajpath = os.path.join(self.work_paths["trajectories"],
-                                'trajectory_" + str(iteration) + ".bin')
-        respath = os.path.join(self.work_paths['results'],
-                               'results_" + str(idx) + "_" + str(iteration) + ".bin')
+        trajpath = os.path.join(
+            self.work_paths["trajectories"], 'trajectory_" + str(iteration) + ".bin'
+        )
+        respath = os.path.join(
+            self.work_paths["results"],
+            'results_" + str(idx) + "_" + str(iteration) + ".bin',
+        )
         f = open(os.path.join(self.work_paths["run_files"], "run_optimizee.py"), "w")
-        f.write('import pickle\n' +
-                'import sys\n' +
-                'idx = sys.argv[1]\n' +
-                'iteration = sys.argv[2]\n' +
-                'handle_trajectory = open("' + trajpath + '", "rb")\n' +
-                'trajectory = pickle.load(handle_trajectory)\n' +
-                'handle_trajectory.close()\n' +
-                'handle_optimizee = open("' + self.zeepath + '", "rb")\n' +
-                'optimizee = pickle.load(handle_optimizee)\n' +
-                'handle_optimizee.close()\n\n' +
-                'trajectory.individual = trajectory.individuals[int(iteration)][int(idx)] \n'+
-                'res = optimizee.simulate(trajectory)\n\n' +
-                'handle_res = open("' + respath + '", "wb")\n' +
-                'pickle.dump(res, handle_res, pickle.HIGHEST_PROTOCOL)\n' +
-                'handle_res.close()\n\n' +
-                'handle_res = open("' + path_ready + '" + str(idx), "wb")\n' +
-                'handle_res.close()')
+        f.write(
+            "import pickle\n"
+            + "import sys\n"
+            + "idx = sys.argv[1]\n"
+            + "iteration = sys.argv[2]\n"
+            + 'handle_trajectory = open("'
+            + trajpath
+            + '", "rb")\n'
+            + "trajectory = pickle.load(handle_trajectory)\n"
+            + "handle_trajectory.close()\n"
+            + 'handle_optimizee = open("'
+            + self.zeepath
+            + '", "rb")\n'
+            + "optimizee = pickle.load(handle_optimizee)\n"
+            + "handle_optimizee.close()\n\n"
+            + "trajectory.individual = trajectory.individuals[int(iteration)][int(idx)] \n"
+            + "res = optimizee.simulate(trajectory)\n\n"
+            + 'handle_res = open("'
+            + respath
+            + '", "wb")\n'
+            + "pickle.dump(res, handle_res, pickle.HIGHEST_PROTOCOL)\n"
+            + "handle_res.close()\n\n"
+            + 'handle_res = open("'
+            + path_ready
+            + '" + str(idx), "wb")\n'
+            + "handle_res.close()"
+        )
         f.close()
 
     def dump_traj(self, trajectory):
         """Dumpes trajectory files.
         :param trajectory, object to be dumped"""
         trajfname = "trajectory_%s.bin" % (trajectory.individual.generation)
-        handle = open(os.path.join(self.work_paths["trajectories"], trajfname),
-                            "wb")
+        handle = open(os.path.join(self.work_paths["trajectories"], trajfname), "wb")
         pickle.dump(trajectory, handle, pickle.HIGHEST_PROTOCOL)
         handle.close()
 

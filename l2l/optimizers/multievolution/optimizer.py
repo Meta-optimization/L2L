@@ -11,9 +11,21 @@ from l2l.optimizers.optimizer import Optimizer
 
 logger = logging.getLogger("optimizers.multigeneticalgorithm")
 
-MultiGeneticAlgorithmParameters = namedtuple('GeneticAlgorithmParameters',
-                                        ['seed', 'pop_size', 'cx_prob', 'mut_prob', 'n_iteration', 'ind_prob', 'tourn_size', 'mate_par',
-                                         'mut_par', 'n_inner_params'])
+MultiGeneticAlgorithmParameters = namedtuple(
+    "GeneticAlgorithmParameters",
+    [
+        "seed",
+        "pop_size",
+        "cx_prob",
+        "mut_prob",
+        "n_iteration",
+        "ind_prob",
+        "tourn_size",
+        "mate_par",
+        "mut_par",
+        "n_inner_params",
+    ],
+)
 MultiGeneticAlgorithmParameters.__doc__ = """
 :param seed: Random seed
 :param pop_size: Size of the population
@@ -46,38 +58,66 @@ class MultiGeneticAlgorithmOptimizer(Optimizer):
       needed by the Optimizer
     """
 
-    def __init__(self, traj,
-                 optimizee_create_individual,
-                 optimizee_fitness_weights,
-                 parameters,
-                 optimizee_bounding_func=None):
+    def __init__(
+        self,
+        traj,
+        optimizee_create_individual,
+        optimizee_fitness_weights,
+        parameters,
+        optimizee_bounding_func=None,
+    ):
 
-        super().__init__(traj,
-                         optimizee_create_individual=optimizee_create_individual,
-                         optimizee_fitness_weights=optimizee_fitness_weights,
-                         parameters=parameters, optimizee_bounding_func=optimizee_bounding_func)
+        super().__init__(
+            traj,
+            optimizee_create_individual=optimizee_create_individual,
+            optimizee_fitness_weights=optimizee_fitness_weights,
+            parameters=parameters,
+            optimizee_bounding_func=optimizee_bounding_func,
+        )
         self.optimizee_bounding_func = optimizee_bounding_func
-        __, self.optimizee_individual_dict_spec = dict_to_list(optimizee_create_individual(), get_dict_spec=True)
+        __, self.optimizee_individual_dict_spec = dict_to_list(
+            optimizee_create_individual(), get_dict_spec=True
+        )
 
-        traj.f_add_parameter('seed', parameters.seed, comment='Seed for RNG')
-        traj.f_add_parameter('pop_size', parameters.pop_size, comment='Population size')  # 185
-        traj.f_add_parameter('cx_prob', parameters.cx_prob, comment='Crossover term')
-        traj.f_add_parameter('mut_prob', parameters.mut_prob, comment='Mutation probability')
-        traj.f_add_parameter('n_iteration', parameters.n_iteration, comment='Number of generations')
-        traj.f_add_parameter('n_inner_params', parameters.n_inner_params, comment='Number of parameters explored per individual')
+        traj.f_add_parameter("seed", parameters.seed, comment="Seed for RNG")
+        traj.f_add_parameter(
+            "pop_size", parameters.pop_size, comment="Population size"
+        )  # 185
+        traj.f_add_parameter("cx_prob", parameters.cx_prob, comment="Crossover term")
+        traj.f_add_parameter(
+            "mut_prob", parameters.mut_prob, comment="Mutation probability"
+        )
+        traj.f_add_parameter(
+            "n_iteration", parameters.n_iteration, comment="Number of generations"
+        )
+        traj.f_add_parameter(
+            "n_inner_params",
+            parameters.n_inner_params,
+            comment="Number of parameters explored per individual",
+        )
 
-        traj.f_add_parameter('ind_prob', parameters.ind_prob, comment='Mutation parameter')
-        traj.f_add_parameter('tourn_size', parameters.tourn_size, comment='Selection parameter')
+        traj.f_add_parameter(
+            "ind_prob", parameters.ind_prob, comment="Mutation parameter"
+        )
+        traj.f_add_parameter(
+            "tourn_size", parameters.tourn_size, comment="Selection parameter"
+        )
 
         # ------- Create and register functions with DEAP ------- #
         # delay_rate, slope, std_err, max_fraction_active
-        creator.create("FitnessMax", base.Fitness, weights=self.optimizee_fitness_weights)
+        creator.create(
+            "FitnessMax", base.Fitness, weights=self.optimizee_fitness_weights
+        )
         creator.create("Individual", list, fitness=creator.FitnessMax)
 
         toolbox = base.Toolbox()
         # Structure initializers
-        toolbox.register("individual", tools.initIterate, creator.Individual,
-                         lambda: dict_to_list(optimizee_create_individual()))
+        toolbox.register(
+            "individual",
+            tools.initIterate,
+            creator.Individual,
+            lambda: dict_to_list(optimizee_create_individual()),
+        )
         toolbox.register("population", tools.initRepeat, list, toolbox.individual)
 
         # Operator registering
@@ -90,9 +130,13 @@ class MultiGeneticAlgorithmOptimizer(Optimizer):
                 else:
                     # Deap Functions modify individuals in-place, Hence we must do the same
                     result_individuals_deap = func(*args, **kwargs)
-                    result_individuals = [list_to_dict(x, self.optimizee_individual_dict_spec)
-                                          for x in result_individuals_deap]
-                    bounded_individuals = [self.optimizee_bounding_func(x) for x in result_individuals]
+                    result_individuals = [
+                        list_to_dict(x, self.optimizee_individual_dict_spec)
+                        for x in result_individuals_deap
+                    ]
+                    bounded_individuals = [
+                        self.optimizee_bounding_func(x) for x in result_individuals
+                    ]
                     for i, deap_indiv in enumerate(result_individuals_deap):
                         deap_indiv[:] = dict_to_list(bounded_individuals[i])
                     print("Bounded Individual: {}".format(bounded_individuals))
@@ -102,7 +146,13 @@ class MultiGeneticAlgorithmOptimizer(Optimizer):
 
         toolbox.register("mate", tools.cxBlend, alpha=parameters.mate_par)
         toolbox.decorate("mate", bounding_decorator)
-        toolbox.register("mutate", tools.mutGaussian, mu=0, sigma=parameters.mut_par, indpb=traj.ind_prob)
+        toolbox.register(
+            "mutate",
+            tools.mutGaussian,
+            mu=0,
+            sigma=parameters.mut_par,
+            indpb=traj.ind_prob,
+        )
         toolbox.decorate("mutate", bounding_decorator)
         toolbox.register("select", tools.selTournament, tournsize=traj.tourn_size)
 
@@ -110,8 +160,10 @@ class MultiGeneticAlgorithmOptimizer(Optimizer):
         # NOTE: The Individual object implements the list interface.
         self.pop = toolbox.population(n=traj.pop_size)
         self.eval_pop_inds = [ind for ind in self.pop if not ind.fitness.valid]
-        self.eval_pop = [list_to_dict(ind, self.optimizee_individual_dict_spec)
-                         for ind in self.eval_pop_inds]
+        self.eval_pop = [
+            list_to_dict(ind, self.optimizee_individual_dict_spec)
+            for ind in self.eval_pop_inds
+        ]
         self.eval_pop = self.compress_individual(self.eval_pop, traj.n_inner_params)
         self.g = 0  # the current generation
         self.toolbox = toolbox  # the DEAP toolbox
@@ -119,7 +171,6 @@ class MultiGeneticAlgorithmOptimizer(Optimizer):
         self.best_individual = None
 
         self._expand_trajectory(traj)
-
 
     def expand_individual(self, c_population, inner_params):
         """
@@ -132,14 +183,13 @@ class MultiGeneticAlgorithmOptimizer(Optimizer):
         the multi-individual.
 
         """
-        individual_exp = [{} for i in range(len(c_population)*inner_params)]
+        individual_exp = [{} for i in range(len(c_population) * inner_params)]
         for ind_id, elem in enumerate(c_population):
             for key in self.grouped_params_dict.keys():
                 parameters = elem[key]
                 for ix, e in enumerate(parameters):
-                    individual_exp[ind_id*inner_params+ix][key] = float(e)
+                    individual_exp[ind_id * inner_params + ix][key] = float(e)
         return individual_exp
-
 
     def compress_individual(self, e_population, inner_params):
         """
@@ -154,13 +204,13 @@ class MultiGeneticAlgorithmOptimizer(Optimizer):
         """
         e_population_reform = []
         for s in range(int(len(e_population) / inner_params)):
-           tmp_dict = {}
-           for key in self.grouped_params_dict.keys():
-               tmp = []
-               for p in range(inner_params):
-                   tmp.append(e_population[s*inner_params + p][key])
-               tmp_dict[key] = tmp
-           e_population_reform.append(tmp_dict)
+            tmp_dict = {}
+            for key in self.grouped_params_dict.keys():
+                tmp = []
+                for p in range(inner_params):
+                    tmp.append(e_population[s * inner_params + p][key])
+                tmp_dict[key] = tmp
+            e_population_reform.append(tmp_dict)
         return e_population_reform
 
     def post_process(self, traj, fitnesses_results):
@@ -169,26 +219,27 @@ class MultiGeneticAlgorithmOptimizer(Optimizer):
         """
         CXPB, MUTPB, NGEN = traj.cx_prob, traj.mut_prob, traj.n_iteration
         old_eval_pop_inds = self.eval_pop_inds.copy()
-        eval_pop_inds_expanded = self.expand_individual(old_eval_pop_inds,traj.n_inner_params)
-        fitnesses = np.zeros((traj.pop_size*traj.n_inner_params))
+        eval_pop_inds_expanded = self.expand_individual(
+            old_eval_pop_inds, traj.n_inner_params
+        )
         fitnesses_results_exp = []
-        for (id, elem) in fitnesses_results:
+        for id, elem in fitnesses_results:
             for ix, e in enumerate(elem):
                 fitnesses_results_exp.append((ix, float(e)))
         logger.info("  Evaluating %i individuals" % len(fitnesses_results))
 
-        #**************************************************************************************************************
+        # **************************************************************************************************************
         # Storing run-information in the trajectory
         # Reading fitnesses and performing distribution update
-        #**************************************************************************************************************
+        # **************************************************************************************************************
         for i, (run_index, fitness) in enumerate(fitnesses_results_exp):
             # We need to convert the current run index into an ind_idx
             # (index of individual within one generation)
             traj.v_idx = run_index
-            ind_index = i#traj.par.ind_idx
+            ind_index = i  # traj.par.ind_idx
 
-            traj.f_add_result('$set.$.individual', eval_pop_inds_expanded[ind_index])
-            traj.f_add_result('$set.$.fitness', fitness)
+            traj.f_add_result("$set.$.individual", eval_pop_inds_expanded[ind_index])
+            traj.f_add_result("$set.$.fitness", fitness)
 
             # Use the ind_idx to update the fitness
             individual = eval_pop_inds_expanded[ind_index]
@@ -198,17 +249,29 @@ class MultiGeneticAlgorithmOptimizer(Optimizer):
 
         logger.info("-- End of generation {} --".format(self.g))
         best_inds = tools.selBest(self.eval_pop_inds, 2)
-        self.best_individual = list_to_dict(best_inds[0], self.optimizee_individual_dict_spec)
+        self.best_individual = list_to_dict(
+            best_inds[0], self.optimizee_individual_dict_spec
+        )
         for best_ind in best_inds:
-            print("Best individual is %s, %s" % (list_to_dict(best_ind, self.optimizee_individual_dict_spec),
-                                                 best_ind.fitness.values))
+            print(
+                "Best individual is %s, %s"
+                % (
+                    list_to_dict(best_ind, self.optimizee_individual_dict_spec),
+                    best_ind.fitness.values,
+                )
+            )
 
         self.hall_of_fame.update(self.eval_pop_inds)
 
         logger.info("-- Hall of fame --")
         for hof_ind in tools.selBest(self.hall_of_fame, 2):
-            logger.info("HOF individual is %s, %s" % (list_to_dict(hof_ind, self.optimizee_individual_dict_spec),
-                                                      hof_ind.fitness.values))
+            logger.info(
+                "HOF individual is %s, %s"
+                % (
+                    list_to_dict(hof_ind, self.optimizee_individual_dict_spec),
+                    hof_ind.fitness.values,
+                )
+            )
 
         # ------- Create the next generation by crossover and mutation -------- #
         if self.g < NGEN - 1:  # not necessary for the last generation
@@ -232,7 +295,7 @@ class MultiGeneticAlgorithmOptimizer(Optimizer):
             if len(set(map(tuple, offspring))) < len(offspring):
                 logger.info("Mutating more")
                 for i, o1 in enumerate(offspring[:-1]):
-                    for o2 in offspring[i + 1:]:
+                    for o2 in offspring[i + 1 :]:
                         if tuple(o1) == tuple(o2):
                             if random.random() < 0.8:
                                 self.toolbox.mutate(o2)
@@ -242,8 +305,10 @@ class MultiGeneticAlgorithmOptimizer(Optimizer):
             self.pop[:] = offspring
 
             self.eval_pop_inds = [ind for ind in self.pop if not ind.fitness.valid]
-            self.eval_pop = [list_to_dict(ind, self.optimizee_individual_dict_spec)
-                             for ind in self.eval_pop_inds]
+            self.eval_pop = [
+                list_to_dict(ind, self.optimizee_individual_dict_spec)
+                for ind in self.eval_pop_inds
+            ]
             self.eval_pop = self.compress_individual(self.eval_pop, traj.n_inner_params)
             self.g += 1  # Update generation counter
             self._expand_trajectory(traj)
@@ -256,7 +321,9 @@ class MultiGeneticAlgorithmOptimizer(Optimizer):
         logger.info("-- End of (successful) evolution --")
         best_inds = tools.selBest(self.pop, 10)
         for best_ind in best_inds:
-            logger.info("Best individual is %s, %s" % (best_ind, best_ind.fitness.values))
+            logger.info(
+                "Best individual is %s, %s" % (best_ind, best_ind.fitness.values)
+            )
 
         logger.info("-- Hall of fame --")
         for hof_ind in self.hall_of_fame:

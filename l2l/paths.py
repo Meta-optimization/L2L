@@ -5,11 +5,11 @@ import re
 
 import itertools
 
-__author__ = 'anand'
+__author__ = "anand"
 
 
 class Paths:
-    def __init__(self, root_dir_name, param_dict, suffix="", root_dir_path='./results'):
+    def __init__(self, root_dir_name, param_dict, suffix="", root_dir_path="./results"):
         """
         Manages generating paths for various cases
 
@@ -21,7 +21,9 @@ class Paths:
         self._root_dir_name = root_dir_name
         self._root_dir_path = root_dir_path
         if not os.path.exists(root_dir_path):
-            raise RuntimeError("{} does not exit. Please create it.".format(root_dir_path))
+            raise RuntimeError(
+                "{} does not exit. Please create it.".format(root_dir_path)
+            )
         self._suffix = suffix
         self._param_combo = order_dict_alphabetically(param_dict)
 
@@ -91,10 +93,13 @@ class Paths:
         """
         d = self._param_combo.copy()
         d.update(kwargs)
-        return os.path.join(self.results_path, "{}-{}{}.{}".format(name, make_param_string(**d), self._suffix, ext))
+        return os.path.join(
+            self.results_path,
+            "{}-{}{}.{}".format(name, make_param_string(**d), self._suffix, ext),
+        )
 
 
-def make_param_string(delimiter='-', **kwargs):
+def make_param_string(delimiter="-", **kwargs):
     """
     Takes a dictionary and constructs a string of the form key1-val1-key2-val2-... (denoted here as {key-val*})
     The keys are alphabetically sorted
@@ -105,7 +110,7 @@ def make_param_string(delimiter='-', **kwargs):
     param_string = ""
     for key in sorted(kwargs):
         param_string += delimiter
-        param_string += key.replace('_', delimiter)
+        param_string += key.replace("_", delimiter)
         val = kwargs[key]
         if isinstance(val, float):
             param_string += "{}{:.2f}".format(delimiter, val)
@@ -133,7 +138,9 @@ def dict_product(dicts):
 
 
 class PathsMap:
-    def __init__(self, param_lists, args_name, n_networks, suffix, root_dir_path='./results'):
+    def __init__(
+        self, param_lists, args_name, n_networks, suffix, root_dir_path="./results"
+    ):
         """
         This class manages groups of paths for larger simulations of different parameter combinations since each
         :class:`~l2l.paths.Path` above only manages one parameter combination.
@@ -191,5 +198,7 @@ class PathsMap:
     def get_agg_fpath(self, name, param_combo, ext, **kwargs):
         d = param_combo.copy()
         d.update(kwargs)
-        return os.path.join(self.agg_results_path, "{}-{}{}.{}"
-                            .format(name, make_param_string(**d), self._suffix, ext))
+        return os.path.join(
+            self.agg_results_path,
+            "{}-{}{}.{}".format(name, make_param_string(**d), self._suffix, ext),
+        )

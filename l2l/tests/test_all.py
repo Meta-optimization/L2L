@@ -33,9 +33,9 @@ def test_suite():
 if __name__ == "__main__":
 
     runner = unittest.TextTestRunner(verbosity=2)
-    home_path =  os.environ.get("HOME")
-    root_dir_path = os.path.join(home_path, 'results')
+    home_path = os.environ.get("HOME")
+    root_dir_path = os.path.join(home_path, "results")
     runner.run(test_suite())
     if os.path.exists(root_dir_path):
-        print(f'removing {root_dir_path}')
+        print(f"removing {root_dir_path}")
         shutil.rmtree(root_dir_path)

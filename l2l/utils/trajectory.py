@@ -18,22 +18,22 @@ class Trajectory:
         Initializes the trajectory. Some parameters are kept to match the interface with the pypet trajectory.
         TODO: remove all irrelevant attributes and simplify the class
         """
-        if 'name' in keyword_args:
-            self._name = keyword_args['name']
+        if "name" in keyword_args:
+            self._name = keyword_args["name"]
         self._timestamp = time.time()
         self._parameters = ParameterDict(self)  # Contains all parameters
         self._results = {}  # Contains all results
         self.individual = Individual()
         self.results = ResultGroup()
-        self.results.f_add_result_group('all_results', "Contains all the results")
+        self.results.f_add_result_group("all_results", "Contains all the results")
         self.current_results = {}
         self._parameters.parameter_group = {}
         self._parameters.parameter = {}
         self.individuals = {}
         self.v_idx = 0
-        self.debug = keyword_args['debug']
-        self.stop_run = keyword_args['stop_run']
-        self.timeout = keyword_args['timeout']
+        self.debug = keyword_args["debug"]
+        self.stop_run = keyword_args["stop_run"]
+        self.timeout = keyword_args["timeout"]
         self.is_loaded = False
         self.hall_of_fame = None
 
@@ -62,14 +62,14 @@ class Trajectory:
             # LOG("Key not found when adding to result group")
             raise Exception("Group name not found when adding value to result group")
 
-    def f_add_result(self,key, val, comment=""):
+    def f_add_result(self, key, val, comment=""):
         """
         Adds a result to the trajectory
         :param key: it identifies either a generation params result group or another result
         :param val: The value to be added to the results
         TODO: verify where is the generation_params call performed
         """
-        if key == 'generation_params':
+        if key == "generation_params":
             self.results[key] = ResultGroup()
         else:
             self._results[key] = val
@@ -90,7 +90,7 @@ class Trajectory:
         :param val: Value of the parameter
         :param comment:
         """
-        self.f_add_parameter(key,val,comment)
+        self.f_add_parameter(key, val, comment)
 
     def f_expand(self, build_dict, fail_safe=True):
         """
@@ -104,10 +104,10 @@ class Trajectory:
         gen = []
         ind_idx = []
         for key in build_dict.keys():
-            if key == 'generation':
-                gen = build_dict['generation']
-            elif key == 'ind_idx':
-                ind_idx = build_dict['ind_idx']
+            if key == "generation":
+                gen = build_dict["generation"]
+            elif key == "ind_idx":
+                ind_idx = build_dict["ind_idx"]
             else:
                 params[key] = build_dict[key]
 
@@ -115,7 +115,7 @@ class Trajectory:
         self.individuals[generation] = []
 
         for i in ind_idx:
-            ind = Individual(generation,i,[])
+            ind = Individual(generation, i, [])
             for j in params:
                 ind.f_add_parameter(j, params[j][i])
             self.individuals[generation].append(ind)
@@ -130,16 +130,16 @@ class Trajectory:
         :param attr: The attribute to be accessed
         :return: the value of this attributes
         """
-        if '.' in attr:
+        if "." in attr:
             # This is triggered exclusively in the case where __getattr__ is called from __getitem__
-            attrs = attr.split('.')
+            attrs = attr.split(".")
             ret = self._parameters.get(attrs[0])
             for at in attrs[1:]:
                 ret = ret[at]
-        elif attr == 'par' or attr == 'parameters':
+        elif attr == "par" or attr == "parameters":
             ret = self._parameters
         else:
-            ret = self._parameters.get(attr,default_value=None)
+            ret = self._parameters.get(attr, default_value=None)
         return ret
 
     def __getitem__(self, key):

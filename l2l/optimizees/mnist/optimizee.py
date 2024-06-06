@@ -6,7 +6,9 @@ from sklearn.datasets import load_digits, fetch_openml
 from l2l.optimizees.optimizee import Optimizee
 from .nn import NeuralNetworkClassifier
 
-MNISTOptimizeeParameters = namedtuple('MNISTOptimizeeParameters', ['n_hidden', 'seed', 'use_small_mnist'])
+MNISTOptimizeeParameters = namedtuple(
+    "MNISTOptimizeeParameters", ["n_hidden", "seed", "use_small_mnist"]
+)
 
 
 class MNISTOptimizee(Optimizee):
@@ -30,13 +32,15 @@ class MNISTOptimizee(Optimizee):
             mnist_digits = load_digits()
             n_input = np.prod(mnist_digits.images.shape[1:])
             n_images = len(mnist_digits.images)  # 1797
-            data_images = mnist_digits.images.reshape(n_images, -1) / 16.  # -> 1797 x 64
+            data_images = (
+                mnist_digits.images.reshape(n_images, -1) / 16.0
+            )  # -> 1797 x 64
             data_targets = mnist_digits.target
         else:
             # 28 x 28 images
-            mnist_digits = fetch_openml('MNIST original')
+            mnist_digits = fetch_openml("MNIST original")
             n_input = np.prod(mnist_digits.data.shape[1:])
-            data_images = mnist_digits.data / 255.  # -> 70000 x 284
+            data_images = mnist_digits.data / 255.0  # -> 70000 x 284
             n_images = len(data_images)
             data_targets = mnist_digits.target
 
@@ -58,7 +62,7 @@ class MNISTOptimizee(Optimizee):
         indiv_dict = self.create_individual()
         for key, val in indiv_dict.items():
             traj.individual.f_add_parameter(key, val)
-        traj.individual.f_add_parameter('seed', seed)
+        traj.individual.f_add_parameter("seed", seed)
 
     def create_individual(self):
         """
@@ -66,16 +70,25 @@ class MNISTOptimizee(Optimizee):
         """
 
         weight_shapes = self.nn.get_weights_shapes()
-        cumulative_num_weights_per_layer = np.cumsum([np.prod(weight_shape) for weight_shape in weight_shapes])
+        cumulative_num_weights_per_layer = np.cumsum(
+            [np.prod(weight_shape) for weight_shape in weight_shapes]
+        )
 
         flattened_weights = np.empty(cumulative_num_weights_per_layer[-1])
         for i, weight_shape in enumerate(weight_shapes):
             if i == 0:
-                flattened_weights[:cumulative_num_weights_per_layer[i]] = \
-                    self.random_state.randn(np.prod(weight_shape)) / np.sqrt(weight_shape[1])
+                flattened_weights[: cumulative_num_weights_per_layer[i]] = (
+                    self.random_state.randn(np.prod(weight_shape))
+                    / np.sqrt(weight_shape[1])
+                )
             else:
-                flattened_weights[cumulative_num_weights_per_layer[i - 1]:cumulative_num_weights_per_layer[i]] = \
-                    self.random_state.randn(np.prod(weight_shape)) / np.sqrt(weight_shape[1])
+                flattened_weights[
+                    cumulative_num_weights_per_layer[
+                        i - 1
+                    ] : cumulative_num_weights_per_layer[i]
+                ] = self.random_state.randn(np.prod(weight_shape)) / np.sqrt(
+                    weight_shape[1]
+                )
 
         # return dict(weights=self.random_state.randn(cumulative_num_weights_per_layer[-1]))
         return dict(weights=flattened_weights)
@@ -99,15 +112,22 @@ class MNISTOptimizee(Optimizee):
         flattened_weights = traj.individual.weights
         weight_shapes = self.nn.get_weights_shapes()
 
-        cumulative_num_weights_per_layer = np.cumsum([np.prod(weight_shape) for weight_shape in weight_shapes])
+        cumulative_num_weights_per_layer = np.cumsum(
+            [np.prod(weight_shape) for weight_shape in weight_shapes]
+        )
 
         weights = []
         for i, weight_shape in enumerate(weight_shapes):
             if i == 0:
-                w = flattened_weights[:cumulative_num_weights_per_layer[i]].reshape(weight_shape)
+                w = flattened_weights[: cumulative_num_weights_per_layer[i]].reshape(
+                    weight_shape
+                )
             else:
                 w = flattened_weights[
-                    cumulative_num_weights_per_layer[i - 1]:cumulative_num_weights_per_layer[i]].reshape(weight_shape)
+                    cumulative_num_weights_per_layer[
+                        i - 1
+                    ] : cumulative_num_weights_per_layer[i]
+                ].reshape(weight_shape)
             weights.append(w)
 
         self.nn.set_weights(*weights)

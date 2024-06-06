@@ -1,3 +1,9 @@
-from .optimizer import NaturalEvolutionStrategiesOptimizer, NaturalEvolutionStrategiesParameters
+from .optimizer import (
+    NaturalEvolutionStrategiesOptimizer,
+    NaturalEvolutionStrategiesParameters,
+)
 
-__all__ = ['NaturalEvolutionStrategiesOptimizer', 'NaturalEvolutionStrategiesParameters']
+__all__ = [
+    "NaturalEvolutionStrategiesOptimizer",
+    "NaturalEvolutionStrategiesParameters",
+]

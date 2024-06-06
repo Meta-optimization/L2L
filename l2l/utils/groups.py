@@ -54,7 +54,7 @@ class ResultGroup(sdictm):
         """
         self._data[name] = ResultGroup()
 
-    def f_add_result(self,key, val, comment=""):
+    def f_add_result(self, key, val, comment=""):
         """
         Adds a result in a result group. The name of the result group precedes the name of the result name and
         they are split by a . (dot)
@@ -64,13 +64,15 @@ class ResultGroup(sdictm):
         :param val: Value of the result to be added
         :exception: Produces an exception if the value is to be added to a non existent result group.
         """
-        if '.' in str(key):
-            subkey = key.split('.')
+        if "." in str(key):
+            subkey = key.split(".")
             if subkey[0] in self._data.keys():
                 self._data[subkey[0]].f_add_result(subkey[1], val)
             else:
                 logger.exception("Key not found when adding to result group")
-                raise Exception("Group name not found when adding value to result group")
+                raise Exception(
+                    "Group name not found when adding value to result group"
+                )
         else:
             self._data[key] = val
 
@@ -115,15 +117,17 @@ class ParameterDict(sdictm):
         :param attr: Contains the attribute name to be accessed
         :return: the value of the attribute name indicated by attr
         """
-        if attr == '__getstate__':
+        if attr == "__getstate__":
             raise AttributeError()
-        if attr == 'ind_idx':
-            return [i[0] for i in self.trajectory.current_results].index(self.trajectory.v_idx)
+        if attr == "ind_idx":
+            return [i[0] for i in self.trajectory.current_results].index(
+                self.trajectory.v_idx
+            )
         if attr in self._INSTANCE_VAR_LIST:
             return object.__getattribute__(self, attr)
-        if '.' in attr:
+        if "." in attr:
             # This is triggered exclusively in the case where __getattr__ is called from __getitem__
-            attrs = attr.split('.')
+            attrs = attr.split(".")
             ret = self._data.get(attrs[0])
             for at in attrs[1:]:
                 ret = ret[at]

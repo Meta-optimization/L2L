@@ -19,22 +19,24 @@ class FunctionGenerator:
     :param sigma: Scalar indicating the standard deviation of the Gaussian noise.
     """
 
-    def __init__(self, fg_params, dims=2, bound=None, noise=False, mu=0., sigma=0.01):
+    def __init__(self, fg_params, dims=2, bound=None, noise=False, mu=0.0, sigma=0.01):
         self.dims = dims
         self.noise = noise
         self.mu = mu
         self.sigma = sigma
         self.actual_optima = None
-        cost_functions = dict(GaussianParameters=Gaussian,
-                              PermutationParameters=Permutation,
-                              EasomParameters=Easom,
-                              LangermannParameters=Langermann,
-                              MichalewiczParameters=Michalewicz,
-                              ShekelParameters=Shekel,
-                              RastriginParameters=Rastrigin,
-                              RosenbrockParameters=Rosenbrock,
-                              AckleyParameters=Ackley,
-                              ChasmParameters=Chasm)
+        cost_functions = dict(
+            GaussianParameters=Gaussian,
+            PermutationParameters=Permutation,
+            EasomParameters=Easom,
+            LangermannParameters=Langermann,
+            MichalewiczParameters=Michalewicz,
+            ShekelParameters=Shekel,
+            RastriginParameters=Rastrigin,
+            RosenbrockParameters=Rosenbrock,
+            AckleyParameters=Ackley,
+            ChasmParameters=Chasm,
+        )
 
         self.gen_functions = []
         self.function_parameters = fg_params
@@ -47,8 +49,12 @@ class FunctionGenerator:
         if bound is not None:
             self.bound = bound
         else:
-            bounds_min = [function_class.bound[0] for function_class in self.gen_functions]
-            bounds_max = [function_class.bound[1] for function_class in self.gen_functions]
+            bounds_min = [
+                function_class.bound[0] for function_class in self.gen_functions
+            ]
+            bounds_max = [
+                function_class.bound[1] for function_class in self.gen_functions
+            ]
             bound_min = np.min(bounds_min)
             bound_max = np.max(bounds_max)
             self.bound = [bound_min, bound_max]
@@ -60,7 +66,7 @@ class FunctionGenerator:
         :param ~numpy.random.RandomState random_state: The random generator used to generate the
             noise for the function.
         """
-        res = 0.
+        res = 0.0
         for f in self.gen_functions:
             res += f(x)
 
@@ -76,9 +82,11 @@ class FunctionGenerator:
             fg_params.append({type(param).__name__: dict(param._asdict())})
 
         if self.noise:
-            params_dict_items = [("dims", self.dims),
-                                 ("mu", self.mu),
-                                 ("sigma", self.sigma)]
+            params_dict_items = [
+                ("dims", self.dims),
+                ("mu", self.mu),
+                ("sigma", self.sigma),
+            ]
         else:
             params_dict_items = [("dims", self.dims)]
         params_dict_items += [("functions", fg_params)]
@@ -99,7 +107,7 @@ class Function(ABC):
         pass
 
 
-ShekelParameters = namedtuple('ShekelParameters', ['A', 'c'])
+ShekelParameters = namedtuple("ShekelParameters", ["A", "c"])
 ShekelParameters.__doc__ = """
 :param A: matrix m*n of coordinates of all minima (m equals length of c, and n equals dims)
 :param c: list of inverse intensities of minima
@@ -118,22 +126,18 @@ class Shekel(Function):
     """
 
     def __init__(self, params, dims):
-        if params.A == 'default' and params.c == 'default' and dims == 2:
-            self.c = (1. / 10.) * np.array([1, 2, 5, 2, 3, 1, 1])
-            self.A = np.array([[3, 5],
-                               [5, 2],
-                               [2, 1],
-                               [3, 3],
-                               [2, 7],
-                               [1, 4],
-                               [7, 9]])
+        if params.A == "default" and params.c == "default" and dims == 2:
+            self.c = (1.0 / 10.0) * np.array([1, 2, 5, 2, 3, 1, 1])
+            self.A = np.array([[3, 5], [5, 2], [2, 1], [3, 3], [2, 7], [1, 4], [7, 9]])
         else:
             self.c = np.array(params.c)
             self.A = np.array(params.A)
             if self.c.size != self.A.shape[0]:
                 raise Exception("Parameters A and c do not match.")
             if self.A.shape[1] != dims:
-                raise Exception("Shape of parameter A does not match the dimensionality.")
+                raise Exception(
+                    "Shape of parameter A does not match the dimensionality."
+                )
 
         self.dims = dims
         self.bound = [0, 10]
@@ -147,7 +151,7 @@ class Shekel(Function):
         return -value
 
 
-MichalewiczParameters = namedtuple('MichalewiczParameters', ['m'])
+MichalewiczParameters = namedtuple("MichalewiczParameters", ["m"])
 MichalewiczParameters.__doc__ = """
 :param m: steepness factor
 """
@@ -165,7 +169,7 @@ class Michalewicz(Function):
     """
 
     def __init__(self, params, dims):
-        if params.m == 'default':
+        if params.m == "default":
             self.m = 10
         else:
             self.m = params.m
@@ -176,13 +180,13 @@ class Michalewicz(Function):
     def __call__(self, x):
         x = np.array(x)
         i = np.arange(1, self.dims + 1)
-        a = (i * x ** 2) / np.pi
+        a = (i * x**2) / np.pi
         b = np.sin(a) ** (2 * self.m)
         value = -np.sum(np.sin(x) * b)
         return value
 
 
-LangermannParameters = namedtuple('LangermannParameters', ['A', 'c'])
+LangermannParameters = namedtuple("LangermannParameters", ["A", "c"])
 LangermannParameters.__doc__ = """
 :param A: matrix m*n of coordinates of all minima, (m equals length of c, and n equals dims)
 :param c: list of intensities of minima
@@ -201,20 +205,18 @@ class Langermann(Function):
     """
 
     def __init__(self, params, dims):
-        if params.A == 'default' and params.c == 'default' and dims == 2:
+        if params.A == "default" and params.c == "default" and dims == 2:
             self.c = np.array([1, 2, 5, 2, 3])
-            self.A = np.array([[3, 5],
-                               [5, 2],
-                               [2, 1],
-                               [1, 4],
-                               [7, 9]])
+            self.A = np.array([[3, 5], [5, 2], [2, 1], [1, 4], [7, 9]])
         else:
             self.c = np.array(params.c)
             self.A = np.array(params.A)
             if self.c.size != self.A.shape[0]:
                 raise Exception("Parameters A and c do not match.")
             if self.A.shape[1] != dims:
-                raise Exception("Shape of parameter A does not match the dimensionality.")
+                raise Exception(
+                    "Shape of parameter A does not match the dimensionality."
+                )
 
         self.dims = dims
         self.bound = [0, 10]
@@ -224,11 +226,15 @@ class Langermann(Function):
         value = 0
         for i in range(self.A.shape[0]):
             sum_diff_sq = np.sum((x - self.A[i]) ** 2)
-            value += self.c[i] * np.exp((-1 / np.pi) * sum_diff_sq) * np.cos(np.pi * sum_diff_sq)
+            value += (
+                self.c[i]
+                * np.exp((-1 / np.pi) * sum_diff_sq)
+                * np.cos(np.pi * sum_diff_sq)
+            )
         return value
 
 
-EasomParameters = namedtuple('EasomParameters', [])
+EasomParameters = namedtuple("EasomParameters", [])
 
 
 class Easom(Function):
@@ -252,7 +258,7 @@ class Easom(Function):
         return value
 
 
-PermutationParameters = namedtuple('PermutationParameters', ['beta'])
+PermutationParameters = namedtuple("PermutationParameters", ["beta"])
 PermutationParameters.__doc__ = """
 :param beta: non-negative, difference between global and local minima (smaller means harder)
 """
@@ -286,12 +292,14 @@ class Permutation(Function):
         x = np.array(x)
         ks = np.array(range(1, self.dims + 1))
         i = np.array(range(1, self.dims + 1))
-        value = np.array([np.sum((i ** k + self.beta) * ((x / i) ** k - 1), axis=0) for k in ks])
-        value = np.sum(value ** 2)
+        value = np.array(
+            [np.sum((i**k + self.beta) * ((x / i) ** k - 1), axis=0) for k in ks]
+        )
+        value = np.sum(value**2)
         return value
 
 
-GaussianParameters = namedtuple('GaussianParameters', ['sigma', 'mean'])
+GaussianParameters = namedtuple("GaussianParameters", ["sigma", "mean"])
 GaussianParameters.__doc__ = """
 :param sigma: covariance matrix
 :param mean: list containing coordinates of the peak (mean, median, mode)
@@ -312,8 +320,9 @@ class Gaussian(Function):
         sigma = np.array(params.sigma)
         mean = np.array(params.mean)
 
-        if (dims > 1 and (not sigma.shape[0] == sigma.shape[1] == mean.shape[0] == dims)) or \
-                (dims == 1 and (not sigma.shape == mean.shape == tuple())):
+        if (
+            dims > 1 and (not sigma.shape[0] == sigma.shape[1] == mean.shape[0] == dims)
+        ) or (dims == 1 and (not sigma.shape == mean.shape == tuple())):
             raise Exception("Shapes do not match the given dimensionality.")
         self.dims = dims
         self.sigma = sigma
@@ -323,11 +332,16 @@ class Gaussian(Function):
     def __call__(self, x):
         x = np.array(x)
         value = 1 / np.sqrt((2 * np.pi) ** self.dims * np.linalg.det(self.sigma))
-        value = value * np.exp(-0.5 * (np.transpose(x - self.mean).dot(np.linalg.inv(self.sigma))).dot((x - self.mean)))
+        value = value * np.exp(
+            -0.5
+            * (np.transpose(x - self.mean).dot(np.linalg.inv(self.sigma))).dot(
+                (x - self.mean)
+            )
+        )
         return -value
 
 
-RastriginParameters = namedtuple('RastriginParameters', [])
+RastriginParameters = namedtuple("RastriginParameters", [])
 
 
 class Rastrigin(Function):
@@ -344,10 +358,10 @@ class Rastrigin(Function):
 
     def __call__(self, x):
         x = np.array(x)
-        return np.sum(x ** 2 + 10 - 10 * np.cos(2 * np.pi * x))
+        return np.sum(x**2 + 10 - 10 * np.cos(2 * np.pi * x))
 
 
-RosenbrockParameters = namedtuple('RosenbrockParameters', [])
+RosenbrockParameters = namedtuple("RosenbrockParameters", [])
 
 
 class Rosenbrock(Function):
@@ -364,14 +378,14 @@ class Rosenbrock(Function):
 
     def __call__(self, x):
         x = np.array(x)
-        x_1 = x[1:self.dims]
-        x_0 = x[0:self.dims - 1]
-        value = 100 * (x_1 - x_0 ** 2) ** 2 + (1 - x_0) ** 2
+        x_1 = x[1 : self.dims]
+        x_0 = x[0 : self.dims - 1]
+        value = 100 * (x_1 - x_0**2) ** 2 + (1 - x_0) ** 2
         value = sum(value)
         return value
 
 
-AckleyParameters = namedtuple('AckleyParameters', [])
+AckleyParameters = namedtuple("AckleyParameters", [])
 
 
 class Ackley(Function):
@@ -389,11 +403,15 @@ class Ackley(Function):
 
     def __call__(self, x):
         x = np.array(x)
-        return np.exp(1) + 20 - 20 * np.exp(-0.2 * np.sqrt(np.sum(x ** 2) / self.dims)) \
+        return (
+            np.exp(1)
+            + 20
+            - 20 * np.exp(-0.2 * np.sqrt(np.sum(x**2) / self.dims))
             - np.exp(np.sum(np.cos(2 * np.pi * x)) / self.dims)
+        )
 
 
-ChasmParameters = namedtuple('ChasmParameters', [])
+ChasmParameters = namedtuple("ChasmParameters", [])
 
 
 class Chasm(Function):

@@ -22,9 +22,9 @@ class Individual(ParameterGroup):
         self.ind_idx = ind_idx
 
     def __getattr__(self, attr):
-        if attr == 'keys':
+        if attr == "keys":
             return self.params.keys()
-        ret = self.params.get('individual.' + attr)
+        ret = self.params.get("individual." + attr)
         return ret
 
     def __getitem__(self, key):

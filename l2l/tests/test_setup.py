@@ -12,22 +12,21 @@ import os
 class SetupTestCase(unittest.TestCase):
 
     def setUp(self):
-        home_path =  os.environ.get("HOME")
-        self.root_dir_path = os.path.join(home_path, 'results')
+        home_path = os.environ.get("HOME")
+        self.root_dir_path = os.path.join(home_path, "results")
         self.experiment = Experiment(root_dir_path=self.root_dir_path)
         jube_params = {}
         try:
             self.trajectory, _ = self.experiment.prepare_experiment(
-                name='test_trajectory',
+                name="test_trajectory",
                 log_stdout=True,
                 add_time=True,
                 automatic_storing=True,
                 jube_parameter=jube_params,
-                overwrite = True)
+                overwrite=True,
+            )
         except FileNotFoundError as fe:
-            self.fail(
-                "{} \n L2L is not well configured. Missing path file.".format(
-                    fe))
+            self.fail("{} \n L2L is not well configured. Missing path file.".format(fe))
         self.paths = self.experiment.paths
 
     def test_paths(self):
@@ -46,32 +45,37 @@ class SetupTestCase(unittest.TestCase):
     def test_juberunner_setup(self):
         self.experiment = Experiment(root_dir_path=self.root_dir_path)
         self.trajectory, _ = self.experiment.prepare_experiment(
-            name='test_trajectory',
-            trajectory='test_trajectory',
+            name="test_trajectory",
+            trajectory="test_trajectory",
             filename=".",
-            file_title='{} data'.format('test_trajectory'),
-            comment='{} data'.format('test_trajectory'),
+            file_title="{} data".format("test_trajectory"),
+            comment="{} data".format("test_trajectory"),
             add_time=True,
             automatic_storing=True,
             log_stdout=False,
             jube_parameter={},
-            overwrite = True
+            overwrite=True,
         )
         self.trajectory.f_add_parameter_group("JUBE_params", "Contains JUBE parameters")
-        self.trajectory.f_add_parameter_to_group("JUBE_params", "exec", "python " +
-                                      os.path.join(self.paths.simulation_path,
-                                                   "run_files/run_optimizee.py"))
+        self.trajectory.f_add_parameter_to_group(
+            "JUBE_params",
+            "exec",
+            "python "
+            + os.path.join(self.paths.simulation_path, "run_files/run_optimizee.py"),
+        )
         self.trajectory.f_add_parameter_to_group("JUBE_params", "paths", self.paths)
 
-        ## Benchmark function
+        # Benchmark function
         function_id = 14
         bench_functs = BenchmarkedFunctions()
-        (benchmark_name, benchmark_function), benchmark_parameters = \
+        (benchmark_name, benchmark_function), benchmark_parameters = (
             bench_functs.get_function_by_index(function_id, noise=True)
+        )
 
         optimizee_seed = 1
-        optimizee = FunctionGeneratorOptimizee(self.trajectory, benchmark_function,
-                                               seed=optimizee_seed)
+        optimizee = FunctionGeneratorOptimizee(
+            self.trajectory, benchmark_function, seed=optimizee_seed
+        )
 
         jube.prepare_optimizee(optimizee, self.paths.root_dir_path)
 
@@ -85,7 +89,7 @@ class SetupTestCase(unittest.TestCase):
 
 
 def suite():
-    suite = unittest.makeSuite(SetupTestCase, 'test')
+    suite = unittest.makeSuite(SetupTestCase, "test")
     return suite
 
 

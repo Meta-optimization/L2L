@@ -8,20 +8,32 @@ from l2l.optimizers.optimizer import Optimizer
 
 logger = logging.getLogger("optimizers.face")
 
-FACEParameters = namedtuple('FACEParameters',
-                            ['min_pop_size', 'max_pop_size', 'n_elite', 'smoothing', 'temp_decay', 'n_iteration',
-                             'distribution', 'stop_criterion', 'n_expand', 'seed'])
+FACEParameters = namedtuple(
+    "FACEParameters",
+    [
+        "min_pop_size",
+        "max_pop_size",
+        "n_elite",
+        "smoothing",
+        "temp_decay",
+        "n_iteration",
+        "distribution",
+        "stop_criterion",
+        "n_expand",
+        "seed",
+    ],
+)
 
 FACEParameters.__doc__ = """
 :param min_pop_size: Minimal number of individuals per simulation.
 :param max_pop_size: This is the minimum amount of samples taken into account for the FACE algorithm
 :param n_elite: Number of individuals to be considered as elite
 :param smoothing: This is a factor between 0 and 1 that determines the weight assigned to the previous distribution
-  parameters while calculating the new distribution parameters. The smoothing is done as a linear combination of the 
+  parameters while calculating the new distribution parameters. The smoothing is done as a linear combination of the
   optimal parameters for the current data, and the previous distribution as follows:
-    
+
     new_params = smoothing*old_params + (1-smoothing)*optimal_new_params
-    
+
 :param temp_decay: This parameter is the factor (necessarily between 0 and 1) by which the temperature decays each
   generation. To see the use of temperature, look at the documentation of :class:`.FACEOptimizer`
 :param n_iteration: Number of iterations to perform
@@ -37,7 +49,7 @@ class FACEOptimizer(Optimizer):
     In the pseudo code the algorithm does:
 
     For n iterations do:
-    
+
       1. Sample individuals from distribution
       2. evaluate individuals and get fitness
       3. check if gamma or best individuals fitness increased
@@ -54,7 +66,7 @@ class FACEOptimizer(Optimizer):
 
     return final distribution parameters.
     (The final distribution parameters contain information regarding the location of the maxima)
-    
+
     :param  ~l2l.utils.trajectory.Trajectory traj: Use this trajectory to store the parameters of the specific runs.
       The parameters should be initialized based on the values in `parameters`
     :param optimizee_create_individual: Function that creates a new individual. All parameters of the Individual-Dict
@@ -65,12 +77,22 @@ class FACEOptimizer(Optimizer):
       parameters needed by the Optimizer
     """
 
-    def __init__(self, traj, optimizee_create_individual, optimizee_fitness_weights, parameters,
-                 optimizee_bounding_func=None):
+    def __init__(
+        self,
+        traj,
+        optimizee_create_individual,
+        optimizee_fitness_weights,
+        parameters,
+        optimizee_bounding_func=None,
+    ):
 
-        super().__init__(traj, optimizee_create_individual=optimizee_create_individual,
-                         optimizee_fitness_weights=optimizee_fitness_weights, parameters=parameters,
-                         optimizee_bounding_func=optimizee_bounding_func)
+        super().__init__(
+            traj,
+            optimizee_create_individual=optimizee_create_individual,
+            optimizee_fitness_weights=optimizee_fitness_weights,
+            parameters=parameters,
+            optimizee_bounding_func=optimizee_bounding_func,
+        )
 
         self.optimizee_bounding_func = optimizee_bounding_func
 
@@ -86,48 +108,82 @@ class FACEOptimizer(Optimizer):
             raise Exception("smoothing has to be in interval [0, 1)")
         if parameters.seed is None:
             raise Exception("The 'seed' must be set")
-        
+
         # The following parameters are recorded
-        traj.f_add_parameter('min_pop_size', parameters.min_pop_size,
-                             comment='Number of minimal individuals simulated in each run')
-        traj.f_add_parameter('max_pop_size', parameters.max_pop_size,
-                             comment='Maximal individuals in population')
-        traj.f_add_parameter('n_elite', parameters.n_elite,
-                             comment='Number of individuals to be considered as elite')
-        traj.f_add_parameter('n_iteration', parameters.n_iteration,
-                             comment='Number of iterations to run')
-        traj.f_add_parameter('n_expand', parameters.n_expand,
-                             comment='Expanding of population size in case of FACE')
-        traj.f_add_parameter('stop_criterion', parameters.stop_criterion,
-                             comment='Stop if best individual reaches this fitness')
-        traj.f_add_parameter('smoothing', parameters.smoothing,
-                             comment='Weight of old parameters in smoothing')
-        traj.f_add_parameter('temp_decay', parameters.temp_decay,
-                             comment='Decay factor for temperature')
-        traj.f_add_parameter('seed', np.uint32(parameters.seed),
-                             comment='Random seed used by optimizer')
+        traj.f_add_parameter(
+            "min_pop_size",
+            parameters.min_pop_size,
+            comment="Number of minimal individuals simulated in each run",
+        )
+        traj.f_add_parameter(
+            "max_pop_size",
+            parameters.max_pop_size,
+            comment="Maximal individuals in population",
+        )
+        traj.f_add_parameter(
+            "n_elite",
+            parameters.n_elite,
+            comment="Number of individuals to be considered as elite",
+        )
+        traj.f_add_parameter(
+            "n_iteration", parameters.n_iteration, comment="Number of iterations to run"
+        )
+        traj.f_add_parameter(
+            "n_expand",
+            parameters.n_expand,
+            comment="Expanding of population size in case of FACE",
+        )
+        traj.f_add_parameter(
+            "stop_criterion",
+            parameters.stop_criterion,
+            comment="Stop if best individual reaches this fitness",
+        )
+        traj.f_add_parameter(
+            "smoothing",
+            parameters.smoothing,
+            comment="Weight of old parameters in smoothing",
+        )
+        traj.f_add_parameter(
+            "temp_decay", parameters.temp_decay, comment="Decay factor for temperature"
+        )
+        traj.f_add_parameter(
+            "seed", np.uint32(parameters.seed), comment="Random seed used by optimizer"
+        )
 
         self.random_state = np.random.RandomState(seed=traj.par.seed)
-        temp_indiv, self.optimizee_individual_dict_spec = dict_to_list(self.optimizee_create_individual(),
-                                                                       get_dict_spec=True)
-        #there are some problems calculation the covariance with only one dimiension
-        if(len(self.optimizee_individual_dict_spec) <= 1 and self.optimizee_individual_dict_spec[0][2] <= 1):
-            raise Exception("For this optimizer, there have to be more than one parameter or the parameter has to have a shape > 1.")
-        
-        traj.f_add_derived_parameter('dimension', len(temp_indiv),
-                                     comment='The dimension of the parameter space of the optimizee')
+        temp_indiv, self.optimizee_individual_dict_spec = dict_to_list(
+            self.optimizee_create_individual(), get_dict_spec=True
+        )
+        # there are some problems calculation the covariance with only one dimiension
+        if (
+            len(self.optimizee_individual_dict_spec) <= 1
+            and self.optimizee_individual_dict_spec[0][2] <= 1
+        ):
+            raise Exception(
+                "For this optimizer, there have to be more than one parameter or the parameter has to have a shape > 1."
+            )
+
+        traj.f_add_derived_parameter(
+            "dimension",
+            len(temp_indiv),
+            comment="The dimension of the parameter space of the optimizee",
+        )
 
         # Added a generation-wise parameter logging
-        traj.results.f_add_result_group('generation_params',
-                                        comment='This contains the optimizer parameters that are'
-                                                ' common across a generation')
+        traj.results.f_add_result_group(
+            "generation_params",
+            comment="This contains the optimizer parameters that are"
+            " common across a generation",
+        )
 
         # The following parameters are recorded as generation parameters i.e. once per generation
         self.g = 0  # the current generation
         # This is the value above which the samples are considered elite in the
         # current generation
         self.gamma = -np.inf
-        self.T = 1  # This is the temperature used to filter evaluated samples in this run
+        self.T = (
+            1  # This is the temperature used to filter evaluated samples in this run
+        )
         self.pop_size = parameters.min_pop_size  # Population size is dynamic in FACE
         self.best_fitness_in_run = -np.inf
         self.best_individual = None
@@ -138,10 +194,14 @@ class FACEOptimizer(Optimizer):
         # Note that this array stores individuals as an np.array of floats as opposed to Individual-Dicts
         # This is because this array is used within the context of the cross entropy algorithm and
         # Thus needs to handle the optimizee individuals as vectors
-        current_eval_pop = [self.optimizee_create_individual() for _ in range(parameters.min_pop_size)]
+        current_eval_pop = [
+            self.optimizee_create_individual() for _ in range(parameters.min_pop_size)
+        ]
 
         if optimizee_bounding_func is not None:
-            current_eval_pop = [self.optimizee_bounding_func(ind) for ind in current_eval_pop]
+            current_eval_pop = [
+                self.optimizee_bounding_func(ind) for ind in current_eval_pop
+            ]
 
         self.eval_pop = current_eval_pop
         self.eval_pop_asarray = np.array([dict_to_list(x) for x in self.eval_pop])
@@ -158,8 +218,14 @@ class FACEOptimizer(Optimizer):
         See :meth:`~l2l.optimizers.optimizer.Optimizer.post_process`
         """
 
-        n_elite, n_iteration, smoothing, temp_decay, min_pop_size, max_pop_size = \
-            traj.n_elite, traj.n_iteration, traj.smoothing, traj.temp_decay, traj.min_pop_size, traj.max_pop_size
+        n_elite, n_iteration, smoothing, temp_decay, min_pop_size, max_pop_size = (
+            traj.n_elite,
+            traj.n_iteration,
+            traj.smoothing,
+            traj.temp_decay,
+            traj.min_pop_size,
+            traj.max_pop_size,
+        )
         stop_criterion, n_expand = traj.stop_criterion, traj.n_expand
 
         weighted_fitness_list = []
@@ -173,16 +239,18 @@ class FACEOptimizer(Optimizer):
             traj.v_idx = run_index
             ind_index = traj.par.ind_idx
 
-            traj.f_add_result('$set.$.individual', self.eval_pop[ind_index])
-            traj.f_add_result('$set.$.fitness', fitness)
+            traj.f_add_result("$set.$.individual", self.eval_pop[ind_index])
+            traj.f_add_result("$set.$.fitness", fitness)
 
-            weighted_fitness_list.append(np.dot(fitness, self.optimizee_fitness_weights))
+            weighted_fitness_list.append(
+                np.dot(fitness, self.optimizee_fitness_weights)
+            )
         traj.v_idx = -1  # set trajectory back to default
 
         # Performs descending arg-sort of weighted fitness
         fitness_sorting_indices = list(reversed(np.argsort(weighted_fitness_list)))
 
-        generation_name = 'generation_{}'.format(self.g)
+        generation_name = "generation_{}".format(self.g)
 
         # Sorting the data according to fitness
         sorted_population = self.eval_pop_asarray[fitness_sorting_indices]
@@ -193,42 +261,61 @@ class FACEOptimizer(Optimizer):
         elite_individuals = sorted_population[:n_elite]
 
         previous_best_fitness = self.best_fitness_in_run
-        self.best_individual = list_to_dict(sorted_population[0],
-                                            self.optimizee_individual_dict_spec)
+        self.best_individual = list_to_dict(
+            sorted_population[0], self.optimizee_individual_dict_spec
+        )
         self.best_fitness_in_run = sorted_fitess[0]
         previous_gamma = self.gamma
         self.gamma = sorted_fitess[n_elite - 1]
 
         logger.info("-- End of generation %d --", self.g)
         logger.info("  Evaluated %d individuals", len(fitnesses_results))
-        logger.info('  Best Fitness: %.4f', self.best_fitness_in_run)
-        logger.debug('  Calculated gamma: %.4f', self.gamma)
+        logger.info("  Best Fitness: %.4f", self.best_fitness_in_run)
+        logger.debug("  Calculated gamma: %.4f", self.gamma)
 
         # **************************************************************************************************************
         # Storing Generation Parameters / Results in the trajectory
         # **************************************************************************************************************
         # These entries correspond to the generation that has been simulated prior to this post-processing run
-        traj.results.generation_params.f_add_result_group(generation_name, 'New generation added to results')
-        traj.results.generation_params.f_add_result(generation_name + '.g', self.g,
-                                                    comment='The index of the evaluated generation')
-        traj.results.generation_params.f_add_result(generation_name + '.gamma', self.gamma,
-                                                    comment='The fitness threshold inferred from the evaluated '
-                                                            'generation (This is used in sampling the next generation')
-        traj.results.generation_params.f_add_result(generation_name + '.T', self.T,
-                                                    comment='Temperature used to select non-elite elements among the'
-                                                            'individuals of the evaluated generation')
-        traj.results.generation_params.f_add_result(generation_name + '.best_fitness_in_run', self.best_fitness_in_run,
-                                                    comment='The highest fitness among the individuals in the '
-                                                            'evaluated generation')
-        traj.results.generation_params.f_add_result(generation_name + '.pop_size', self.pop_size,
-                                                    comment='Population size')
+        traj.results.generation_params.f_add_result_group(
+            generation_name, "New generation added to results"
+        )
+        traj.results.generation_params.f_add_result(
+            generation_name + ".g",
+            self.g,
+            comment="The index of the evaluated generation",
+        )
+        traj.results.generation_params.f_add_result(
+            generation_name + ".gamma",
+            self.gamma,
+            comment="The fitness threshold inferred from the evaluated "
+            "generation (This is used in sampling the next generation",
+        )
+        traj.results.generation_params.f_add_result(
+            generation_name + ".T",
+            self.T,
+            comment="Temperature used to select non-elite elements among the"
+            "individuals of the evaluated generation",
+        )
+        traj.results.generation_params.f_add_result(
+            generation_name + ".best_fitness_in_run",
+            self.best_fitness_in_run,
+            comment="The highest fitness among the individuals in the "
+            "evaluated generation",
+        )
+        traj.results.generation_params.f_add_result(
+            generation_name + ".pop_size", self.pop_size, comment="Population size"
+        )
 
         # Check stopping
         if self.g >= n_iteration or self.best_fitness_in_run >= stop_criterion:
             return
 
         expand = True
-        if self.best_fitness_in_run > previous_best_fitness or self.gamma > previous_gamma:
+        if (
+            self.best_fitness_in_run > previous_best_fitness
+            or self.gamma > previous_gamma
+        ):
             # shrink population size
             self.pop_size = (self.pop_size + min_pop_size) // 2
             # new distribution fit
@@ -237,26 +324,39 @@ class FACEOptimizer(Optimizer):
             # Temperature dependent sampling of non elite individuals
             if temp_decay > 0:
                 # Keeping non-elite samples with certain probability dependent on temperature (like Simulated Annealing)
-                non_elite_selection_probs = np.clip(np.exp((weighted_fitness_list[n_elite:] - self.gamma) / self.T),
-                                                    amin=0.0, a_max=1.0)
-                non_elite_selected_indices = self.random_state.binomial(1, p=non_elite_selection_probs)
-                non_elite_eval_pop_asarray = sorted_population[n_elite:][non_elite_selected_indices]
-                individuals_to_be_fitted = np.concatenate((elite_individuals, non_elite_eval_pop_asarray))
+                non_elite_selection_probs = np.clip(
+                    np.exp((weighted_fitness_list[n_elite:] - self.gamma) / self.T),
+                    amin=0.0,
+                    a_max=1.0,
+                )
+                non_elite_selected_indices = self.random_state.binomial(
+                    1, p=non_elite_selection_probs
+                )
+                non_elite_eval_pop_asarray = sorted_population[n_elite:][
+                    non_elite_selected_indices
+                ]
+                individuals_to_be_fitted = np.concatenate(
+                    (elite_individuals, non_elite_eval_pop_asarray)
+                )
 
             # Fitting New distribution parameters.
-            self.distribution_results = self.current_distribution.fit(individuals_to_be_fitted, smoothing)
+            self.distribution_results = self.current_distribution.fit(
+                individuals_to_be_fitted, smoothing
+            )
         elif self.pop_size + n_expand <= max_pop_size:
             # Increase pop size by one, resample, FACE part
-            logger.info('  FACE increase population size by %d', n_expand)
+            logger.info("  FACE increase population size by %d", n_expand)
             self.pop_size += n_expand
         else:
             # Stop algorithm
             expand = False
-            logger.warning('  Possibly diverged')
+            logger.warning("  Possibly diverged")
 
         # Add the results of the distribution fitting to the trajectory
         for parameter_key, parameter_value in self.distribution_results.items():
-            traj.results.generation_params.f_add_result(generation_name + '.' + parameter_key, parameter_value)
+            traj.results.generation_params.f_add_result(
+                generation_name + "." + parameter_key, parameter_value
+            )
 
         # **************************************************************************************************************
         # Create the next generation by sampling the inferred distribution
@@ -267,12 +367,19 @@ class FACEOptimizer(Optimizer):
         if expand:
             # Sample from the constructed distribution
             self.eval_pop_asarray = self.current_distribution.sample(self.pop_size)
-            self.eval_pop = [list_to_dict(ind_asarray, self.optimizee_individual_dict_spec)
-                             for ind_asarray in self.eval_pop_asarray]
+            self.eval_pop = [
+                list_to_dict(ind_asarray, self.optimizee_individual_dict_spec)
+                for ind_asarray in self.eval_pop_asarray
+            ]
             # Clip to boundaries
             if self.optimizee_bounding_func is not None:
-                self.eval_pop = [self.optimizee_bounding_func(individual) for individual in self.eval_pop]
-                self.eval_pop_asarray = np.array([dict_to_list(x) for x in self.eval_pop])
+                self.eval_pop = [
+                    self.optimizee_bounding_func(individual)
+                    for individual in self.eval_pop
+                ]
+                self.eval_pop_asarray = np.array(
+                    [dict_to_list(x) for x in self.eval_pop]
+                )
             self.g += 1  # Update generation counter
             self.T *= temp_decay
             self._expand_trajectory(traj)
@@ -283,12 +390,12 @@ class FACEOptimizer(Optimizer):
         """
         best_last_indiv_dict = self.best_individual
 
-        traj.f_add_result('final_individual', best_last_indiv_dict)
-        traj.f_add_result('final_fitness', self.best_fitness_in_run)
-        traj.f_add_result('n_iteration', self.g)
+        traj.f_add_result("final_individual", best_last_indiv_dict)
+        traj.f_add_result("final_fitness", self.best_fitness_in_run)
+        traj.f_add_result("n_iteration", self.g)
 
         # ------------ Finished all runs and print result --------------- #
         logger.info("-- End of (successful) FACE optimization --")
         logger.info("-- Final distribution parameters --")
         for parameter_key, parameter_value in sorted(self.distribution_results.items()):
-            logger.info('  %s: %s', parameter_key, parameter_value)
+            logger.info("  %s: %s", parameter_key, parameter_value)

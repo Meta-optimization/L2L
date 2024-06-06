@@ -7,9 +7,9 @@ def sigmoid(x):
 
 
 def relu(x):
-    """ Compute RELU """
+    """Compute RELU"""
     result = x.copy()
-    result[result < 0] = 0.
+    result[result < 0] = 0.0
     return result
 
 
@@ -52,10 +52,19 @@ class NeuralNetworkClassifier:
         :param y: batch_size size
         :return:
         """
-        hidden_activation = sigmoid(np.dot(self.hidden_weights, x.T))  # -> n_hidden x batch_size
-        output_activation = np.dot(self.output_weights, hidden_activation)  # -> n_output x batch_size
+        hidden_activation = sigmoid(
+            np.dot(self.hidden_weights, x.T)
+        )  # -> n_hidden x batch_size
+        output_activation = np.dot(
+            self.output_weights, hidden_activation
+        )  # -> n_output x batch_size
         output_labels = np.argmax(output_activation, axis=0)  # -> batch_size
-        assert y.shape == output_labels.shape, "The shapes of y and output labels are %s, %s" % (y.shape, output_labels.shape)
+        assert (
+            y.shape == output_labels.shape
+        ), "The shapes of y and output labels are %s, %s" % (
+            y.shape,
+            output_labels.shape,
+        )
         n_correct = np.count_nonzero(y == output_labels)
         n_total = len(y)
         score = n_correct / n_total
@@ -71,13 +80,13 @@ def main():
         mnist_digits = load_digits()
         n_input = np.prod(mnist_digits.images.shape[1:])
         n_images = len(mnist_digits.images)  # 1797
-        data_images = mnist_digits.images.reshape(n_images, -1) / 16.  # -> 1797 x 64
+        data_images = mnist_digits.images.reshape(n_images, -1) / 16.0  # -> 1797 x 64
         data_targets = mnist_digits.target
         # im_size_x, im_size_y = 8, 8
     else:
-        mnist_digits = fetch_mldata('MNIST original')
+        mnist_digits = fetch_mldata("MNIST original")
         n_input = np.prod(mnist_digits.data.shape[1:])
-        data_images = mnist_digits.data / 255.  # -> 70000 x 284
+        data_images = mnist_digits.data / 255.0  # -> 70000 x 284
         data_targets = mnist_digits.target
         # im_size_x, im_size_y = 28, 28
 
@@ -92,5 +101,5 @@ def main():
     print("Score is: ", score)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

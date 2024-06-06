@@ -4,7 +4,7 @@ from l2l.utils.tools import cartesian_product
 
 from l2l import get_grouped_dict
 
-OptimizerParameters = namedtuple('OptimizerParamters', [])
+OptimizerParameters = namedtuple("OptimizerParamters", [])
 
 
 class Optimizer:
@@ -26,14 +26,17 @@ class Optimizer:
 
     """
 
-    def __init__(self, traj,
-                 optimizee_create_individual,
-                 optimizee_fitness_weights,
-                 optimizee_bounding_func,
-                 parameters):
+    def __init__(
+        self,
+        traj,
+        optimizee_create_individual,
+        optimizee_fitness_weights,
+        optimizee_bounding_func,
+        parameters,
+    ):
         # Creating Placeholders for individuals and results that are about to be explored
-        traj.f_add_parameter('generation', 0, comment='Current generation')
-        traj.f_add_parameter('ind_idx', 0, comment='Index of individual')
+        traj.f_add_parameter("generation", 0, comment="Current generation")
+        traj.f_add_parameter("ind_idx", 0, comment="Index of individual")
 
         # Initializing basic variables
         self.optimizee_create_individual = optimizee_create_individual
@@ -91,15 +94,23 @@ class Optimizer:
         """
 
         grouped_params_dict = get_grouped_dict(self.eval_pop)
-        grouped_params_dict = {'individual.' + key: val for key, val in grouped_params_dict.items()}
+        grouped_params_dict = {
+            "individual." + key: val for key, val in grouped_params_dict.items()
+        }
 
-        final_params_dict = {'generation': [self.g],
-                             'ind_idx': range(len(self.eval_pop))}
+        final_params_dict = {
+            "generation": [self.g],
+            "ind_idx": range(len(self.eval_pop)),
+        }
         final_params_dict.update(grouped_params_dict)
 
         # We need to convert them to lists or write our own custom IndividualParameter ;-)
         # Note the second argument to `cartesian_product`: This is for only having the cartesian product
         # between ``generation x (ind_idx AND individual)``, so that every individual has just one
         # unique index within a generation.
-        traj.f_expand(cartesian_product(final_params_dict,
-                                        [('ind_idx',) + tuple(grouped_params_dict.keys()), 'generation']))
+        traj.f_expand(
+            cartesian_product(
+                final_params_dict,
+                [("ind_idx",) + tuple(grouped_params_dict.keys()), "generation"],
+            )
+        )

@@ -33,13 +33,21 @@ class FunctionGeneratorOptimizee(Optimizee):
         Creates a random value of parameter within given bounds
         """
         # Define the first solution candidate randomly
-        return {'coords': self.random_state.rand(self.dims) * (self.bound[1] - self.bound[0]) + self.bound[0]}
+        return {
+            "coords": self.random_state.rand(self.dims)
+            * (self.bound[1] - self.bound[0])
+            + self.bound[0]
+        }
 
     def bounding_func(self, individual):
         """
         Bounds the individual within the required bounds via coordinate clipping
         """
-        return {'coords': np.clip(individual['coords'], a_min=self.bound[0], a_max=self.bound[1])}
+        return {
+            "coords": np.clip(
+                individual["coords"], a_min=self.bound[0], a_max=self.bound[1]
+            )
+        }
 
     def simulate(self, traj):
         """
@@ -52,4 +60,4 @@ class FunctionGeneratorOptimizee(Optimizee):
         # logging is now taken care by jube for each individual
 
         individual = np.array(traj.individual.coords)
-        return (self.cost_fn(individual, random_state=self.random_state), )
+        return (self.cost_fn(individual, random_state=self.random_state),)

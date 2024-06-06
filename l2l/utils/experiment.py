@@ -21,7 +21,7 @@ class Experiment(object):
         paths. Will check if the folder exists and create if not.
         """
         self.root_dir_path = os.path.abspath(root_dir_path)
-        self.logger = logging.getLogger('utils.experiment')
+        self.logger = logging.getLogger("utils.experiment")
         self.paths = None
         self.env = None
         self.traj = None
@@ -41,7 +41,7 @@ class Experiment(object):
             - multiprocessing, bool, enable multiprocessing, Default: False
             - debug, bool, enable verbose mode to print out errors appearing
                 in the optimizee, Default: False
-            - stop_run, bool, when debug is enabled and found an error, stops 
+            - stop_run, bool, when debug is enabled and found an error, stops
                 execution, Default: True
             -timeout, bool, stops execution after 2 hours if it is not finished by then,
                 Default: True
@@ -71,74 +71,75 @@ class Experiment(object):
             - work_path: self.paths.root_dir_path,
             - paths_obj: self.paths
         """
-        name = kwargs.get('name', 'L2L-run')
+        name = kwargs.get("name", "L2L-run")
         if not os.path.isdir(self.root_dir_path):
             os.mkdir(os.path.abspath(self.root_dir_path))
-            print('Created a folder at {}'.format(self.root_dir_path))
+            print("Created a folder at {}".format(self.root_dir_path))
 
-        if('checkpoint' in kwargs):
-            self.traj = kwargs['checkpoint']
+        if "checkpoint" in kwargs:
+            self.traj = kwargs["checkpoint"]
             trajectory_name = self.traj._name
         else:
-            trajectory_name = kwargs.get('trajectory_name', 'trajectory')
+            trajectory_name = kwargs.get("trajectory_name", "trajectory")
 
-        self.paths = Paths(name, {},
-                           root_dir_path=self.root_dir_path,
-                           suffix="-" + trajectory_name)
+        self.paths = Paths(
+            name, {}, root_dir_path=self.root_dir_path, suffix="-" + trajectory_name
+        )
 
-        overwrite = kwargs.get('overwrite', False)
+        overwrite = kwargs.get("overwrite", False)
         if os.path.isdir(self.paths.output_dir_path):
             if overwrite:
-                ready_path = 'simulation/ready_files'
+                ready_path = "simulation/ready_files"
                 if os.path.isdir(os.path.join(self.paths.output_dir_path, ready_path)):
                     shutil.rmtree(os.path.join(self.paths.output_dir_path, ready_path))
-            else: 
-                raise Exception("There are already exsiting outputfiles in this directory. Please change the path specification.")
+            else:
+                raise Exception(
+                    "There are already exsiting outputfiles in this directory. Please change the path specification."
+                )
 
-        print("All output logs can be found in directory ",
-              self.paths.logs_path)
+        print("All output logs can be found in directory ", self.paths.logs_path)
 
         # Create an environment that handles running our simulation
         # This initializes an environment
-        if self.traj:  
+        if self.traj:
             self.env = Environment(
                 checkpoint=self.traj,
                 filename=self.paths.output_dir_path,
-                file_title='{} data'.format(name),
-                comment='{} data'.format(name),
+                file_title="{} data".format(name),
+                comment="{} data".format(name),
                 add_time=True,
                 automatic_storing=True,
-                log_stdout=kwargs.get('log_stdout', False),  # Sends stdout to logs
-                multiprocessing=kwargs.get('multiprocessing', True),
-                debug = kwargs.get('debug', False),
-                stop_run = kwargs.get('stop_run', True),
-                timeout = kwargs.get('stop_run', True)
+                log_stdout=kwargs.get("log_stdout", False),  # Sends stdout to logs
+                multiprocessing=kwargs.get("multiprocessing", True),
+                debug=kwargs.get("debug", False),
+                stop_run=kwargs.get("stop_run", True),
+                timeout=kwargs.get("stop_run", True),
             )
-        else: 
+        else:
             self.env = Environment(
                 trajectory=trajectory_name,
                 filename=self.paths.output_dir_path,
-                file_title='{} data'.format(name),
-                comment='{} data'.format(name),
+                file_title="{} data".format(name),
+                comment="{} data".format(name),
                 add_time=True,
                 automatic_storing=True,
-                log_stdout=kwargs.get('log_stdout', False),  # Sends stdout to logs
-                multiprocessing=kwargs.get('multiprocessing', True),
-                debug = kwargs.get('debug', False),
-                stop_run = kwargs.get('stop_run', True),
-                timeout = kwargs.get('stop_run', True)
+                log_stdout=kwargs.get("log_stdout", False),  # Sends stdout to logs
+                multiprocessing=kwargs.get("multiprocessing", True),
+                debug=kwargs.get("debug", False),
+                stop_run=kwargs.get("stop_run", True),
+                timeout=kwargs.get("stop_run", True),
             )
             # Get the trajectory from the environment
             self.traj = self.env.trajectory
 
         create_shared_logger_data(
-            logger_names=['optimizers', 'utils'],
-            log_levels=['INFO', 'INFO'],
+            logger_names=["optimizers", "utils"],
+            log_levels=["INFO", "INFO"],
             log_to_consoles=[True, True],
             sim_name=name,
-            log_directory=self.paths.logs_path)
+            log_directory=self.paths.logs_path,
+        )
         configure_loggers()
-
 
         # Set JUBE params
         default_jube_params = {
@@ -154,24 +155,29 @@ class Experiment(object):
             "err_file": "stderr",
             "out_file": "stdout",
             "tasks_per_job": "1",
-            "exec": "python3 " + os.path.join(self.paths.simulation_path,
-                                              "run_files/run_optimizee.py"),
-            "ready_file": os.path.join(self.paths.root_dir_path,
-                                       "ready_files/ready_w_"),
+            "exec": "python3 "
+            + os.path.join(self.paths.simulation_path, "run_files/run_optimizee.py"),
+            "ready_file": os.path.join(
+                self.paths.root_dir_path, "ready_files/ready_w_"
+            ),
             "work_path": self.paths.root_dir_path,
             "paths_obj": self.paths,
         }
 
         # Will contain all jube parameters
         all_jube_params = {}
-        self.traj.f_add_parameter_group("JUBE_params",
-                                        "Contains JUBE parameters")
+        self.traj.f_add_parameter_group("JUBE_params", "Contains JUBE parameters")
         # Go through the parameter dictionary and add to the trajectory
-        if kwargs.get('jube_parameter'):
-            for k, v in kwargs['jube_parameter'].items():
+        if kwargs.get("jube_parameter"):
+            for k, v in kwargs["jube_parameter"].items():
                 if k == "exec":
-                    val = v + " " + os.path.join(self.paths.simulation_path,
-                                                 "run_files/run_optimizee.py")
+                    val = (
+                        v
+                        + " "
+                        + os.path.join(
+                            self.paths.simulation_path, "run_files/run_optimizee.py"
+                        )
+                    )
                     self.traj.f_add_parameter_to_group("JUBE_params", k, val)
                     all_jube_params[k] = val
                 else:
@@ -179,18 +185,19 @@ class Experiment(object):
                     all_jube_params[k] = v
         # Default parameter are added if they are not already set by the user
         for k, v in default_jube_params.items():
-            if kwargs.get('jube_parameter'):
-                if k not in kwargs.get('jube_parameter').keys():
+            if kwargs.get("jube_parameter"):
+                if k not in kwargs.get("jube_parameter").keys():
                     self.traj.f_add_parameter_to_group("JUBE_params", k, v)
                     all_jube_params[k] = v
             else:
                 self.traj.f_add_parameter_to_group("JUBE_params", k, v)
                 all_jube_params[k] = v
-        print('JUBE parameters used: {}'.format(all_jube_params))
+        print("JUBE parameters used: {}".format(all_jube_params))
         return self.traj, all_jube_params
 
-    def run_experiment(self, optimizer, optimizee,
-                       optimizer_parameters=None, optimizee_parameters=None):
+    def run_experiment(
+        self, optimizer, optimizee, optimizer_parameters=None, optimizee_parameters=None
+    ):
         """
         Runs the simulation with all parameter combinations
 
@@ -204,8 +211,8 @@ class Experiment(object):
         """
         ind = optimizee.create_individual()
         for key in ind:
-            if(isinstance(ind[key], int)):
-                raise ValueError('Parameter of type integer is not allowed')
+            if isinstance(ind[key], int):
+                raise ValueError("Parameter of type integer is not allowed")
         self.optimizee = optimizee
         self.optimizer = optimizer
         self.optimizer = optimizer
@@ -230,15 +237,14 @@ class Experiment(object):
         # Finally disable logging and close all log-files
         self.env.disable_logging()
         return self.traj, self.paths
-    
+
     def load_trajectory(self, traj_path):
         """
         Loads a trajectory from a given file
         :param traj_path: path to the trajectory file
         :return traj: trajectory object
         """
-        traj_file = open(os.path.join(traj_path),
-                          "rb")
+        traj_file = open(os.path.join(traj_path), "rb")
         loaded_traj = pickle.load(traj_file)
         traj_file.close()
         return loaded_traj

@@ -217,7 +217,6 @@ class JUBERunner():
         for ind in self.trajectory.individuals[generation]:
             ready_files.append(path_ready + str(ind.ind_idx))
 
-        ready_files.append(path_ready + str(generation))
 
         # Call the main function from JUBE
         logger.info("JUBE running generation: " + str(self.generation))

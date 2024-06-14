@@ -11,6 +11,8 @@ extend-ignore =
               E741,
               # lambda expressions can be assignd
               E731
+              # complexity
+              C901
 select = C,E,F,W,B,B950
 max_complexity = 15
 extend-exclude =

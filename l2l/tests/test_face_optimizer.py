@@ -42,8 +42,9 @@ class FACEOptimizerTestCase(OptimizerTestCase):
             )
         except Exception as e:
             self.fail(e.__name__)
-        best = self.experiment_functionGenerator.optimizer.best_individual["coords"]
-        self.assertEqual(best, 10000)
+        best = self.experiment_functionGenerator.optimizer.best_individual['coords']
+        self.assertEqual(best[0], -4.998856251826551)
+        self.assertEqual(best[1], -1.9766742736816023)
         self.experiment_functionGenerator.end_experiment(optimizer)
 
         # active wait optimizee

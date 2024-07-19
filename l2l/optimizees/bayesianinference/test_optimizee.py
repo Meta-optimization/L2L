@@ -61,6 +61,7 @@ class TestSBIOptimizee(Optimizee):
             res = np.random.rand(2).tolist() if np.random.rand()<0.5 else (np.nan, np.nan)
 
         mse = np.mean(np.square(np.subtract(res, x_obs)))
+        print('output', mse, res)
         return mse, res
 
     def bounding_func(self, individual):

@@ -126,7 +126,7 @@ class SBIOptimizer(Optimizer):
         # individuals = traj.individuals[self.g]
         # theta = torch.stack([individuals[i].parameters for i in range(traj.pop_size)]) # TODO best way?
         theta = self.samples # TODO aufpassen bei invalid, falls ersetzt wird
-        x = torch.zeros((len(theta), len(fitnesses_results[0]))) # TODO change zeros to empty
+        x = torch.zeros((len(theta), len(fitnesses_results[0][1][1]))) # TODO change zeros to empty
 
         for i, (run_index, fitness) in enumerate(fitnesses_results):
             # We need to convert the current run index into an ind_idx

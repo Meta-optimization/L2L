@@ -1,13 +1,13 @@
 import numpy as np
 from l2l.utils.experiment import Experiment
 
-from l2l.optimizees.bayesianinference import TestSBIOptimizee, TestSBIOptimizeeParameters
+from l2l.optimizees.bayesianinference import SBIOptimizee, SBIOptimizeeParameters
 from l2l.optimizers.bayesianinference import SBIOptimizer, SBIOptimizerParameters
 
 from sbi.inference import SNPE
 
 def run_experiment():
-    name = 'L2L-SBI'
+    name = 'L2L-SBI-hpc'
     experiment = Experiment("../results/")
     jube_params = { "exec": "python"}
 
@@ -17,14 +17,14 @@ def run_experiment():
                                                           log_stdout=True)
 
     # Optimizee
-    optimizee_parameters = TestSBIOptimizeeParameters(sim_type='mixed')
-    optimizee = TestSBIOptimizee(traj, optimizee_parameters)
+    optimizee_parameters = SBIOptimizeeParameters()
+    optimizee = SBIOptimizee(traj, optimizee_parameters)
 
     # Optimizer
-    optimizer_parameters = SBIOptimizerParameters(pop_size=50, n_iteration=3, seed=0, save_path='/home/todt/Dokumente/L2L/results/data',
-                                                  inference_method=SNPE, restrict_prior=1, x_obs=[0.5, 0.5], tensorboard=True)
+    optimizer_parameters = SBIOptimizerParameters(pop_size=4, n_iteration=3, seed=0, save_path='/home/todt/Dokumente/L2L/results/data',
+                                                  inference_method=SNPE, restrict_prior=3, x_obs=[10.], tensorboard=True)
     optimizer = SBIOptimizer(traj, optimizee_create_individual=optimizee.create_individual,
-                                optimizee_fitness_weights=(0.5, 0.5),
+                                optimizee_fitness_weights=(1.0, 0.0),
                                 parameters=optimizer_parameters,
                                 optimizee_bounding_func=optimizee.bounding_func)
 

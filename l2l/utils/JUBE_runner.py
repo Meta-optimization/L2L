@@ -6,6 +6,7 @@ import logging
 import glob
 import sys
 import signal
+import numpy as np
 
 logger = logging.getLogger("utils.JUBE_runner")
 
@@ -207,6 +208,7 @@ class JUBERunner():
         args.append(self.filename)
         self.done = False
         ready_files = []
+        ready_bools = []
         path_ready = os.path.join(self.work_paths["ready_files"], "ready_%d_"%generation)
         self.prepare_run_file(path_ready)
 
@@ -216,8 +218,10 @@ class JUBERunner():
         self.dump_traj(trajectory)
         for ind in self.trajectory.individuals[generation]:
             ready_files.append(path_ready + str(ind.ind_idx))
+            ready_bools.append(False)
 
-        ready_files.append(path_ready + str(generation))
+        #ready_files.append(path_ready + str(generation))
+        ready_bools.append(False)
 
         # Call the main function from JUBE
         logger.info("JUBE running generation: " + str(self.generation))
@@ -230,7 +234,7 @@ class JUBERunner():
 
             signal.signal(signal.SIGALRM, handler)
             signal.alarm(7200)
-        while not self.is_done(ready_files):
+        while not self.is_done(ready_files, ready_bools, trajectory):
             time.sleep(5)
         if(self.timeout):
             signal.alarm(0)
@@ -245,7 +249,7 @@ class JUBERunner():
         results = self.collect_results_from_run(generation, self.trajectory.individuals[generation])
         return results
 
-    def is_done(self, files):
+    def is_done(self, files, bools, traj):
         """
         Identifies if all files marking the end of the execution of individuals in a generation are present or not.
         :param files: list of ready files to check
@@ -255,6 +259,43 @@ class JUBERunner():
         for f in files:
             if not os.path.isfile(f):  # self.scheduler_config['ready_file']
                 done = False
+
+        # done = True
+        # check_valid = False # TODO als Parameter oben einführen?
+        # for i, f in enumerate(files):
+        #     if not bools[i]:
+        #         if os.path.isfile(f):
+        #             if check_valid:
+
+        #                 # read fitness from results file
+        #                 tmp = f.rfind('_') # TODO results_file vorher speichern? in Funktion auslagern?
+        #                 ind = int(f[tmp+1:])
+        #                 indfname = "results_%s_%s.bin" % (ind, self.generation)
+        #                 with open(os.path.join(self.work_paths["results"], indfname), "rb") as handle:
+        #                     res = pickle.load(handle)
+
+        #                 if np.isnan(res[0]).any(): # TODO: only first element?
+        #                     print('NAN OCCURRED', ind)
+        #                     os.remove(f)
+        #                     # neuen Parametersatz generieren
+        #                     new_params = {'w_ex': 0, 'w_in': 0, 'delay': 0, 'p_ex': 0, 'p_in': 0} # for testing
+        #                     # traj manipulieren
+        #                     #traj.invalid_individuals[self.generation].append(traj.individuals[self.generation][ind])
+        #                     traj.individuals[self.generation][ind] = new_params
+        #                     self.dump_traj(traj)
+        #                     # restart individual in jube
+        #                     print('TRAJ DUMPED')
+        #                     main(f'remove bench_run --id {self.generation} --workpackage {ind}'.split(' '))
+        #                     print('REMOVED WORKPACKAGE')
+        #                     main('continue bench_run'.split(' '))
+        #                     print('CONTINUE')
+        #                 else:
+        #                     bools[i] = True
+        #             else:
+        #                 bools[i] = True
+        #         else:
+        #             done = False
+
         if self.debug_stderr:
             file_paths = glob.glob(os.path.join(os.path.join(self.path, "work"), "*", "stderr"))
 

@@ -6,6 +6,7 @@ import logging
 import glob
 import sys
 import signal
+import subprocess
 
 logger = logging.getLogger("utils.JUBE_runner")
 
@@ -13,11 +14,12 @@ class Runner():
     """
     """
 
-    def __init__(self, trajectory):
+    def __init__(self, trajectory, gen):
         """
         :param trajectory: A trajectory object holding the parameters to use in the initialization
         """
         self.trajectory = trajectory
+        self.generation = gen
         self.done = False
 
         #TODO
@@ -78,20 +80,67 @@ class Runner():
         logger.info("Running generation: " + str(self.generation))
         #TODO
         #run generation, move forward if all generations are done
-        n_inds = len(trajectory.individuals)
+        n_inds = len(trajectory.individuals[generation])
         self.simulate_generation(generation, n_inds)
 
-        # Touch done generation
-        logger.info("Finished generation: " + str(self.generation))
 
-        self.done = True
-        results = self.collect_results_from_run(generation, self.trajectory.individuals[generation])
-        return results
+        ## Touch done generation
+        #logger.info("Finished generation: " + str(self.generation))
+#
+        #self.done = True
+        #results = self.collect_results_from_run(generation, self.trajectory.individuals[generation])
+        #return results
     
-    def simulate_generation(self, generation, n_inds):
-        #TODO
-        #start srun
-        #read exit code
+
+    def simulate_generation(self, gen, n_inds):
+        print("in simulate")
+        simple_script_content = f"""#!/bin/bash 
+echo "hello" 
+"""
+        srun_script_content = f"""#!/bin/bash
+
+pids=()
+exit_codes=()
+
+
+echo "gen: {gen}"
+echo "n_inds: {n_inds}"
+
+for idx in $(seq 0 $(({n_inds}-1)))
+do
+    srun -n1 --cpus-per-task=1 --gres=gpu:0 --exact --output={self.work_paths['individual_logs']}/out_{gen}_$idx.log --error={self.work_paths['individual_logs']}/out_{gen}_$idx.log python run_optimizee.py --gen={gen} --idx=$idx &
+    pid=$!
+    pids+=($pid)
+    echo "Started srun for idx=$idx with PID $pid"
+done
+
+echo "PIDs: ${{pids[@]}}"
+
+# Wait for all background jobs to complete and capture their exit codes
+for pid in "${{pids[@]}}"
+do
+    echo "Waiting for PID $pid"
+    wait $pid
+    exit_code=$?
+    exit_codes+=($exit_code)
+    echo "PID $pid exited with code $exit_code"
+done
+
+# Write exit codes to log file
+echo "Exit codes: ${{exit_codes[@]}}"
+echo "Exit codes: ${{exit_codes[@]}}" > {self.work_paths['individual_logs']}/exit_codes.log
+
+    """
+        
+
+
+        srun_command = f"bash <<'EOF'\n{srun_script_content}\nEOF"
+        result = subprocess.run(srun_command, shell=True, capture_output=True, text=True)
+        print("srun command out:", result.stdout)
+        print("srun command err:", result.stderr)
+
+
+
 
 
     def prepare_run_file(self):
@@ -106,7 +155,7 @@ class Runner():
                                 'trajectory_" + str(iteration) + ".bin')
         respath = os.path.join(self.work_paths['results'],
                                'results_" + str(idx) + "_" + str(iteration) + ".bin')
-        f = open(os.path.join(self.paths, "run_optimizee.py"), "w")
+        f = open(os.path.join(self.path, "run_optimizee.py"), "w")
         f.write('import pickle\n' +
                 'import sys\n' +
                 'iteration = sys.argv[1]\n' +

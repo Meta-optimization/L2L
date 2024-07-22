@@ -11,11 +11,11 @@ def run_experiment():
     
     jube_params = { "exec": "python3.9"} 
     traj, _ = experiment.prepare_experiment(
-        jube_parameter=jube_params, name=f"activeWait_GeneticAlgorithm")
+        jube_parameter=jube_params, name=f"jube_removal_aw_ga", overwrite=True)
         
 
     # Active Wait Optimizee
-    optimizee_parameters = AWOptimizeeParameters(difficulty=10000)
+    optimizee_parameters = AWOptimizeeParameters(difficulty=10000.0)
     optimizee = AWOptimizee(traj, optimizee_parameters)
 
 

@@ -88,8 +88,9 @@ class Runner():
         #logger.info("Finished generation: " + str(self.generation))
 #
         #self.done = True
-        #results = self.collect_results_from_run(generation, self.trajectory.individuals[generation])
-        #return results
+        #TODO read exit codes
+        results = self.collect_results_from_run(generation, self.trajectory.individuals[generation])
+        return results
     
 
     def simulate_generation(self, gen, n_inds):
@@ -108,7 +109,7 @@ echo "n_inds: {n_inds}"
 
 for idx in $(seq 0 $(({n_inds}-1)))
 do
-    srun -n1 --cpus-per-task=1 --gres=gpu:0 --exact --output={self.work_paths['individual_logs']}/out_{gen}_$idx.log --error={self.work_paths['individual_logs']}/out_{gen}_$idx.log python run_optimizee.py --gen={gen} --idx=$idx &
+    srun -n1 --cpus-per-task=1 --gres=gpu:0 --exact --output={self.work_paths['individual_logs']}/out_{gen}_$idx.log --error={self.work_paths['individual_logs']}/out_{gen}_$idx.log python {self.path}/run_optimizee.py {gen} $idx &
     pid=$!
     pids+=($pid)
     echo "Started srun for idx=$idx with PID $pid"
@@ -154,7 +155,7 @@ echo "Exit codes: ${{exit_codes[@]}}" > {self.work_paths['individual_logs']}/exi
         trajpath = os.path.join(self.work_paths["trajectories"],
                                 'trajectory_" + str(iteration) + ".bin')
         respath = os.path.join(self.work_paths['results'],
-                               'results_" + str(idx) + "_" + str(iteration) + ".bin')
+                               'results_" + str(iteration) + "_" + str(idx) + ".bin')
         f = open(os.path.join(self.path, "run_optimizee.py"), "w")
         f.write('import pickle\n' +
                 'import sys\n' +

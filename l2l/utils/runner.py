@@ -1,7 +1,8 @@
 import os.path
 import pickle
 import logging
-import subprocess
+import shlex, subprocess
+import time
 
 logger = logging.getLogger("utils.runner")
 
@@ -86,53 +87,33 @@ class Runner():
         """
         Executes n_inds srun commands, waits for them to finish and writes their exit codes to 'exit_codes.log'
         """
-
-        if self.srun_command:
-            # HPC case with slurm
-            run_ind = f"{self.srun_command} --output={self.work_paths['individual_logs']}/out_{gen}_$idx.log --error={self.work_paths['individual_logs']}/out_{gen}_$idx.log {self.exec_command}"
-        else:
-            # local case without slurm
-            run_ind = self.exec_command
-
-        script_content = f"""#!/bin/bash
-pids=()
-exit_codes=()
-
-echo "gen: {gen}"
-echo "n_inds: {n_inds}"
-
-for idx in $(seq 0 $(({n_inds}-1)))
-do
-    {run_ind} {gen} $idx &
-    pid=$!
-    pids+=($pid)
-    echo "Started srun for idx=$idx with PID $pid"
-done
-
-echo "PIDs: ${{pids[@]}}"
-
-# Wait for all background jobs to complete and capture their exit codes
-for pid in "${{pids[@]}}"
-do
-    echo "Waiting for PID $pid"
-    wait $pid
-    exit_code=$?
-    exit_codes+=($exit_code)
-    echo "PID $pid exited with code $exit_code"
-done
-
-# Write exit codes to log file
-echo "Exit codes: ${{exit_codes[@]}}"
-echo "Exit codes: ${{exit_codes[@]}}" > {self.work_paths['individual_logs']}/exit_codes.log
-
-    """
-
-        script_command = f"bash <<'EOF'\n{script_content}\nEOF"
-        result = subprocess.run(script_command, shell=True, capture_output=True, text=True)
         
-        # TODO use logger.info()
-        print("srun command out:", result.stdout)
-        print("srun command err:", result.stderr)
+        processes = []
+        for idx in range(n_inds):
+            
+            if self.srun_command:
+                # HPC case with slurm
+                run_ind = f"{self.srun_command} --output={self.work_paths['individual_logs']}/out_{gen}_$idx.log --error={self.work_paths['individual_logs']}/out_{gen}_$idx.log {self.exec_command} {gen} {idx}"
+            else:
+                # local case without slurm
+                run_ind = f"{self.exec_command} {gen} {idx} > {self.work_paths['individual_logs']}/out_{gen}_{idx}.log 2> {self.work_paths['individual_logs']}/out_{gen}_{idx}.log"
+                # TODO output redirection via > and 2> doesnt work
+
+            args = shlex.split(f"{run_ind}")
+            process = subprocess.Popen(args)
+            processes.append(process)
+        
+        while True:
+            status_codes = [process.poll() for process in processes]
+            print(status_codes)
+
+            # TODO restart failed individuals?
+
+            if not None in status_codes:
+                # all processes finished
+                break
+
+            time.sleep(5)
 
 
 

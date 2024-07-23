@@ -1,4 +1,4 @@
-from jube2.main import main
+#from jube2.main import main
 import os.path
 import pickle
 import time
@@ -8,6 +8,7 @@ import sys
 import signal
 import subprocess
 
+# TODO rename
 logger = logging.getLogger("utils.JUBE_runner")
 
 class Runner():
@@ -20,20 +21,15 @@ class Runner():
         """
         self.trajectory = trajectory
         self.generation = gen
-        self.done = False
 
-        #TODO
+        # TODO rename to runner_params
         args = self.trajectory.parameters["JUBE_params"].params
         self.path = args['paths_obj'].simulation_path
-        #self.exec = ...
         
-        self.filename = ""
         # Create directories for workspace
         subdirs = ['trajectories', 'results', 'individual_logs']
         self.work_paths = {sdir: os.path.join(self.path, sdir) for sdir in subdirs}
-
         os.makedirs(self.path, exist_ok=True)
-
         for dir in self.work_paths:
             os.makedirs(self.work_paths[dir], exist_ok=True)
 
@@ -78,28 +74,28 @@ class Runner():
 
         # Call the main function from JUBE
         logger.info("Running generation: " + str(self.generation))
-        #TODO
-        #run generation, move forward if all generations are done
+
         n_inds = len(trajectory.individuals[generation])
         self.simulate_generation(generation, n_inds)
 
-
         ## Touch done generation
-        #logger.info("Finished generation: " + str(self.generation))
-#
-        #self.done = True
-        #TODO read exit codes
+        logger.info("Finished generation: " + str(self.generation))
+
+
+        #TODO read exit codes before trying to collect results
+
         results = self.collect_results_from_run(generation, self.trajectory.individuals[generation])
         return results
     
 
     def simulate_generation(self, gen, n_inds):
-        print("in simulate")
-        simple_script_content = f"""#!/bin/bash 
-echo "hello" 
-"""
+        """
+        Executes n_inds srun commands, waits for them to finish and writes their exit codes to 'exit_codes.log'
+        """
+        
+        # TODO retrieve srun command arguments from runner params
+        
         srun_script_content = f"""#!/bin/bash
-
 pids=()
 exit_codes=()
 
@@ -132,11 +128,11 @@ echo "Exit codes: ${{exit_codes[@]}}"
 echo "Exit codes: ${{exit_codes[@]}}" > {self.work_paths['individual_logs']}/exit_codes.log
 
     """
-        
-
 
         srun_command = f"bash <<'EOF'\n{srun_script_content}\nEOF"
         result = subprocess.run(srun_command, shell=True, capture_output=True, text=True)
+        
+        # TODO use logger.info()
         print("srun command out:", result.stdout)
         print("srun command err:", result.stderr)
 
@@ -170,10 +166,10 @@ echo "Exit codes: ${{exit_codes[@]}}" > {self.work_paths['individual_logs']}/exi
                 'trajectory.individual = trajectory.individuals[int(iteration)][int(idx)] \n'+
                 'res = optimizee.simulate(trajectory)\n\n' +
                 'handle_res = open("' + respath + '", "wb")\n' +
+                
                 'pickle.dump(res, handle_res, pickle.HIGHEST_PROTOCOL)\n' +
                 'handle_res.close()\n\n')
-                #TODO
-                #read exit code
+                # TODO remove bottom two lines?
         f.close()
 
     def dump_traj(self, trajectory):

@@ -56,9 +56,7 @@ class Runner():
 
     def run(self, trajectory, generation):
         """
-        Takes care of running the generation by preparing the JUBE configuration files and, waiting for the execution
-        by JUBE and gathering the results.
-        This is the main function of the JUBE_runner
+        Takes care of running the generation by executing run_optimizee.py in parallel, waiting for the execution and gathering the results.
         :param trajectory: trajectory object storing individual parameters for each generation
         :param generation: id of the generation
         :return results: a list containing objects produced as results of the execution of each individual
@@ -71,7 +69,6 @@ class Runner():
         trajectory.individual = self.trajectory.individuals[generation][0]
         self.dump_traj(trajectory)
 
-        # Call the main function from JUBE
         logger.info("Running generation: " + str(self.generation))
 
         n_inds = len(trajectory.individuals[generation])
@@ -91,7 +88,7 @@ class Runner():
         """
         Executes n_inds srun commands, waits for them to finish and writes their exit codes to 'exit_codes.log'
         """
-        
+
         if self.srun_command:
             # HPC case with slurm
             run_ind = f"{self.srun_command} --output={self.work_paths['individual_logs']}/out_{gen}_$idx.log --error={self.work_paths['individual_logs']}/out_{gen}_$idx.log {self.exec_command}"

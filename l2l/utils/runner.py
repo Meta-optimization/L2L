@@ -93,10 +93,10 @@ class Runner():
             
             if self.srun_command:
                 # HPC case with slurm
-                run_ind = f"{self.srun_command} --output={self.work_paths['individual_logs']}/out_{gen}_$idx.log --error={self.work_paths['individual_logs']}/out_{gen}_$idx.log {self.exec_command} {gen} {idx}"
+                run_ind = f"{self.srun_command} --output={self.work_paths['individual_logs']}/out_{gen}_{idx}.log --error={self.work_paths['individual_logs']}/err_{gen}_{idx}.log {self.exec_command} {gen} {idx}"
             else:
                 # local case without slurm
-                run_ind = f"{self.exec_command} {gen} {idx} > {self.work_paths['individual_logs']}/out_{gen}_{idx}.log 2> {self.work_paths['individual_logs']}/out_{gen}_{idx}.log"
+                run_ind = f"{self.exec_command} {gen} {idx} > {self.work_paths['individual_logs']}/out_{gen}_{idx}.log 2> {self.work_paths['individual_logs']}/err_{gen}_{idx}.log"
                 # TODO output redirection via > and 2> doesnt work
 
             args = shlex.split(f"{run_ind}")

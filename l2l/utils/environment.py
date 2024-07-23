@@ -1,7 +1,6 @@
 from l2l.utils.trajectory import Trajectory
-#from l2l.utils.JUBE_runner import JUBERunner
 import logging
-from l2l.utils.runner import Runner
+from l2l.utils.MPIrunner import MPIRunner
 
 logger = logging.getLogger("utils.environment")
 
@@ -47,7 +46,7 @@ class Environment:
             if self.multiprocessing:
                 # Multiprocessing is done through JUBE, either with or without scheduler
                 logger.info(f"Environment run starting Runner for n iterations: {it+1}/{self.trajectory.par['n_iteration']}")
-                runner = Runner(self.trajectory, it)
+                runner = MPIRunner(self.trajectory, it)
                 result[it] = []
                 # Initialize new JUBE run and execute it
                 try:

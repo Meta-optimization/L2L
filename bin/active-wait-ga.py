@@ -9,19 +9,19 @@ def run_experiment():
     experiment = Experiment(
         root_dir_path='../results')
     
-    jube_params = { "exec": "python3.9"} 
+    jube_params = { "exec": "mpirun -n 1 python3.9"} 
     traj, _ = experiment.prepare_experiment(
         jube_parameter=jube_params, name=f"jube_removal_aw_ga", overwrite=True)
         
 
     # Active Wait Optimizee
-    optimizee_parameters = AWOptimizeeParameters(difficulty=10000.0)
+    optimizee_parameters = AWOptimizeeParameters(difficulty=1000.0)
     optimizee = AWOptimizee(traj, optimizee_parameters)
 
 
     # Genetic Algorithm Optimizer
     optimizer_parameters = GeneticAlgorithmParameters(seed=1580211, 
-                                                      pop_size=32,
+                                                      pop_size=2,
                                                       cx_prob=0.7,
                                                       mut_prob=0.7,
                                                       n_iteration=400,

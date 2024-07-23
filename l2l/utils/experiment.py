@@ -7,7 +7,7 @@ from l2l.utils.environment import Environment
 
 from l2l.logging_tools import create_shared_logger_data, configure_loggers
 from l2l.paths import Paths
-import l2l.utils.JUBE_runner as jube
+import l2l.utils.MPIrunner as runner
 
 
 class Experiment(object):
@@ -211,7 +211,7 @@ class Experiment(object):
         self.optimizer = optimizer
         self.logger.info("Optimizee parameters: %s", optimizee_parameters)
         self.logger.info("Optimizer parameters: %s", optimizer_parameters)
-        jube.prepare_optimizee(optimizee, self.paths.simulation_path)
+        runner.prepare_optimizee(optimizee, self.paths.simulation_path)
         # Add post processing
         self.env.add_postprocessing(optimizer.post_process)
         # Run the simulation

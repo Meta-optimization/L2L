@@ -3,8 +3,7 @@ import pickle
 import logging
 import subprocess
 
-# TODO rename
-logger = logging.getLogger("utils.JUBE_runner")
+logger = logging.getLogger("utils.runner")
 
 class Runner():
     """
@@ -61,7 +60,6 @@ class Runner():
         :param generation: id of the generation
         :return results: a list containing objects produced as results of the execution of each individual
         """
-        self.done = False
         self.prepare_run_file()
 
         # Dump trajectory for each optimizee run in the generation

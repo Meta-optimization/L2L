@@ -7,7 +7,7 @@ from l2l.utils.environment import Environment
 
 from l2l.logging_tools import create_shared_logger_data, configure_loggers
 from l2l.paths import Paths
-import l2l.utils.JUBE_runner as jube
+import l2l.utils.runner as runner
 
 
 class Experiment(object):
@@ -28,6 +28,7 @@ class Experiment(object):
         self.optimizee = None
         self.optimizer = None
 
+
     def prepare_experiment(self, **kwargs):
         """
         Prepare the experiment by creating the enviroment and
@@ -36,8 +37,8 @@ class Experiment(object):
             - trajectory_name: str, name of the trajectory, Default: trajectory
             - checkpoint: object, trajectory object
             - log_stdout: bool, if stdout should be sent to logs, Default:False
-            - jube_parameter: dict, User specified parameter for jube.
-                See notes section for default jube parameter
+            - runner_params: dict, User specified parameters for the runner.
+                See notes section for default runner parameters
             - multiprocessing, bool, enable multiprocessing, Default: False
             - debug, bool, enable verbose mode to print out errors appearing
                 in the optimizee, Default: False
@@ -48,26 +49,13 @@ class Experiment(object):
             -overwrite, bool, specifies whether existing files should be overwritten
                 Default: False
         :return traj, trajectory object
-        :return all_jube_params, dict, a dictionary with all parameters for jube
+        :return all_runner_params, dict, a dictionary with all parameters for the runner
             given by the user and default ones
 
         :notes
-           Default JUBE parameters are:
-            - scheduler: None,
-            - submit_cmd: sbatch,
-            - job_file: job.run,
-            - nodes: 1,
-            - walltime: 01:00:00,
-            - ppn: 1,
-            - cpu_pp: 1,
-            - threads_pp: 4,
-            - mail_mode: ALL,
-            - err_file: stderr,
-            - out_file: stdout,
-            - tasks_per_job: 1,
-            - exec: python3 + self.paths.simulation_path +
-                "run_files/run_optimizee.py"
-            - ready_file: self.paths.root_dir_path + "ready_files/ready_w_"
+           Default runner parameters are:
+            - srun: ""
+            - exec: "python3 + self.paths.simulation_path/run_optimizee.py"
             - work_path: self.paths.root_dir_path,
             - paths_obj: self.paths
         """
@@ -140,54 +128,49 @@ class Experiment(object):
         configure_loggers()
 
 
-        # Set JUBE params
-        default_jube_params = {
-            # "scheduler": "None",
-            "submit_cmd": "sbatch",
-            "job_file": "job.run",
-            "nodes": "1",
-            "walltime": "01:00:00",
-            "ppn": "1",
-            "cpu_pp": "1",
-            "threads_pp": "4",
-            "mail_mode": "ALL",
-            "err_file": "stderr",
-            "out_file": "stdout",
-            "tasks_per_job": "1",
-            "exec": "python3 " + os.path.join(self.paths.simulation_path,
-                                              "run_files/run_optimizee.py"),
-            "ready_file": os.path.join(self.paths.root_dir_path,
-                                       "ready_files/ready_w_"),
+        default_runner_params = {
+            "srun": "",
+            "exec": "python3 " + os.path.join(self.paths.simulation_path, "run_optimizee.py"),
             "work_path": self.paths.root_dir_path,
             "paths_obj": self.paths,
         }
 
-        # Will contain all jube parameters
-        all_jube_params = {}
-        self.traj.f_add_parameter_group("JUBE_params",
-                                        "Contains JUBE parameters")
+        # Will contain all runner parameters
+        all_runner_params = {}
+        self.traj.f_add_parameter_group("runner_params",
+                                        "Contains runner parameters")
+
+        
+
         # Go through the parameter dictionary and add to the trajectory
-        if kwargs.get('jube_parameter'):
-            for k, v in kwargs['jube_parameter'].items():
+        if kwargs.get('runner_params'):
+            for k, v in kwargs['runner_params'].items():
                 if k == "exec":
                     val = v + " " + os.path.join(self.paths.simulation_path,
-                                                 "run_files/run_optimizee.py")
-                    self.traj.f_add_parameter_to_group("JUBE_params", k, val)
-                    all_jube_params[k] = val
+                                                 "run_optimizee.py")
+                    self.traj.f_add_parameter_to_group("runner_params", k, val)
+                    all_runner_params[k] = val
                 else:
-                    self.traj.f_add_parameter_to_group("JUBE_params", k, v)
-                    all_jube_params[k] = v
-        # Default parameter are added if they are not already set by the user
-        for k, v in default_jube_params.items():
-            if kwargs.get('jube_parameter'):
-                if k not in kwargs.get('jube_parameter').keys():
-                    self.traj.f_add_parameter_to_group("JUBE_params", k, v)
-                    all_jube_params[k] = v
+                    self.traj.f_add_parameter_to_group("runner_params", k, v)
+                    all_runner_params[k] = v
+
+        # Default parameters are added if they are not already set by the user
+        for k, v in default_runner_params.items():
+            if kwargs.get('runner_params'):
+                if k not in kwargs.get('runner_params').keys():
+                    self.traj.f_add_parameter_to_group("runner_params", k, v)
+                    all_runner_params[k] = v
             else:
-                self.traj.f_add_parameter_to_group("JUBE_params", k, v)
-                all_jube_params[k] = v
-        print('JUBE parameters used: {}'.format(all_jube_params))
-        return self.traj, all_jube_params
+                self.traj.f_add_parameter_to_group("runner_params", k, v)
+                all_runner_params[k] = v
+
+         
+
+
+        print('Runner parameters used: {}'.format(all_runner_params))
+        return self.traj, all_runner_params
+
+
 
     def run_experiment(self, optimizer, optimizee,
                        optimizer_parameters=None, optimizee_parameters=None):
@@ -211,11 +194,11 @@ class Experiment(object):
         self.optimizer = optimizer
         self.logger.info("Optimizee parameters: %s", optimizee_parameters)
         self.logger.info("Optimizer parameters: %s", optimizer_parameters)
-        jube.prepare_optimizee(optimizee, self.paths.simulation_path)
+        runner.prepare_optimizee(optimizee, self.paths.simulation_path)
         # Add post processing
         self.env.add_postprocessing(optimizer.post_process)
         # Run the simulation
-        self.env.run(optimizee.simulate)
+        self.env.run()
 
     def end_experiment(self, optimizer):
         """

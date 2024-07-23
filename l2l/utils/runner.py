@@ -1,11 +1,6 @@
-#from jube2.main import main
 import os.path
 import pickle
-import time
 import logging
-import glob
-import sys
-import signal
 import subprocess
 
 # TODO rename
@@ -18,14 +13,18 @@ class Runner():
     def __init__(self, trajectory, gen):
         """
         :param trajectory: A trajectory object holding the parameters to use in the initialization
+        :param gen: number of the generation
         """
         self.trajectory = trajectory
         self.generation = gen
 
-        # TODO rename to runner_params
-        args = self.trajectory.parameters["JUBE_params"].params
+        args = self.trajectory.parameters["runner_params"].params
         self.path = args['paths_obj'].simulation_path
-        
+        self.srun_command = args['srun']
+        self.exec_command = args['exec']
+
+
+
         # Create directories for workspace
         subdirs = ['trajectories', 'results', 'individual_logs']
         self.work_paths = {sdir: os.path.join(self.path, sdir) for sdir in subdirs}
@@ -93,19 +92,23 @@ class Runner():
         Executes n_inds srun commands, waits for them to finish and writes their exit codes to 'exit_codes.log'
         """
         
-        # TODO retrieve srun command arguments from runner params
-        
-        srun_script_content = f"""#!/bin/bash
+        if self.srun_command:
+            # HPC case with slurm
+            run_ind = f"{self.srun_command} --output={self.work_paths['individual_logs']}/out_{gen}_$idx.log --error={self.work_paths['individual_logs']}/out_{gen}_$idx.log {self.exec_command}"
+        else:
+            # local case without slurm
+            run_ind = self.exec_command
+
+        script_content = f"""#!/bin/bash
 pids=()
 exit_codes=()
-
 
 echo "gen: {gen}"
 echo "n_inds: {n_inds}"
 
 for idx in $(seq 0 $(({n_inds}-1)))
 do
-    srun -n1 --cpus-per-task=1 --gres=gpu:0 --exact --output={self.work_paths['individual_logs']}/out_{gen}_$idx.log --error={self.work_paths['individual_logs']}/out_{gen}_$idx.log python {self.path}/run_optimizee.py {gen} $idx &
+    {run_ind} {gen} $idx &
     pid=$!
     pids+=($pid)
     echo "Started srun for idx=$idx with PID $pid"
@@ -129,8 +132,8 @@ echo "Exit codes: ${{exit_codes[@]}}" > {self.work_paths['individual_logs']}/exi
 
     """
 
-        srun_command = f"bash <<'EOF'\n{srun_script_content}\nEOF"
-        result = subprocess.run(srun_command, shell=True, capture_output=True, text=True)
+        script_command = f"bash <<'EOF'\n{script_content}\nEOF"
+        result = subprocess.run(script_command, shell=True, capture_output=True, text=True)
         
         # TODO use logger.info()
         print("srun command out:", result.stdout)

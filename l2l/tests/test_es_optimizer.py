@@ -16,7 +16,7 @@ class ESOptimizerTestCase(OptimizerTestCase):
             fitness_shaping_enabled=True,
             pop_size=1,
             n_iteration=1,
-            stop_criterion=np.Inf,
+            stop_criterion=np.inf,
             seed=1)
 
         optimizer = EvolutionStrategiesOptimizer(

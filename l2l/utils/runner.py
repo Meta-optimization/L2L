@@ -71,15 +71,17 @@ class Runner():
         logger.info("Running generation: " + str(self.generation))
 
         n_inds = len(trajectory.individuals[generation])
-        self.simulate_generation(generation, n_inds)
+        exit_codes = self.simulate_generation(generation, n_inds)
 
         ## Touch done generation
         logger.info("Finished generation: " + str(self.generation))
 
-
-        #TODO read exit codes before trying to collect results
-
-        results = self.collect_results_from_run(generation, self.trajectory.individuals[generation])
+        if all(exit_code == 0 for exit_code in exit_codes):
+            results = self.collect_results_from_run(generation, self.trajectory.individuals[generation])
+        else:
+            # not all individuals finished without error (even potentially after restarting)
+            raise RuntimeError(f"Generation {generation} did not finish successfully")
+        
         return results
     
 
@@ -88,7 +90,8 @@ class Runner():
         Executes n_inds srun commands, waits for them to finish and writes their exit codes to 'exit_codes.log'
         """
         
-        processes = []
+        running_individuals = {}
+        finished_individuals = {}
         for idx in range(n_inds):
             
             if self.srun_command:
@@ -101,19 +104,40 @@ class Runner():
 
             args = shlex.split(f"{run_ind}")
             process = subprocess.Popen(args)
-            processes.append(process)
+            running_individuals[idx] = process
         
+
+
+        # Wait for all individual to finish
+        # Restart failed individuals 
         while True:
-            status_codes = [process.poll() for process in processes]
-            print(status_codes)
 
-            # TODO restart failed individuals?
+            for idx in list(running_individuals.keys()):
+                process = running_individuals[idx]
+                status_code = process.poll()
 
-            if not None in status_codes:
+                print(f"status {idx}: {status_code}")
+                
+                if status_code == None:
+                    # indivdual still running
+                    continue
+                elif status_code == 0:
+                    # individual finished without error
+                    finished_individuals[idx] = running_individuals.pop(idx)
+                else:
+                    # individual raised error
+                    # TODO depending on what kind of error restart failed individual
+                    # TODO pass reference to optimizer from environment.py and call optimizer.restart(ind)
+                    raise NotImplementedError("restart failed individual")
+
+            if not running_individuals:
                 # all processes finished
                 break
 
             time.sleep(5)
+        
+        sorted_exit_codes = [finished_individuals[idx].poll() for idx in range(n_inds)]
+        return sorted_exit_codes
 
 
 

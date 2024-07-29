@@ -3,6 +3,7 @@ import pickle
 import logging
 import shlex, subprocess
 import time
+import zipfile
 
 logger = logging.getLogger("utils.runner")
 
@@ -81,6 +82,9 @@ class Runner():
         else:
             # not all individuals finished without error (even potentially after restarting)
             raise RuntimeError(f"Generation {generation} did not finish successfully")
+
+        if self.srun_command:
+            self.create_zipfile(self.work_paths["individual_logs"], f"logs_generation_{generation}")
         
         return results
     
@@ -184,6 +188,19 @@ class Runner():
         pickle.dump(trajectory, handle, pickle.HIGHEST_PROTOCOL)
         handle.close()
 
+    def create_zipfile(self, folder, filename):
+        # Full path for the zip file
+        zip_path = os.path.join(folder, filename + '.zip')
+
+        # Creating the zip file in the specified folder
+        with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as target:
+            for root, dirs, files in os.walk(folder):
+                for file in files:
+                    if file.endswith('.log'):
+                        add = os.path.join(root, file)
+                        target.write(add, os.path.relpath(add, folder))
+                        # Deleting the log files after zipping
+                        os.remove(add)
 
 def prepare_optimizee(optimizee, path):
     """

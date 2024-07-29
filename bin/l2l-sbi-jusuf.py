@@ -7,13 +7,13 @@ from l2l.optimizers.bayesianinference import SBIOptimizer, SBIOptimizerParameter
 from sbi.inference import SNPE
 
 def run_experiment():
-    name = 'L2L-SBI'
+    name = 'L2L-SBI-hpc'
     experiment = Experiment("../results/")
     # jube_params = { "exec": "python"}
 
     runner_params = {
-        "srun": "",
-        "exec": "python"
+        "srun": "srun --ntasks=1 --cpus-per-task=1 --gres=gpu:0",
+        "exec": ""
     }
 
     traj, _ = experiment.prepare_experiment(name=name,
@@ -27,7 +27,7 @@ def run_experiment():
     optimizee = SBIOptimizee(traj, optimizee_parameters)
 
     # Optimizer
-    optimizer_parameters = SBIOptimizerParameters(pop_size=4, n_iteration=3, seed=0, save_path='/home/todt/Dokumente/L2L/results/data',
+    optimizer_parameters = SBIOptimizerParameters(pop_size=4, n_iteration=3, seed=0, save_path='/p/home/jusers/todt1/jusuf/slns/L2L/results/data',
                                                   inference_method=SNPE, restrict_prior=3, x_obs=[10.], tensorboard=True)
     optimizer = SBIOptimizer(traj, optimizee_create_individual=optimizee.create_individual,
                                 optimizee_fitness_weights=(1.0, 0.0),

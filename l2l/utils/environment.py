@@ -1,6 +1,6 @@
 from l2l.utils.trajectory import Trajectory
-from l2l.utils.JUBE_runner import JUBERunner
 import logging
+from l2l.utils.runner import Runner
 
 logger = logging.getLogger("utils.environment")
 
@@ -8,8 +8,7 @@ logger = logging.getLogger("utils.environment")
 class Environment:
     """
     The Environment class takes the place of the pypet Environment and provides the required functionality
-    to execute the inner loop. This means it uses either JUBE or sequential calls in order to execute all
-    individuals in a generation.
+    to execute the inner loop.
     Based on the pypet environment concept: https://github.com/SmokinCaterpillar/pypet
     """
 
@@ -35,49 +34,32 @@ class Environment:
         self.run_id = 0
         self.enable_logging()
 
-    def run(self, runfunc):
+    def run(self):
         """
-        Runs the optimizees using either JUBE or sequential calls.
-        :param runfunc: The function to be called from the optimizee
-        :return: the results of running a whole generation. Dictionary indexed by generation id.
+        Runs all generations of the optimizees using the runner.
         """
         result = {}
         for it in range(self.trajectory.individual.generation, self.trajectory.par['n_iteration']+self.trajectory.individual.generation):
             if self.multiprocessing:
-                # Multiprocessing is done through JUBE, either with or without scheduler
-                logger.info(f"Environment run starting JUBERunner for n iterations: {it+1}/{self.trajectory.par['n_iteration']}")
-                jube = JUBERunner(self.trajectory)
+                # Multiprocessing is done through the runner
+                logger.info(f"Environment run starting Runner for n iterations: {it+1}/{self.trajectory.par['n_iteration']}")
+                runner = Runner(self.trajectory, it)
                 result[it] = []
-                # Initialize new JUBE run and execute it
+                # execute run
                 try:
-                    jube.write_pop_for_jube(self.trajectory,it)
-                    result[it] = jube.run(self.trajectory,it)
+                    result[it] = runner.run(self.trajectory,it)
                 except Exception as e:
                     if self.logging:
-                        logger.exception("Error launching JUBE run: " + str(e.__cause__))
+                        logger.exception("Error launching run: " + str(e.__cause__))
                     raise e
 
-            else:
-                # Sequential calls to the runfunc in the optimizee
-                result[it] = []
-                # Call runfunc on each individual from the trajectory
-                try:
-                    for ind in self.trajectory.individuals[it]:
-                        self.trajectory.individual = ind
-                        result[it].append((ind.ind_idx, runfunc(self.trajectory)))
-                        self.run_id = self.run_id + 1
-                except:
-                    if self.logging:
-                        logger.exception("Error during serial execution of individuals")
-                    raise
             # Add results to the trajectory
             self.trajectory.results.f_add_result_to_group("all_results", it, result[it])
             self.trajectory.current_results = result[it]
             # Update trajectory file
-            jube.dump_traj(self.trajectory)
+            runner.dump_traj(self.trajectory)
             # Perform the postprocessing step in order to generate the new parameter set
             self.postprocessing(self.trajectory, result[it])
-        return result
 
     def add_postprocessing(self, func):
         """

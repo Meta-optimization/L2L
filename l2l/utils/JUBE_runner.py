@@ -249,6 +249,20 @@ class JUBERunner():
         results = self.collect_results_from_run(generation, self.trajectory.individuals[generation])
         return results
 
+    def restart_individual(self, ind):
+        # get new parameter set from optimizer
+        new_params = self.trajectory.optimizer.create_individual() # TODO create function (arguments?) + put optimizer into trajectory?
+
+        # manipulate the trajectory
+        old_params = self.trajectory.individuals[self.generation][ind]
+        self.trajectory.invalid_individuals[self.generation].append(old_params) # TODO create array in traj
+        self.trajectory.individuals[self.generation][ind] = new_params
+        self.dump_traj(self.trajectory)
+
+        # start the new process
+        process = subprocess.Popen() # TODO
+        return process
+
     def is_done(self, files, bools, traj):
         """
         Identifies if all files marking the end of the execution of individuals in a generation are present or not.

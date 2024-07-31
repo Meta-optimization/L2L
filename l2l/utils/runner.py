@@ -83,6 +83,7 @@ class Runner():
             # not all individuals finished without error (even potentially after restarting)
             raise RuntimeError(f"Generation {generation} did not finish successfully")
 
+        #create zipfiles for Err and Out files 
         if self.srun_command:
             self.create_zipfile(self.work_paths["individual_logs"], f"logs_generation_{generation}")
         
@@ -189,6 +190,11 @@ class Runner():
         handle.close()
 
     def create_zipfile(self, folder, filename):
+        """
+        Creates zipfile and deletes files included in the zip file
+        :param folder: path to folder containing the files
+        :param filename: filename of the created zip file
+        """
         # Full path for the zip file
         zip_path = os.path.join(folder, filename + '.zip')
 

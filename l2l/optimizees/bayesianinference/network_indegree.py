@@ -37,9 +37,9 @@ def convert_synapse_weight(tau_m, tau_syn, C_m):
 class NestBenchmarkNetwork():
 
     params = {
-        'num_threads': 1, #{threads_per_task},  # total number of threads per process
-        'simtime': 200, #{model_time_sim},  # total simulation time in ms
-        'presimtime': 50, #{model_time_presim},  # simulation time until reaching equilibrium
+        'num_threads': 4, #{threads_per_task},  # total number of threads per process
+        'simtime': 10_000, #{model_time_sim},  # total simulation time in ms
+        'presimtime': 300, #{model_time_presim},  # simulation time until reaching equilibrium
         'dt': 0.1,  # simulation step
         'compressed_spikes': False, #{compressed_spikes},  # whether to use spike compression
         'rng_seed': 42, #{rng_seed},  # random number generator seed

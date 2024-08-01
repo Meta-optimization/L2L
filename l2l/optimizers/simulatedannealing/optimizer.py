@@ -150,7 +150,7 @@ class SimulatedAnnealingOptimizer(Optimizer):
         self.g = 0  # the current generation
 
         # Keep track of current fitness value to decide whether we want the next individual to be accepted or not
-        self.current_fitness_value_list = [-np.Inf] * parameters.n_parallel_runs
+        self.current_fitness_value_list = [-np.inf] * parameters.n_parallel_runs
 
         new_individual_list = [
             list_to_dict(

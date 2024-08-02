@@ -31,9 +31,18 @@ class Trajectory:
         self._parameters.parameter = {}
         self.individuals = {}
         self.v_idx = 0
-        self.debug = keyword_args['debug']
-        self.stop_run = keyword_args['stop_run']
-        self.timeout = keyword_args['timeout']
+        if 'debug' in keyword_args:
+            self.debug = keyword_args['debug']
+        else:
+            self.debug = False
+        if 'stop_run' in keyword_args:
+            self.stop_run = keyword_args['stop_run']
+        else:
+            self.stop_run = True
+        if 'timeout' in keyword_args:
+            self.timeout = keyword_args['timeout']
+        else:
+            self.timeout = False
         self.is_loaded = False
         self.hall_of_fame = None
 

@@ -100,7 +100,7 @@ class Experiment(object):
                 multiprocessing=kwargs.get('multiprocessing', True),
                 debug = kwargs.get('debug', False),
                 stop_run = kwargs.get('stop_run', True),
-                timeout = kwargs.get('stop_run', True)
+                timeout = kwargs.get('timeout', True)
             )
         else:
             self.env = Environment(
@@ -114,7 +114,7 @@ class Experiment(object):
                 multiprocessing=kwargs.get('multiprocessing', True),
                 debug = kwargs.get('debug', False),
                 stop_run = kwargs.get('stop_run', True),
-                timeout = kwargs.get('stop_run', True)
+                timeout = kwargs.get('timeout', True)
             )
             # Get the trajectory from the environment
             self.traj = self.env.trajectory

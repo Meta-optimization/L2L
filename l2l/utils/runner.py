@@ -179,24 +179,21 @@ class Runner():
         f.write('import pickle\n' +
                 'import sys\n' +
                 'import gc\n' +
-                'finished = False' +
-                'while not finished:\n' +
-
-                '  iteration = sys.argv[1]\n' +
-                '  idx = sys.argv[2]\n' +
-                '  handle_trajectory = open("' + trajpath + '", "rb")\n' +
-                '  trajectory = pickle.load(handle_trajectory)\n' +
-                '  handle_trajectory.close()\n' +
-                '  handle_optimizee = open("' + self.optimizeepath + '", "rb")\n' +
-                '  optimizee = pickle.load(handle_optimizee)\n' +
-                '  handle_optimizee.close()\n\n' +
-                '  trajectory.individual = trajectory.individuals[int(iteration)][int(idx)] \n'+
-                '  res = optimizee.simulate(trajectory)\n\n' +
-                '  handle_res = open("' + respath + '", "wb")\n' +
+                'iteration = sys.argv[1]\n' +
+                'idx = sys.argv[2]\n' +
+                'handle_trajectory = open("' + trajpath + '", "rb")\n' +
+                'trajectory = pickle.load(handle_trajectory)\n' +
+                'handle_trajectory.close()\n' +
+                'handle_optimizee = open("' + self.optimizeepath + '", "rb")\n' +
+                'optimizee = pickle.load(handle_optimizee)\n' +
+                'handle_optimizee.close()\n\n' +
+                'trajectory.individual = trajectory.individuals[int(iteration)][int(idx)] \n'+
+                'res = optimizee.simulate(trajectory)\n\n' +
+                'handle_res = open("' + respath + '", "wb")\n' +
                 
-                '  pickle.dump(res, handle_res, pickle.HIGHEST_PROTOCOL)\n' +
-                '  handle_res.close()\n' + 
-                '  gc.collect()')
+                'pickle.dump(res, handle_res, pickle.HIGHEST_PROTOCOL)\n' +
+                'handle_res.close()\n' + 
+                'gc.collect()')
         f.close()
 
     def dump_traj(self, trajectory):

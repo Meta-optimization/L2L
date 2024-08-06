@@ -172,28 +172,31 @@ class Runner():
         :return true if all files are present, false otherwise
         """
         trajpath = os.path.join(self.work_paths["trajectories"],
-                                'trajectory_" + str(iteration) + ".bin')
+                                'op_trajectory_" + str(iteration) + ".bin')
         respath = os.path.join(self.work_paths['results'],
                                'results_" + str(iteration) + "_" + str(idx) + ".bin')
         f = open(os.path.join(self.path, "run_optimizee.py"), "w")
         f.write('import pickle\n' +
                 'import sys\n' +
                 'import gc\n' +
-                'iteration = sys.argv[1]\n' +
-                'idx = sys.argv[2]\n' +
-                'handle_trajectory = open("' + trajpath + '", "rb")\n' +
-                'trajectory = pickle.load(handle_trajectory)\n' +
-                'handle_trajectory.close()\n' +
-                'handle_optimizee = open("' + self.optimizeepath + '", "rb")\n' +
-                'optimizee = pickle.load(handle_optimizee)\n' +
-                'handle_optimizee.close()\n\n' +
-                'trajectory.individual = trajectory.individuals[int(iteration)][int(idx)] \n'+
-                'res = optimizee.simulate(trajectory)\n\n' +
-                'handle_res = open("' + respath + '", "wb")\n' +
+                'finished = False' +
+                'while not finished:\n' +
+
+                '  iteration = sys.argv[1]\n' +
+                '  idx = sys.argv[2]\n' +
+                '  handle_trajectory = open("' + trajpath + '", "rb")\n' +
+                '  trajectory = pickle.load(handle_trajectory)\n' +
+                '  handle_trajectory.close()\n' +
+                '  handle_optimizee = open("' + self.optimizeepath + '", "rb")\n' +
+                '  optimizee = pickle.load(handle_optimizee)\n' +
+                '  handle_optimizee.close()\n\n' +
+                '  trajectory.individual = trajectory.individuals[int(iteration)][int(idx)] \n'+
+                '  res = optimizee.simulate(trajectory)\n\n' +
+                '  handle_res = open("' + respath + '", "wb")\n' +
                 
-                'pickle.dump(res, handle_res, pickle.HIGHEST_PROTOCOL)\n' +
-                'handle_res.close()\n' + 
-                'gc.collect()')
+                '  pickle.dump(res, handle_res, pickle.HIGHEST_PROTOCOL)\n' +
+                '  handle_res.close()\n' + 
+                '  gc.collect()')
         f.close()
 
     def dump_traj(self, trajectory):
@@ -205,21 +208,21 @@ class Runner():
         #pickle.dump(trajectory, handle, pickle.HIGHEST_PROTOCOL)
         #handle.close()
 
-        mtrajfname = os.path.join(self.work_paths["trajectories"], "whole_trajectory.bin")
+        mtrajfname = os.path.join(self.work_paths["trajectories"], "trajectory_%s.bin" % (trajectory.individual.generation))
         mtraj = trajectory
-        if os.path.isfile(mtrajfname):
-            with open(mtrajfname, 'rb') as mhandle:
-                mtraj = pickle.load(mhandle)
-                mtraj.individuals[trajectory.individual.generation] = trajectory.individuals[trajectory.individual.generation]
+        #if os.path.isfile(mtrajfname):
+        #    with open(mtrajfname, 'rb') as mhandle:
+        #        mtraj = pickle.load(mhandle)
+        #        mtraj.individuals[trajectory.individual.generation] = trajectory.individuals[trajectory.individual.generation]
 
         with open(mtrajfname, 'wb') as mhandle:
             pickle.dump(mtraj, mhandle, pickle.HIGHEST_PROTOCOL)
 
-        tmpgen = trajectory.individuals[trajectory.individual.generation]
+        #tmpgen = trajectory.individuals[trajectory.individual.generation]
         tmptraj = Trajectory()
         tmptraj.individual = trajectory.individual
-        tmptraj.individuals[trajectory.individual.generation] = tmpgen
-        trajfname = "trajectory_%s.bin" % (trajectory.individual.generation)
+        tmptraj.individuals[trajectory.individual.generation] = trajectory.individuals[trajectory.individual.generation]#tmpgen
+        trajfname = "op_trajectory_%s.bin" % (trajectory.individual.generation)
         handle = open(os.path.join(self.work_paths["trajectories"], trajfname),
                             "wb")
         pickle.dump(tmptraj, handle, pickle.HIGHEST_PROTOCOL)

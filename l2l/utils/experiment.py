@@ -42,7 +42,7 @@ class Experiment(object):
             - multiprocessing, bool, enable multiprocessing, Default: False
             - debug, bool, enable verbose mode to print out errors appearing
                 in the optimizee, Default: False
-            - stop_run, bool, when debug is enabled and found an error, stops 
+            - stop_run, bool, when debug is enabled and found an error, stops
                 execution, Default: True
             -timeout, bool, stops execution after 2 hours if it is not finished by then,
                 Default: True
@@ -80,7 +80,7 @@ class Experiment(object):
                 ready_path = 'simulation/ready_files'
                 if os.path.isdir(os.path.join(self.paths.output_dir_path, ready_path)):
                     shutil.rmtree(os.path.join(self.paths.output_dir_path, ready_path))
-            else: 
+            else:
                 raise Exception("There are already exsiting outputfiles in this directory. Please change the path specification.")
 
         print("All output logs can be found in directory ",
@@ -88,7 +88,7 @@ class Experiment(object):
 
         # Create an environment that handles running our simulation
         # This initializes an environment
-        if self.traj:  
+        if self.traj:
             self.env = Environment(
                 checkpoint=self.traj,
                 filename=self.paths.output_dir_path,
@@ -100,9 +100,9 @@ class Experiment(object):
                 multiprocessing=kwargs.get('multiprocessing', True),
                 debug = kwargs.get('debug', False),
                 stop_run = kwargs.get('stop_run', True),
-                timeout = kwargs.get('stop_run', True)
+                timeout = kwargs.get('timeout', True)
             )
-        else: 
+        else:
             self.env = Environment(
                 trajectory=trajectory_name,
                 filename=self.paths.output_dir_path,
@@ -114,7 +114,7 @@ class Experiment(object):
                 multiprocessing=kwargs.get('multiprocessing', True),
                 debug = kwargs.get('debug', False),
                 stop_run = kwargs.get('stop_run', True),
-                timeout = kwargs.get('stop_run', True)
+                timeout = kwargs.get('timeout', True)
             )
             # Get the trajectory from the environment
             self.traj = self.env.trajectory
@@ -140,7 +140,7 @@ class Experiment(object):
         self.traj.f_add_parameter_group("runner_params",
                                         "Contains runner parameters")
 
-        
+
 
         # Go through the parameter dictionary and add to the trajectory
         if kwargs.get('runner_params'):
@@ -164,7 +164,7 @@ class Experiment(object):
                 self.traj.f_add_parameter_to_group("runner_params", k, v)
                 all_runner_params[k] = v
 
-         
+
 
 
         print('Runner parameters used: {}'.format(all_runner_params))
@@ -213,7 +213,7 @@ class Experiment(object):
         # Finally disable logging and close all log-files
         self.env.disable_logging()
         return self.traj, self.paths
-    
+
     def load_trajectory(self, traj_path):
         """
         Loads a trajectory from a given file

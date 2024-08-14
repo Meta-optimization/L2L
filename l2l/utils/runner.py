@@ -7,18 +7,36 @@ import time
 import copy
 import zipfile
 import sys
+  
 from l2l.utils.trajectory import Trajectory
 
 logger = logging.getLogger("utils.runner")
 
 class Runner():
     """
+    A class used to launch the individual optimizees in parallel within the available computing resources. Takes care of launching, monitoring and ending the execution of the individuals. It generates workers which are assigned one or more individuals to be executed within each generation. It also takes care of collecting the results and relaunching individuals if there are runtime or logic errors associated with the execution.
+
+    ...
+
+    Methods
+    -------
+    collect_results_from_run(self, generation, individuals)
+    run(self, trajectory, generation)
+    produce_run_command(idx)
+    launch(idx)
+    launch_workers()
+    close_workers()
+    restart_worker(gen, idx)
+    simulate_generation(gen, n_inds)
+    prepare_run_file()
+    dump_traj(trajectory)
+    create_zipfile(folder, filename)
     """
 
     def __init__(self, trajectory, iterations):
         """
         :param trajectory: A trajectory object holding the parameters to use in the initialization
-        :param gen: number of the generation
+        :param iterations: number of iterations in the optimization process
         """
         self.trajectory = trajectory
         self.iterations = iterations
@@ -104,6 +122,10 @@ class Runner():
         return results
 
     def produce_run_command(self, idx):
+        """
+        Generates a string that can be used to launch an instance of the optimizee with specific parameters, also called an individual.
+        :param idx: the id of the individual to be launched.
+        """
         if self.srun_command:
             # HPC case with slurm
             run_ind = f"{self.srun_command} --output={self.work_paths['individual_logs']}/out_{idx}.log --error={self.work_paths['individual_logs']}/err_{idx}.log {self.exec_command} {idx} &"
@@ -116,32 +138,49 @@ class Runner():
 
         return args
 
-    def launch(self,idx):
+    def launch(self, idx):
+        """
+        This function uses the subprocess.Popen function to launch the command required to initialize a parallel worker. This worker will stay alive during the whole optimization run and will receive the id of the individuals it will execute each generation. It also generates the pipes (files in a shared file system) to communicate between the runner and the worker.
+        Each worker has its own file in the path 'individual_logs' with the worker_ prefix.
+        The logs pertaining to each individual are also stored in 'individual_logs' with err_ and out_ prefixes.
+        :param idx: the id of the individual to be launched.
+        """
+        pipename = os.path.join(self.work_paths['individual_logs'],f"pipe_{idx}")
+        open(pipename, 'w+').close()
+        logger.info(f"Pipe created {pipename}")
         args = self.produce_run_command(idx)
         process = subprocess.Popen(args, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
-        pipename = self.work_paths['individual_logs']+f"/pipe_{idx}"
         try:
-            os.mkfifo(pipename)
-        except FileExistsError:
-            logger.info(f"Pipe already exists")
-        logger.info(f"Pipe created {pipename}")
-        self.pipes[idx] = open(pipename, 'rb')
+            self.pipes[idx] = open(pipename, 'rb')
+        except Exception as e:
+            logger.info(f"{e}")
         os.set_blocking(self.pipes[idx].fileno(), False)
         self.running_individuals[idx] = process
         logger.info(f"Worker created {idx}")
     
     def launch_workers(self):
+        """
+        Takes care of launching enough workers as allowed by the available computing resources.
+        """
         for idx in range(self.n_inds):
             self.launch(idx)
         logger.info(f"All {self.n_inds} workers created")
 
     def close_workers(self):
+        """
+        Makes sure all workers are notified that the optimization run is over and closes all open pipes and files.
+        """
         for idx in range(self.n_inds):
             self.running_individuals[idx].stdin.write(f"0 0 0\n".encode('ascii')) #{self.generation<self.iterations}
             self.running_individuals[idx].stdin.flush() #TODO Fix end of run
             self.pipes[idx].close()
     
     def restart_worker(self, gen, idx):
+        """
+        Takes care of handling the restart of an individual which failed by any reason, either runtime or logic.
+        :param gen: the current generation
+        :param idx: the id of the individual to be launched.
+        """
         self.launch(idx)
         self.running_individuals[idx].stdin.write(f"{gen} {idx} 1\n".encode('ascii')) #{self.generation<self.iterations}
         self.running_individuals[idx].stdin.flush()
@@ -149,6 +188,8 @@ class Runner():
     def simulate_generation(self, gen, n_inds):
         """
         Executes n_inds srun commands, waits for them to finish and writes their exit codes to 'exit_codes.log'
+        :param gen: the current generation
+        :param n_inds: the number of individuals within the generation
         """
         # Sending next optimizee task to workers
         for idx in range(n_inds):
@@ -199,10 +240,6 @@ class Runner():
                     if status_code > 128 and retry<20:#Error spawning step, wait a bit?
                         print(f"Restarting {idx} from error {status_code}\n retry {retry}")
                         time.sleep(4)
-                        #args = self.produce_run_command(idx)
-                        #process = subprocess.Popen(args, stdout=subprocess.PIPE, stdin=subprocess.PIPE)
-                        #os.set_blocking(process.stdout.fileno(), False)
-                        #self.running_individuals[idx] = process
                         self.restart_worker(gen, idx)
                         retry += 1
                     else:
@@ -239,10 +276,12 @@ class Runner():
                 'import gc\n' +
                 'import os\n' +
                 'import logging\n' +
+                'import socket\n' +
                 'worker_id = sys.argv[1]\n' +
                 'logfilename = f"'+self.work_paths['individual_logs']+'/workers_{worker_id}.wlog"\n' +
                 'logging.basicConfig(filename=logfilename, filemode="a", level=logging.INFO)\n' +
                 'logger = logging.getLogger("Optimizee")\n'+
+                'logger.info(socket.gethostname())\n' +
                 'pipename = f"'+self.work_paths['individual_logs']+'/pipe_{worker_id}"\n'+
                 'pipe = open(pipename, "wb")\n' +
                 'running = 1\n' + 

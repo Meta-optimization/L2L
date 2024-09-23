@@ -62,7 +62,8 @@ class Runner():
 
         self.running_individuals = {}
         self.finished_individuals = {}
-        self.pipes = {}
+        self.outputpipes = {}
+        self.inputpipes = {}
         self.n_inds = len(trajectory.individuals[0])
         self.prepare_run_file()
         self.launch_workers()
@@ -113,8 +114,7 @@ class Runner():
             # not all individuals finished without error (even potentially after restarting)
             raise RuntimeError(f"Generation {generation} did not finish successfully")
         #create zipfiles for Err and Out files 
-        if self.srun_command:
-            self.create_zipfile(self.work_paths["individual_logs"], f"logs_generation_{generation}")
+        self.create_zipfile(self.work_paths["individual_logs"], f"logs_generation_{generation}")
 
         self.running_individuals = self.finished_individuals
         self.finished_individuals = {}
@@ -131,12 +131,13 @@ class Runner():
             run_ind = f"{self.srun_command} --output={self.work_paths['individual_logs']}/out_{idx}.log --error={self.work_paths['individual_logs']}/err_{idx}.log {self.exec_command} {idx} &"
         else:
             # local case without slurm
-            run_ind = f"{self.exec_command} > {self.work_paths['individual_logs']}/out_{idx}.log 2> {self.work_paths['individual_logs']}/err_{idx}.log {idx} &"
-            # TODO output redirection via > and 2> doesnt work
-        logger.info(f"{run_ind}")
-        args = shlex.split(f"{run_ind}")
+            log_files = {'stdout': os.path.join(self.work_paths['individual_logs'], f'out_{idx}.log'),
+                        'stderr': os.path.join(self.work_paths['individual_logs'], f'err_{idx}.log')}
+            run_ind = f"{self.exec_command} {idx}"
+            args = shlex.split(run_ind)
 
-        return args
+        logger.info(f"{run_ind}")
+        return args, log_files
 
     def launch(self, idx):
         """
@@ -145,16 +146,23 @@ class Runner():
         The logs pertaining to each individual are also stored in 'individual_logs' with err_ and out_ prefixes.
         :param idx: the id of the individual to be launched.
         """
-        pipename = os.path.join(self.work_paths['individual_logs'],f"pipe_{idx}")
-        open(pipename, 'w+').close()
-        logger.info(f"Pipe created {pipename}")
-        args = self.produce_run_command(idx)
-        process = subprocess.Popen(args, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+        outputpipename = os.path.join(self.work_paths['individual_logs'],f"outputpipe_{idx}")
+        open(outputpipename, 'w+').close()
+        logger.info(f"Pipe created {outputpipename}")
+        inputpipename = os.path.join(self.work_paths['individual_logs'],f"inputpipe_{idx}")
+        open(inputpipename, 'w+').close()
+        logger.info(f"Pipe created {inputpipename}")
+        args, log_files = self.produce_run_command(idx)
+        if log_files:
+            process = subprocess.Popen(args, stdout=open(log_files['stdout'], 'w'), stderr=open(log_files['stderr'], 'w'))
+        else: 
+            process = subprocess.Popen(args, stdin=subprocess.PIPE)
         try:
-            self.pipes[idx] = open(pipename, 'rb')
+            self.outputpipes[idx] = open(outputpipename, 'rb')
+            self.inputpipes[idx] = open(inputpipename, 'wb')
         except Exception as e:
             logger.info(f"{e}")
-        os.set_blocking(self.pipes[idx].fileno(), False)
+        os.set_blocking(self.outputpipes[idx].fileno(), False)
         self.running_individuals[idx] = process
         logger.info(f"Worker created {idx}")
     
@@ -171,9 +179,11 @@ class Runner():
         Makes sure all workers are notified that the optimization run is over and closes all open pipes and files.
         """
         for idx in range(self.n_inds):
-            self.running_individuals[idx].stdin.write(f"0 0 0\n".encode('ascii')) #{self.generation<self.iterations}
-            self.running_individuals[idx].stdin.flush() #TODO Fix end of run
-            self.pipes[idx].close()
+            self.inputpipes[idx].write(f"0 0 0\n".encode('ascii'))
+            self.inputpipes[idx].flush()
+            #self.running_individuals[idx].stdin.write(f"0 0 0\n".encode('ascii')) #{self.generation<self.iterations}
+            #self.running_individuals[idx].stdin.flush() #TODO Fix end of run
+            self.outputpipes[idx].close()
     
     def restart_worker(self, gen, idx):
         """
@@ -182,8 +192,10 @@ class Runner():
         :param idx: the id of the individual to be launched.
         """
         self.launch(idx)
-        self.running_individuals[idx].stdin.write(f"{gen} {idx} 1\n".encode('ascii')) #{self.generation<self.iterations}
-        self.running_individuals[idx].stdin.flush()
+        self.inputpipes[idx].write(f"{gen} {idx} 1\n".encode('ascii'))
+        self.inputpipes[idx].flush()
+        #self.running_individuals[idx].stdin.write(f"{gen} {idx} 1\n".encode('ascii')) #{self.generation<self.iterations}
+        #self.running_individuals[idx].stdin.flush()
 
     def simulate_generation(self, gen, n_inds):
         """
@@ -192,9 +204,9 @@ class Runner():
         :param n_inds: the number of individuals within the generation
         """
         # Sending next optimizee task to workers
-        for idx in range(n_inds):
-            self.running_individuals[idx].stdin.write(f"{gen} {idx} 1\n".encode('ascii'))
-            self.running_individuals[idx].stdin.flush()
+        for idx in range(self.n_inds):
+            self.inputpipes[idx].write(f"{gen} {idx} 1\n".encode('ascii'))
+            self.inputpipes[idx].flush()
 
         # Wait for all individual to finish
         # Restart failed individuals 
@@ -209,12 +221,12 @@ class Runner():
                 status_code = process.poll()
                 #print(f"All workers before reading\n")
                 try:
-                    #print(f"Reading output from {idx}")
-                    out = self.pipes[idx].readline()
+                    print(f"Reading output from {idx}")
+                    out = self.outputpipes[idx].readline()
                 except Exception as e: 
                     print(f"Exception: {e}")
                     continue
-                #print(f"Output for {idx} is {out}")
+                print(f"Output for {idx} is {out}")
                 if out == b'0':
                     print(f"Individual finished without error {idx}: {out}")
                     # individual finished without error
@@ -252,8 +264,7 @@ class Runner():
             time.sleep(5)
         
         #sorted_exit_codes = [self.finished_individuals[idx].poll() for idx in range(n_inds)]
-        return sorted_exit_codes 
-
+        return sorted_exit_codes
 
 
 
@@ -282,13 +293,15 @@ class Runner():
                 'logging.basicConfig(filename=logfilename, filemode="a", level=logging.INFO)\n' +
                 'logger = logging.getLogger("Optimizee")\n'+
                 'logger.info(socket.gethostname())\n' +
-                'pipename = f"'+self.work_paths['individual_logs']+'/pipe_{worker_id}"\n'+
-                'pipe = open(pipename, "wb")\n' +
+                'outputpipename = f"'+self.work_paths['individual_logs']+'/outputpipe_{worker_id}"\n'+
+                'outputpipe = open(outputpipename, "wb")\n' +
+                'inputpipename = f"'+self.work_paths['individual_logs']+'/inputpipe_{worker_id}"\n'+
+                'inputpipe = open(inputpipename, "r")\n' +
                 'running = 1\n' + 
                 'while running:\n' +
                 '    try:\n' +
                 '        logger.info(f"Receiving")\n' +
-                '        params = sys.stdin.readline()\n' +
+                '        params = inputpipe.readline()\n' +
                 '        logger.info(f"Params received: {params}")\n' +
                 '        params = params.split()\n' +
                 '        generation = params[0]\n' +
@@ -308,8 +321,8 @@ class Runner():
                 '        pickle.dump(res, handle_res, pickle.HIGHEST_PROTOCOL)\n' +
                 '        handle_res.close()\n' + 
                 '        del optimizee\n' +
-                '        pipe.write(b"0")\n' +
-                '        pipe.flush()\n' +
+                '        outputpipe.write(b"0")\n' +
+                '        outputpipe.flush()\n' +
                 '        logger.info(f"Finished {idx}")\n' +
                 '        gc.collect()\n' +
                 '    except Exception as e:\n' +
@@ -320,7 +333,8 @@ class Runner():
                 '        #else:\n' +
                 '        #    sys.stderr.write(b"1")\n' +
                 '        #    sys.stderr.flush()\n' +
-                'pipe.close()')
+                'outputpipe.close()\n'+
+                'inputpipe.close()')
         f.close()
 
     def dump_traj(self, trajectory):

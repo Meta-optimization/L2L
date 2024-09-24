@@ -103,7 +103,7 @@ class Runner():
 
         logger.info("Running generation: " + str(self.generation))
 
-        exit_codes = self.simulate_generation(self.generation, self.n_inds)
+        exit_codes = self.simulate_generation(self.generation, len(trajectory.individuals[generation]))
 
         ## Touch done generation
         logger.info("Finished generation: " + str(self.generation))
@@ -126,15 +126,15 @@ class Runner():
         Generates a string that can be used to launch an instance of the optimizee with specific parameters, also called an individual.
         :param idx: the id of the individual to be launched.
         """
+        log_files = {'stdout': os.path.join(self.work_paths['individual_logs'], f'out_{idx}.log'),
+                     'stderr': os.path.join(self.work_paths['individual_logs'], f'err_{idx}.log')} 
         if self.srun_command:
             # HPC case with slurm
             run_ind = f"{self.srun_command} --output={self.work_paths['individual_logs']}/out_{idx}.log --error={self.work_paths['individual_logs']}/err_{idx}.log {self.exec_command} {idx} &"
         else:
             # local case without slurm
-            log_files = {'stdout': os.path.join(self.work_paths['individual_logs'], f'out_{idx}.log'),
-                        'stderr': os.path.join(self.work_paths['individual_logs'], f'err_{idx}.log')}
             run_ind = f"{self.exec_command} {idx}"
-            args = shlex.split(run_ind)
+        args = shlex.split(run_ind)
 
         logger.info(f"{run_ind}")
         return args, log_files
@@ -156,10 +156,10 @@ class Runner():
         if log_files:
             process = subprocess.Popen(args, stdout=open(log_files['stdout'], 'w'), stderr=open(log_files['stderr'], 'w'))
         else: 
-            process = subprocess.Popen(args, stdin=subprocess.PIPE)
+            process = subprocess.Popen(args)#, stdin=subprocess.PIPE)
         try:
-            self.outputpipes[idx] = open(outputpipename, 'rb')
-            self.inputpipes[idx] = open(inputpipename, 'wb')
+            self.outputpipes[idx] = open(outputpipename, 'r')
+            self.inputpipes[idx] = open(inputpipename, 'w')
         except Exception as e:
             logger.info(f"{e}")
         os.set_blocking(self.outputpipes[idx].fileno(), False)
@@ -179,23 +179,30 @@ class Runner():
         Makes sure all workers are notified that the optimization run is over and closes all open pipes and files.
         """
         for idx in range(self.n_inds):
-            self.inputpipes[idx].write(f"0 0 0\n".encode('ascii'))
+            self.inputpipes[idx].write(f"0 0 0\n")#.encode('ascii'))
             self.inputpipes[idx].flush()
-            #self.running_individuals[idx].stdin.write(f"0 0 0\n".encode('ascii')) #{self.generation<self.iterations}
-            #self.running_individuals[idx].stdin.flush() #TODO Fix end of run
             self.outputpipes[idx].close()
     
     def restart_worker(self, gen, idx):
         """
-        Takes care of handling the restart of an individual which failed by any reason, either runtime or logic.
+        Takes care of handling the restart of a worker and its associated individual which failed by any reason, either runtime or logic.
         :param gen: the current generation
         :param idx: the id of the individual to be launched.
         """
         self.launch(idx)
-        self.inputpipes[idx].write(f"{gen} {idx} 1\n".encode('ascii'))
+        self.inputpipes[idx].write(f"{gen} {idx} 1\n")#.encode('ascii'))
         self.inputpipes[idx].flush()
-        #self.running_individuals[idx].stdin.write(f"{gen} {idx} 1\n".encode('ascii')) #{self.generation<self.iterations}
-        #self.running_individuals[idx].stdin.flush()
+
+    def restart_individual(self, gen, idx):
+        """
+        Takes care of handling the restart of an individual which failed by any reason, either runtime or logic.
+        :param gen: the current generation
+        :param idx: the id of the individual to be launched.i
+        ToDo: implement different restart strategies depending on the optimizee.
+        """
+        self.inputpipes[idx].write(f"{gen} {idx} 1\n")#.encode('ascii'))
+        self.inputpipes[idx].flush()
+
 
     def simulate_generation(self, gen, n_inds):
         """
@@ -205,7 +212,7 @@ class Runner():
         """
         # Sending next optimizee task to workers
         for idx in range(self.n_inds):
-            self.inputpipes[idx].write(f"{gen} {idx} 1\n".encode('ascii'))
+            self.inputpipes[idx].write(f"{gen} {idx} 1\n")#.encode('ascii'))
             self.inputpipes[idx].flush()
 
         # Wait for all individual to finish
@@ -215,28 +222,29 @@ class Runner():
         print(f"All workers started running individuals for gen {gen}\n")
         # Add a try catch block to manage restarting individuals correctly
         while True:
-
+            print(f"Reading output from gen {gen}")
             for idx in list(self.running_individuals.keys()):
                 process = self.running_individuals[idx]
                 status_code = process.poll()
-                #print(f"All workers before reading\n")
                 try:
-                    print(f"Reading output from {idx}")
-                    out = self.outputpipes[idx].readline()
+                    out = self.outputpipes[idx].readline().replace('\n', '')
                 except Exception as e: 
                     print(f"Exception: {e}")
                     continue
-                print(f"Output for {idx} is {out}")
-                if out == b'0':
+                #if out:
+                #    print(f"Output for {idx} is {out}")
+
+                if out == "0":
                     print(f"Individual finished without error {idx}: {out}")
                     # individual finished without error
                     self.finished_individuals[idx] = self.running_individuals.pop(idx)
                     sorted_exit_codes[idx] = 0
                 #TODO error control of problematic optimizees
-                elif out == b'1': 
-                    print(f"Individual finished with error {idx}: {out}")
+                elif out == "1": 
+                    print(f"Individual finished with error {idx}: {out}. Restarting.")
                     sorted_exit_codes[idx] = 1
-                    raise NotImplementedError("restart failed individual")
+                    self.restart_individual(gen, idx)
+                    #raise NotImplementedError("restart failed individual")
                 
                 if status_code == None:
                     # Indivdual still running
@@ -288,6 +296,7 @@ class Runner():
                 'import os\n' +
                 'import logging\n' +
                 'import socket\n' +
+                'import time\n' +
                 'worker_id = sys.argv[1]\n' +
                 'logfilename = f"'+self.work_paths['individual_logs']+'/workers_{worker_id}.wlog"\n' +
                 'logging.basicConfig(filename=logfilename, filemode="a", level=logging.INFO)\n' +
@@ -301,9 +310,13 @@ class Runner():
                 'while running:\n' +
                 '    try:\n' +
                 '        logger.info(f"Receiving")\n' +
-                '        params = inputpipe.readline()\n' +
+                '        params = ""\n' +
+                '        while not params:\n' +
+                '            params = inputpipe.readline()\n' +
+                '            time.sleep(5)\n' +
                 '        logger.info(f"Params received: {params}")\n' +
                 '        params = params.split()\n' +
+                '        logger.info(params)\n' +
                 '        generation = params[0]\n' +
                 '        idx = params[1]\n' +
                 '        running = int(params[2])\n' +
@@ -315,13 +328,17 @@ class Runner():
                 '        handle_optimizee = open("' + self.optimizeepath + '", "rb")\n' +
                 '        optimizee = pickle.load(handle_optimizee)\n' +
                 '        handle_optimizee.close()\n\n' +
+                '        logger.info("Trajectory access")\n' +
+                '        logger.info(trajectory.individuals)\n' +
+                '        logger.info(len(trajectory.individuals[int(generation)]))\n' +
                 '        trajectory.individual = trajectory.individuals[int(generation)][int(idx)] \n'+
                 '        res = optimizee.simulate(trajectory)\n\n' +
                 '        handle_res = open("' + respath + '"+ str(generation) + "_" + str(idx) + ".bin", "wb")\n' +
                 '        pickle.dump(res, handle_res, pickle.HIGHEST_PROTOCOL)\n' +
                 '        handle_res.close()\n' + 
                 '        del optimizee\n' +
-                '        outputpipe.write(b"0")\n' +
+                '        outputpipe.write(f"0\\n".encode(\'ascii\'))\n' +
+                #'        outputpipe.write("0\\n")\n' +
                 '        outputpipe.flush()\n' +
                 '        logger.info(f"Finished {idx}")\n' +
                 '        gc.collect()\n' +

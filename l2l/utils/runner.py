@@ -62,9 +62,12 @@ class Runner():
 
         self.running_individuals = {}
         self.finished_individuals = {}
+        self.running_workers = {}
+        self.pending_individuals = {}
         self.outputpipes = {}
         self.inputpipes = {}
         self.n_inds = len(trajectory.individuals[0])
+        self.n_workers = self.n_inds #ToDo change to get this from a parameter
         self.prepare_run_file()
         self.launch_workers()
         logger.info(f"{self.n_inds} workers launched\n")
@@ -116,9 +119,10 @@ class Runner():
         #create zipfiles for Err and Out files 
         self.create_zipfile(self.work_paths["individual_logs"], f"logs_generation_{generation}")
 
-        self.running_individuals = self.finished_individuals
+        #self.running_individuals = self.finished_individuals #check if still necessary
         self.finished_individuals = {}
-        print(self.running_individuals)
+        self.running_individuals = {}
+        #print(self.running_individuals)
         return results
 
     def produce_run_command(self, idx):
@@ -130,6 +134,7 @@ class Runner():
                      'stderr': os.path.join(self.work_paths['individual_logs'], f'err_{idx}.log')} 
         if self.srun_command:
             # HPC case with slurm
+            log_files ={}
             run_ind = f"{self.srun_command} --output={self.work_paths['individual_logs']}/out_{idx}.log --error={self.work_paths['individual_logs']}/err_{idx}.log {self.exec_command} {idx} &"
         else:
             # local case without slurm
@@ -156,21 +161,21 @@ class Runner():
         if log_files:
             process = subprocess.Popen(args, stdout=open(log_files['stdout'], 'w'), stderr=open(log_files['stderr'], 'w'))
         else: 
-            process = subprocess.Popen(args)#, stdin=subprocess.PIPE)
+            process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)#, stdin=subprocess.PIPE)
         try:
             self.outputpipes[idx] = open(outputpipename, 'r')
             self.inputpipes[idx] = open(inputpipename, 'w')
         except Exception as e:
             logger.info(f"{e}")
-        os.set_blocking(self.outputpipes[idx].fileno(), False)
-        self.running_individuals[idx] = process
+        #os.set_blocking(self.outputpipes[idx].fileno(), False)
+        self.running_workers[idx] = process
         logger.info(f"Worker created {idx}")
     
     def launch_workers(self):
         """
         Takes care of launching enough workers as allowed by the available computing resources.
         """
-        for idx in range(self.n_inds):
+        for idx in range(self.n_workers):
             self.launch(idx)
         logger.info(f"All {self.n_inds} workers created")
 
@@ -210,21 +215,29 @@ class Runner():
         :param gen: the current generation
         :param n_inds: the number of individuals within the generation
         """
-        # Sending next optimizee task to workers
+        self.n_inds = n_inds
+        #At the moment we still assume n_inds and n_workers is the same
         for idx in range(self.n_inds):
+            self.pending_individuals[idx] = idx
+        # Sending next optimizee task to workers
+        print("Number of individuals in this gen: {n_inds}") #ToDo change all prints to logger.info
+        for idx in range(self.n_inds): 
             self.inputpipes[idx].write(f"{gen} {idx} 1\n")#.encode('ascii'))
             self.inputpipes[idx].flush()
+            self.running_individuals[idx] = idx #ToDo push the ID of the worker together with the ID of the ind
+
 
         # Wait for all individual to finish
         # Restart failed individuals 
         retry=0
-        sorted_exit_codes = [1]*n_inds
+        sorted_exit_codes = [1]*self.n_inds
         print(f"All workers started running individuals for gen {gen}\n")
         # Add a try catch block to manage restarting individuals correctly
         while True:
             print(f"Reading output from gen {gen}")
+            print(f"running ind {list(self.running_individuals.keys())}")
             for idx in list(self.running_individuals.keys()):
-                process = self.running_individuals[idx]
+                process = self.running_workers[idx]
                 status_code = process.poll()
                 try:
                     out = self.outputpipes[idx].readline().replace('\n', '')
@@ -237,8 +250,13 @@ class Runner():
                 if out == "0":
                     print(f"Individual finished without error {idx}: {out}")
                     # individual finished without error
-                    self.finished_individuals[idx] = self.running_individuals.pop(idx)
+                    finished_worker_id = self.running_individuals.pop(idx)
+                    self.finished_individuals[idx] = idx # self.running_individuals.pop(idx)
                     sorted_exit_codes[idx] = 0
+                    #TODO if there are still individuals to process, launch them on this worker
+                    #ind_id = self.pending_individuals.pop() #id of the next pending individual
+                    #self.launch_individual(idx, ind_id) #Launch ind_id individual in idx worker
+                    #self.running_individuals[ind_id] = idx #add id of the worker to running inds
                 #TODO error control of problematic optimizees
                 elif out == "1": 
                     print(f"Individual finished with error {idx}: {out}. Restarting.")

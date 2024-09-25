@@ -65,7 +65,7 @@ class Runner():
         self.finished_individuals = []
 
         self.running_workers = {}
-        self.running_workers_individual_indeces = {}  # TODO built a cleaner data structure for the workers that stores both the process and idx of current individual
+        self.running_workers_individual_indeces = {}  # TODO built a cleaner data structure for the workers that stores both its process and the idx of the current individual
         self.idle_workers = {}
 
         self.pipes = {}
@@ -237,7 +237,7 @@ class Runner():
         """
 
         self.pending_individuals = list(range(n_inds))
-        
+
         self.populate_free_workers(gen=gen)
 
 
@@ -313,9 +313,6 @@ class Runner():
         
         #sorted_exit_codes = [self.finished_individuals[idx].poll() for idx in range(n_inds)]
         return sorted_exit_codes 
-
-
-
 
 
 

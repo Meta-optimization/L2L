@@ -60,9 +60,9 @@ class Runner():
         self.stop_run = self.trajectory.stop_run
         self.timeout = self.trajectory.timeout
 
-        self.waiting_individuals = {}
-        self.running_individuals = {}
-        self.finished_individuals = {}
+        self.waiting_individuals = []
+        self.running_individuals = []
+        self.finished_individuals = []
 
         self.running_workers = {}
         self.idle_workers = {}
@@ -212,14 +212,25 @@ class Runner():
 
         # TODO replace running_indivisuals[] by workers[], make inds just lists, somehow save which idx a worker is currently running.
 
+        ## Sending next optimizee task to workers
+        #for idx in range(n_inds):
+        #    self.running_individuals[idx].stdin.write(f"{gen} {idx} 1\n".encode('ascii'))
+        #    self.running_individuals[idx].stdin.flush()
+        
+        self.waiting_individuals = list(range(n_inds))
 
-        # Sending next optimizee task to workers
-        for idx in range(n_inds):
-            self.running_individuals[idx].stdin.write(f"{gen} {idx} 1\n".encode('ascii'))
-            self.running_individuals[idx].stdin.flush()
+        for w_id in list(self.idle_workers.keys()):
+            idx = self.waiting_individuals.pop(0)
+            self.idle_workers[w_id].stdin.write(f"{gen} {idx} 1\n".encode('ascii'))
+            self.idle_workers[w_id].stdin.flush()
+            self.running_workers[w_id] = self.idle_workers.pop(w_id)
+            self.running_individuals.append(idx)
+            print(f"--- sent idx {idx} to worker {w_id}")
 
-
-
+        #print("idle workers:", self.idle_workers)
+        #print("running workers:", self.running_workers)
+        #print("waiting inds", self.waiting_individuals)
+        #print("running inds", self.running_individuals)
 
 
 
@@ -232,22 +243,25 @@ class Runner():
         # Add a try catch block to manage restarting individuals correctly
         while True:
 
-            for idx in list(self.running_individuals.keys()):
-                process = self.running_individuals[idx]
+            for w_id in list(self.running_workers.keys()):
+                process = self.running_workers[w_id]
                 status_code = process.poll()
-                #print(f"All workers before reading\n")
                 try:
-                    #print(f"Reading output from {idx}")
-                    out = self.pipes[idx].readline()
+                    out = self.pipes[w_id].readline()
                 except Exception as e: 
                     print(f"Exception: {e}")
                     continue
-                #print(f"Output for {idx} is {out}")
+
+                print(f"out of worker {w_id}: {out}")
+                
                 if out == b'0':
+                    # TODO get individual idx to w_id
                     print(f"Individual finished without error {idx}: {out}")
                     # individual finished without error
                     self.finished_individuals[idx] = self.running_individuals.pop(idx)
                     sorted_exit_codes[idx] = 0
+
+
                 #TODO error control of problematic optimizees
                 elif out == b'1': 
                     print(f"Individual finished with error {idx}: {out}")
@@ -273,7 +287,7 @@ class Runner():
                     else:
                         raise NotImplementedError("restart failed individual")
 
-            if not self.running_individuals:
+            if not self.running_individuals and not self.waiting_individuals:
                 # all individuals finished
                 break
             sys.stdout.flush()
@@ -281,6 +295,8 @@ class Runner():
         
         #sorted_exit_codes = [self.finished_individuals[idx].poll() for idx in range(n_inds)]
         return sorted_exit_codes 
+
+
 
 
 

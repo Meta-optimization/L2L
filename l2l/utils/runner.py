@@ -60,10 +60,17 @@ class Runner():
         self.stop_run = self.trajectory.stop_run
         self.timeout = self.trajectory.timeout
 
+        self.waiting_individuals = {}
         self.running_individuals = {}
         self.finished_individuals = {}
+
+        self.running_workers = {}
+        self.idle_workers = {}
+
         self.pipes = {}
+        self.max_workers = 8 # TODO remove placeholder 
         self.n_inds = len(trajectory.individuals[0])
+        self.n_workers = min(self.n_inds, self.max_workers)
         self.prepare_run_file()
         self.launch_workers()
         logger.info(f"{self.n_inds} workers launched\n")
@@ -116,72 +123,81 @@ class Runner():
         if self.srun_command:
             self.create_zipfile(self.work_paths["individual_logs"], f"logs_generation_{generation}")
 
-        self.running_individuals = self.finished_individuals
-        self.finished_individuals = {}
-        print(self.running_individuals)
+        # TODO what were these lines supposed to do?
+        #self.running_individuals = self.finished_individuals
+        #self.finished_individuals = {}
+        #print(self.running_individuals)
         return results
 
-    def produce_run_command(self, idx):
+    def produce_run_command(self, worker_id):
         """
         Generates a string that can be used to launch an instance of the optimizee with specific parameters, also called an individual.
         :param idx: the id of the individual to be launched.
         """
         if self.srun_command:
             # HPC case with slurm
-            run_ind = f"{self.srun_command} --output={self.work_paths['individual_logs']}/out_{idx}.log --error={self.work_paths['individual_logs']}/err_{idx}.log {self.exec_command} {idx} &"
+            run_ind = f"{self.srun_command} --output={self.work_paths['individual_logs']}/out_{worker_id}.log --error={self.work_paths['individual_logs']}/err_{worker_id}.log {self.exec_command} {worker_id} &"
         else:
             # local case without slurm
-            run_ind = f"{self.exec_command} > {self.work_paths['individual_logs']}/out_{idx}.log 2> {self.work_paths['individual_logs']}/err_{idx}.log {idx} &"
+            #run_ind = f"{self.exec_command} > {self.work_paths['individual_logs']}/out_{worker_id}.log 2> {self.work_paths['individual_logs']}/err_{worker_id}.log {worker_id} &"
+            run_ind = f"{self.exec_command} {worker_id} &"
             # TODO output redirection via > and 2> doesnt work
         logger.info(f"{run_ind}")
         args = shlex.split(f"{run_ind}")
 
         return args
 
-    def launch(self, idx):
+    def launch_worker(self, w_id):
         """
         This function uses the subprocess.Popen function to launch the command required to initialize a parallel worker. This worker will stay alive during the whole optimization run and will receive the id of the individuals it will execute each generation. It also generates the pipes (files in a shared file system) to communicate between the runner and the worker.
         Each worker has its own file in the path 'individual_logs' with the worker_ prefix.
         The logs pertaining to each individual are also stored in 'individual_logs' with err_ and out_ prefixes.
-        :param idx: the id of the individual to be launched.
+        :param w_id: the id of the worker to be launched.
         """
-        pipename = os.path.join(self.work_paths['individual_logs'],f"pipe_{idx}")
+        pipename = os.path.join(self.work_paths['individual_logs'],f"pipe_{w_id}")
         open(pipename, 'w+').close()
         logger.info(f"Pipe created {pipename}")
-        args = self.produce_run_command(idx)
+        args = self.produce_run_command(w_id)
         process = subprocess.Popen(args, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
         try:
-            self.pipes[idx] = open(pipename, 'rb')
+            self.pipes[w_id] = open(pipename, 'rb')
         except Exception as e:
             logger.info(f"{e}")
-        os.set_blocking(self.pipes[idx].fileno(), False)
-        self.running_individuals[idx] = process
-        logger.info(f"Worker created {idx}")
+        os.set_blocking(self.pipes[w_id].fileno(), False)
+        self.idle_workers[w_id] = process
+        logger.info(f"Worker created {w_id}")
     
     def launch_workers(self):
         """
         Takes care of launching enough workers as allowed by the available computing resources.
         """
-        for idx in range(self.n_inds):
-            self.launch(idx)
-        logger.info(f"All {self.n_inds} workers created")
+        for w_id in range(self.n_workers):
+            self.launch_worker(w_id)
+        logger.info(f"All {self.n_workers} workers created")
 
     def close_workers(self):
         """
         Makes sure all workers are notified that the optimization run is over and closes all open pipes and files.
         """
-        for idx in range(self.n_inds):
-            self.running_individuals[idx].stdin.write(f"0 0 0\n".encode('ascii')) #{self.generation<self.iterations}
-            self.running_individuals[idx].stdin.flush() #TODO Fix end of run
-            self.pipes[idx].close()
-    
+        # TODO look at these again, make sure everything is closed correctly at end of run
+        for w_id in range(self.idle_workers.keys()):
+            self.idle_workers[w_id].stdin.write(f"0 0 0\n".encode('ascii'))
+            self.idle_workers[w_id].stdin.flush() #TODO Fix end of run
+            self.pipes[w_id].close()
+
+        for w_id in range(self.running_workers.keys()):
+            self.running_workers[w_id].stdin.write(f"0 0 0\n".encode('ascii'))
+            self.running_workers[w_id].stdin.flush() #TODO Fix end of run
+            self.pipes[w_id].close()
+            
+    # TODO should be restart_individual() or not needed at all
     def restart_worker(self, gen, idx):
         """
         Takes care of handling the restart of an individual which failed by any reason, either runtime or logic.
         :param gen: the current generation
         :param idx: the id of the individual to be launched.
         """
-        self.launch(idx)
+        self.launch_worker(idx)
         self.running_individuals[idx].stdin.write(f"{gen} {idx} 1\n".encode('ascii')) #{self.generation<self.iterations}
         self.running_individuals[idx].stdin.flush()
 
@@ -191,10 +207,22 @@ class Runner():
         :param gen: the current generation
         :param n_inds: the number of individuals within the generation
         """
+
+
+
+        # TODO replace running_indivisuals[] by workers[], make inds just lists, somehow save which idx a worker is currently running.
+
+
         # Sending next optimizee task to workers
         for idx in range(n_inds):
             self.running_individuals[idx].stdin.write(f"{gen} {idx} 1\n".encode('ascii'))
             self.running_individuals[idx].stdin.flush()
+
+
+
+
+
+
 
         # Wait for all individual to finish
         # Restart failed individuals 
@@ -278,6 +306,7 @@ class Runner():
                 'import logging\n' +
                 'import socket\n' +
                 'worker_id = sys.argv[1]\n' +
+                'print("------------ worker_id:", worker_id)\n' +  # TODO remove this line 
                 'logfilename = f"'+self.work_paths['individual_logs']+'/workers_{worker_id}.wlog"\n' +
                 'logging.basicConfig(filename=logfilename, filemode="a", level=logging.INFO)\n' +
                 'logger = logging.getLogger("Optimizee")\n'+

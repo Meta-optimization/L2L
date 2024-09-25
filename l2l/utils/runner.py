@@ -60,15 +60,16 @@ class Runner():
         self.stop_run = self.trajectory.stop_run
         self.timeout = self.trajectory.timeout
 
-        self.waiting_individuals = []
+        self.pending_individuals = []
         self.running_individuals = []
         self.finished_individuals = []
 
         self.running_workers = {}
+        self.running_workers_individual_indeces = {}  # TODO built a cleaner data structure for the workers that stores both the process and idx of current individual
         self.idle_workers = {}
 
         self.pipes = {}
-        self.max_workers = 8 # TODO remove placeholder 
+        self.max_workers = 3 # TODO remove placeholder 
         self.n_inds = len(trajectory.individuals[0])
         self.n_workers = min(self.n_inds, self.max_workers)
         self.prepare_run_file()
@@ -189,17 +190,44 @@ class Runner():
             self.running_workers[w_id].stdin.write(f"0 0 0\n".encode('ascii'))
             self.running_workers[w_id].stdin.flush() #TODO Fix end of run
             self.pipes[w_id].close()
-            
-    # TODO should be restart_individual() or not needed at all
-    def restart_worker(self, gen, idx):
+    
+
+
+
+    def restart_worker(self, w_id):
+        """
+        Takes care of handling the restart of a worker which failed by any reason, either runtime or logic.
+        :param gen: the current generation
+        :param w_id: the id of the worker to be launched.
+        """
+        self.launch_worker(w_id)
+
+
+    def restart_individual(self, gen, idx):
         """
         Takes care of handling the restart of an individual which failed by any reason, either runtime or logic.
         :param gen: the current generation
-        :param idx: the id of the individual to be launched.
+        :param idx: the id of the individual to be launched.i
+        ToDo: implement different restart strategies depending on the optimizee.
         """
-        self.launch_worker(idx)
-        self.running_individuals[idx].stdin.write(f"{gen} {idx} 1\n".encode('ascii')) #{self.generation<self.iterations}
-        self.running_individuals[idx].stdin.flush()
+        self.pending_individuals.append(idx)
+
+    def populate_free_workers(self, gen):
+        # assing pending inds to free workers
+        while self.idle_workers and self.pending_individuals:
+            w_id = list(self.idle_workers.keys())[0]
+            next_idx = self.pending_individuals.pop(0)
+
+            self.idle_workers[w_id].stdin.write(f"{gen} {next_idx} 1\n".encode('ascii'))
+            self.idle_workers[w_id].stdin.flush()
+            self.running_workers[w_id] = self.idle_workers.pop(w_id)
+            self.running_workers_individual_indeces[w_id] = next_idx
+            self.running_individuals.append(next_idx)
+            print(f"--- sent idx {next_idx} to worker {w_id}")
+
+
+
+
 
     def simulate_generation(self, gen, n_inds):
         """
@@ -208,31 +236,9 @@ class Runner():
         :param n_inds: the number of individuals within the generation
         """
 
-
-
-        # TODO replace running_indivisuals[] by workers[], make inds just lists, somehow save which idx a worker is currently running.
-
-        ## Sending next optimizee task to workers
-        #for idx in range(n_inds):
-        #    self.running_individuals[idx].stdin.write(f"{gen} {idx} 1\n".encode('ascii'))
-        #    self.running_individuals[idx].stdin.flush()
+        self.pending_individuals = list(range(n_inds))
         
-        self.waiting_individuals = list(range(n_inds))
-
-        for w_id in list(self.idle_workers.keys()):
-            idx = self.waiting_individuals.pop(0)
-            self.idle_workers[w_id].stdin.write(f"{gen} {idx} 1\n".encode('ascii'))
-            self.idle_workers[w_id].stdin.flush()
-            self.running_workers[w_id] = self.idle_workers.pop(w_id)
-            self.running_individuals.append(idx)
-            print(f"--- sent idx {idx} to worker {w_id}")
-
-        #print("idle workers:", self.idle_workers)
-        #print("running workers:", self.running_workers)
-        #print("waiting inds", self.waiting_individuals)
-        #print("running inds", self.running_individuals)
-
-
+        self.populate_free_workers(gen=gen)
 
 
         # Wait for all individual to finish
@@ -245,6 +251,7 @@ class Runner():
 
             for w_id in list(self.running_workers.keys()):
                 process = self.running_workers[w_id]
+                ind_idx = self.running_workers_individual_indeces[w_id]
                 status_code = process.poll()
                 try:
                     out = self.pipes[w_id].readline()
@@ -255,39 +262,50 @@ class Runner():
                 print(f"out of worker {w_id}: {out}")
                 
                 if out == b'0':
-                    # TODO get individual idx to w_id
-                    print(f"Individual finished without error {idx}: {out}")
+                    print(f"Individual finished without error {ind_idx}: {out}")
                     # individual finished without error
-                    self.finished_individuals[idx] = self.running_individuals.pop(idx)
-                    sorted_exit_codes[idx] = 0
+                    self.running_individuals.remove(ind_idx)
+                    self.finished_individuals.append(ind_idx)
+                    sorted_exit_codes[ind_idx] = 0
+                    # set worker to idle
+                    self.idle_workers[w_id] = self.running_workers.pop(w_id)
 
 
                 #TODO error control of problematic optimizees
                 elif out == b'1': 
-                    print(f"Individual finished with error {idx}: {out}")
-                    sorted_exit_codes[idx] = 1
-                    raise NotImplementedError("restart failed individual")
+                    print(f"Individual finished with error {ind_idx}: {out}")
+                    self.running_individuals.remove(ind_idx)
+                    sorted_exit_codes[ind_idx] = 1
+                    # set worker to idle
+                    self.idle_workers[w_id] = self.running_workers.pop(w_id)
+                    # restart individual 
+                    self.restart_individual(gen, ind_idx)
                 
                 if status_code == None:
                     # Indivdual still running
                     continue
                 elif status_code == 0:
                     # Process closed
-                    print(f"Finished worker {idx}: {status_code}")
+                    print(f"Finished worker {w_id}: {status_code}")
                 else: 
-                    print(f"Error status worker {idx}: {status_code}")
-                    # individual raised error
-                    # TODO depending on what kind of error restart failed individual
+                    print(f"Error status worker {w_id}: {status_code}")
+                    # worker raised error
+                    # TODO depending on what kind of error restart failed worker
                     # TODO pass reference to optimizer from environment.py and call optimizer.restart(ind)
                     if status_code > 128 and retry<20:#Error spawning step, wait a bit?
-                        print(f"Restarting {idx} from error {status_code}\n retry {retry}")
+                        print(f"Restarting {w_id} from error {status_code}\n retry {retry}")
                         time.sleep(4)
-                        self.restart_worker(gen, idx)
+                        self.restart_worker(gen, w_id)
                         retry += 1
                     else:
                         raise NotImplementedError("restart failed individual")
+            
 
-            if not self.running_individuals and not self.waiting_individuals:
+            # assing pending inds to free workers
+            self.populate_free_workers(gen=gen)
+
+
+            if not self.running_individuals and not self.pending_individuals:
                 # all individuals finished
                 break
             sys.stdout.flush()
@@ -322,7 +340,6 @@ class Runner():
                 'import logging\n' +
                 'import socket\n' +
                 'worker_id = sys.argv[1]\n' +
-                'print("------------ worker_id:", worker_id)\n' +  # TODO remove this line 
                 'logfilename = f"'+self.work_paths['individual_logs']+'/workers_{worker_id}.wlog"\n' +
                 'logging.basicConfig(filename=logfilename, filemode="a", level=logging.INFO)\n' +
                 'logger = logging.getLogger("Optimizee")\n'+

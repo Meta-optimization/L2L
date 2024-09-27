@@ -220,7 +220,6 @@ class Runner():
         for idx in range(self.n_inds):
             self.pending_individuals[idx] = idx
         # Sending next optimizee task to workers
-        print("Number of individuals in this gen: {n_inds}") #ToDo change all prints to logger.info
         for idx in range(self.n_inds): 
             self.inputpipes[idx].write(f"{gen} {idx} 1\n")#.encode('ascii'))
             self.inputpipes[idx].flush()
@@ -231,24 +230,21 @@ class Runner():
         # Restart failed individuals 
         retry=0
         sorted_exit_codes = [1]*self.n_inds
-        print(f"All workers started running individuals for gen {gen}\n")
+        logger.info(f"All workers started running individuals for gen {gen}\n")
         # Add a try catch block to manage restarting individuals correctly
+        logger.info(f"Reading output from gen {gen}")
         while True:
-            print(f"Reading output from gen {gen}")
-            print(f"running ind {list(self.running_individuals.keys())}")
             for idx in list(self.running_individuals.keys()):
                 process = self.running_workers[idx]
                 status_code = process.poll()
                 try:
                     out = self.outputpipes[idx].readline().replace('\n', '')
                 except Exception as e: 
-                    print(f"Exception: {e}")
+                    logger.error(f"Exception: {e}")
                     continue
-                #if out:
-                #    print(f"Output for {idx} is {out}")
 
                 if out == "0":
-                    print(f"Individual finished without error {idx}: {out}")
+                    logger.info(f"Individual finished without error {idx}: {out}")
                     # individual finished without error
                     finished_worker_id = self.running_individuals.pop(idx)
                     self.finished_individuals[idx] = idx # self.running_individuals.pop(idx)
@@ -259,7 +255,7 @@ class Runner():
                     #self.running_individuals[ind_id] = idx #add id of the worker to running inds
                 #TODO error control of problematic optimizees
                 elif out == "1": 
-                    print(f"Individual finished with error {idx}: {out}. Restarting.")
+                    logger.info(f"Individual finished with error {idx}: {out}. Restarting.")
                     sorted_exit_codes[idx] = 1
                     self.restart_individual(gen, idx)
                     #raise NotImplementedError("restart failed individual")
@@ -269,19 +265,20 @@ class Runner():
                     continue
                 elif status_code == 0:
                     # Process closed
-                    print(f"Finished worker {idx}: {status_code}")
+                    logger.info(f"Finished worker {idx}: {status_code}")
                 else: 
-                    print(f"Error status worker {idx}: {status_code}")
+                    logger.info(f"Error status worker {idx}: {status_code}")
                     # individual raised error
                     # TODO depending on what kind of error restart failed individual
                     # TODO pass reference to optimizer from environment.py and call optimizer.restart(ind)
                     if status_code > 128 and retry<20:#Error spawning step, wait a bit?
-                        print(f"Restarting {idx} from error {status_code}\n retry {retry}")
+                        logger.info(f"Restarting {idx} from error {status_code}\n retry {retry}")
                         time.sleep(4)
                         self.restart_worker(gen, idx)
                         retry += 1
                     else:
-                        raise NotImplementedError("restart failed individual")
+                        logger.error("Worker could not be initialized")
+                        raise NotImplementedError("Restart failed for worker")
 
             if not self.running_individuals:
                 # all individuals finished

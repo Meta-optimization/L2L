@@ -128,11 +128,6 @@ class Runner():
         #create zipfiles for Err and Out files 
         self.create_zipfile(self.work_paths["individual_logs"], f"logs_generation_{generation}")
 
-        # TODO make sure these lines are really not needed
-        #self.running_individuals = self.finished_individuals #check if still necessary
-        #self.finished_individuals = {}
-        #self.running_individuals = {}
-        #print(self.running_individuals)
         return results
 
     def produce_run_command(self, idx):
@@ -199,14 +194,13 @@ class Runner():
             self.inputpipes[w_id].flush()
             self.outputpipes[w_id].close()
     
-
-    
     def restart_worker(self, w_id):
         """
         Takes care of handling the restart of a worker and its associated individual which failed by any reason, either runtime or logic.
         :param gen: the current generation
         :param w_id: the id of the worker to be launched.
         """
+        self.running_workers.pop(w_id)
         self.launch_worker(w_id)
 
     def restart_individual(self, gen, idx):
@@ -288,14 +282,15 @@ class Runner():
                 if status_code == None:
                     # Indivdual still running
                     continue
+
                 elif status_code == 0:
                     # Process closed
+                    self.running_workers.pop(w_id)
                     logger.info(f"Finished worker {w_id}: {status_code}")
                 else: 
                     logger.info(f"Error status worker {w_id}: {status_code}")
-                    # individual raised error
-                    # TODO depending on what kind of error restart failed individual
-                    # TODO pass reference to optimizer from environment.py and call optimizer.restart(ind)
+                    # worker raised error
+                    # TODO depending on what kind of error restart failed worker
                     if status_code > 128 and retry<20:#Error spawning step, wait a bit?
                         logger.info(f"Restarting {w_id} from error {status_code}\n retry {retry}")
                         time.sleep(4)

@@ -45,7 +45,7 @@ class Environment:
             if self.multiprocessing:
                 # Multiprocessing is done through the runner
                 result[it] = []
-                logger.info(f"Iteration: {it+1}/{self.trajectory.par['n_iteration']+self.trajectory.individual.generation}")
+                logger.info(f"Iteration: {it+1}/{self.trajectory.par['n_iteration']}")
                 # execute run
                 try:
                     result[it] = runner.run(self.trajectory,it)

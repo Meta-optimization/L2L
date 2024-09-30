@@ -243,7 +243,7 @@ class Runner():
         # Wait for all individual to finish
         # Restart failed individuals 
         retry=0
-        sorted_exit_codes = [1]*self.n_inds
+        sorted_exit_codes = [1]*n_inds
         logger.info(f"All workers started running individuals for gen {gen}\n")
         # Add a try catch block to manage restarting individuals correctly
         logger.info(f"Reading output from gen {gen}")

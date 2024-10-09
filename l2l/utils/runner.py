@@ -72,7 +72,7 @@ class Runner():
         self.outputpipes = {}
         self.inputpipes = {}
 
-        self.max_workers = 3 # TODO remove placeholder 
+        self.max_workers = self.n_inds # TODO remove placeholder 
         self.n_inds = len(trajectory.individuals[0])
         self.n_workers = min(self.n_inds, self.max_workers)
         

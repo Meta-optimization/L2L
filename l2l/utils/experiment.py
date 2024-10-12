@@ -131,6 +131,7 @@ class Experiment(object):
         default_runner_params = {
             "srun": "",
             "exec": "python3 " + os.path.join(self.paths.simulation_path, "run_optimizee.py"),
+            "max_workers": 32,
             "work_path": self.paths.root_dir_path,
             "paths_obj": self.paths,
         }
@@ -160,6 +161,9 @@ class Experiment(object):
                 if k not in kwargs.get('runner_params').keys():
                     self.traj.f_add_parameter_to_group("runner_params", k, v)
                     all_runner_params[k] = v
+                    if k == "max_workers":
+                        self.logger.info(f"No parameter \'max_workers\' given to runner. Using default value {v}.")
+
             else:
                 self.traj.f_add_parameter_to_group("runner_params", k, v)
                 all_runner_params[k] = v
@@ -225,3 +229,4 @@ class Experiment(object):
         loaded_traj = pickle.load(traj_file)
         traj_file.close()
         return loaded_traj
+

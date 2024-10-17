@@ -26,7 +26,7 @@ class Runner():
     launch(idx)
     launch_workers()
     close_workers()
-    restart_worker(gen, idx)
+    restart_worker(w_id)
     simulate_generation(gen, n_inds)
     prepare_run_file()
     dump_traj(trajectory)
@@ -196,7 +196,6 @@ class Runner():
     def restart_worker(self, w_id):
         """
         Takes care of handling the restart of a worker and its associated individual which failed by any reason, either runtime or logic.
-        :param gen: the current generation
         :param w_id: the id of the worker to be launched.
         """
         self.running_workers.pop(w_id)
@@ -293,7 +292,7 @@ class Runner():
                     if status_code > 128 and retry<20:#Error spawning step, wait a bit?
                         logger.info(f"Restarting {w_id} from error {status_code}\n retry {retry}")
                         time.sleep(4)
-                        self.restart_worker(gen, w_id)
+                        self.restart_worker( w_id)
                         retry += 1
                     else:
                         logger.error("Worker could not be initialized")

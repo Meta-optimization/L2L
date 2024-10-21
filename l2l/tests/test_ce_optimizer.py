@@ -47,7 +47,7 @@ class CEOptimizerTestCase(OptimizerTestCase):
         self.assertRaises(Exception, optimizer)
 
 def suite():
-    suite = unittest.makeSuite(CEOptimizerTestCase, 'test')
+    suite = unittest.TestLoader().loadTestsFromTestCase(CEOptimizerTestCase)
     return suite
 
 

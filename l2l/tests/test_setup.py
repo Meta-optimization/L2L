@@ -85,7 +85,7 @@ class SetupTestCase(unittest.TestCase):
 
 
 def suite():
-    suite = unittest.makeSuite(SetupTestCase, 'test')
+    suite = unittest.TestLoader().loadTestsFromTestCase(SetupTestCase)
     return suite
 
 

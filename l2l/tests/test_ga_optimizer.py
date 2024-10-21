@@ -54,7 +54,7 @@ class GAOptimizerTestCase(OptimizerTestCase):
         self.experiment_activeWait.end_experiment(optimizer)
 
 def suite():
-    suite = unittest.makeSuite(GAOptimizerTestCase, 'test')
+    suite = unittest.TestLoader().loadTestsFromTestCase(GAOptimizerTestCase)
     return suite
 
 

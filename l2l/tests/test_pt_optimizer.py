@@ -65,7 +65,7 @@ class PTOptimizerTestCase(OptimizerTestCase):
             self.fail(e.__name__)
 
 def suite():
-    suite = unittest.makeSuite(PTOptimizerTestCase, 'test')
+    suite = unittest.TestLoader().loadTestsFromTestCase(PTOptimizerTestCase)
     return suite
 
 

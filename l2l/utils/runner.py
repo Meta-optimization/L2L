@@ -71,6 +71,7 @@ class Runner():
 
         self.outputpipes = {}
         self.inputpipes = {}
+        self.worker_to_individual_map = {}
 
         self.n_inds = len(trajectory.individuals[0])
         self.n_workers = min(self.n_inds, args['max_workers'])
@@ -209,6 +210,7 @@ class Runner():
         """
         #TODO: implement different restart strategies depending on the optimizee.
         self.pending_individuals.append(idx)
+        logger.info(f"Restarting individual {idx}")
 
 
     def populate_free_workers(self, gen):
@@ -223,7 +225,8 @@ class Runner():
             self.running_workers[w_id] = self.idle_workers.pop(w_id)
             self.running_workers_individual_indeces[w_id] = next_idx
             self.running_individuals.append(next_idx)
-            print(f"--- sent idx {next_idx} to worker {w_id}")
+            self.worker_to_individual_map[w_id] = next_idx
+            logger.info(f"--- sent idx {next_idx} to worker {w_id}")
 
 
 
@@ -292,7 +295,8 @@ class Runner():
                     if status_code > 128 and retry<20:#Error spawning step, wait a bit?
                         logger.info(f"Restarting {w_id} from error {status_code}\n retry {retry}")
                         time.sleep(4)
-                        self.restart_worker( w_id)
+                        self.restart_worker(w_id)
+                        self.restart_individual(gen, self.worker_to_individual_map[w_id])
                         retry += 1
                     else:
                         logger.error("Worker could not be initialized")
@@ -303,6 +307,7 @@ class Runner():
             self.populate_free_workers(gen=gen)
 
             if not self.running_individuals and not self.pending_individuals:
+                self.worker_to_individual_map = {}
                 # all individuals finished
                 break
             sys.stdout.flush()

@@ -249,7 +249,6 @@ class Runner():
         # Add a try catch block to manage restarting individuals correctly
         logger.info(f"Reading output from gen {gen}")
         while True:
-
             for w_id in list(self.running_workers.keys()):
                 process = self.running_workers[w_id]
                 ind_idx = self.running_workers_individual_indeces[w_id]
@@ -295,9 +294,12 @@ class Runner():
                     if status_code > 128 and retry<20:#Error spawning step, wait a bit?
                         logger.info(f"Restarting {w_id} from error {status_code}\n retry {retry}")
                         time.sleep(4)
+                        retry += 1
+                        self.trajectory.retry = retry
+                        self.dump_traj(self.trajectory)
                         self.restart_worker(w_id)
                         self.restart_individual(gen, self.worker_to_individual_map[w_id])
-                        retry += 1
+                        self.running_individuals.remove(ind_idx)
                     else:
                         logger.error("Worker could not be initialized")
                         raise NotImplementedError("Restart failed for worker")
@@ -372,6 +374,7 @@ class Runner():
                 '        handle_optimizee.close()\n\n' +
                 '        logger.info("Trajectory access")\n' +
                 '        logger.info(trajectory.individuals)\n' +
+                '        logger.info(trajectory.retry)\n' +
                 '        logger.info(len(trajectory.individuals[int(generation)]))\n' +
                 '        trajectory.individual = trajectory.individuals[int(generation)][int(idx)] \n'+
                 '        res = optimizee.simulate(trajectory)\n\n' +
@@ -417,6 +420,7 @@ class Runner():
 
         #tmpgen = trajectory.individuals[trajectory.individual.generation]
         tmptraj = Trajectory()
+        tmptraj.retry = trajectory.retry
         tmptraj.individual = trajectory.individual
         tmptraj.individuals[trajectory.individual.generation] = trajectory.individuals[trajectory.individual.generation]#tmpgen
         trajfname = "op_trajectory_%s.bin" % (trajectory.individual.generation)

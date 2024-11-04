@@ -43,7 +43,7 @@ class SAOptimizerTestCase(OptimizerTestCase):
             self.fail(e.__name__)
 
 def suite():
-    suite = unittest.makeSuite(SAOptimizerTestCase, 'test')
+    suite = unittest.TestLoader().loadTestsFromTestCase(SAOptimizerTestCase)
     return suite
 
 

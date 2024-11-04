@@ -1,6 +1,6 @@
 import unittest
 
-import l2l.utils.JUBE_runner as jube
+from l2l.utils.runner import prepare_optimizee
 from l2l.paths import Paths
 from l2l.optimizees.functions.benchmarked_functions import BenchmarkedFunctions
 from l2l.optimizees.functions.optimizee import FunctionGeneratorOptimizee
@@ -43,7 +43,7 @@ class SetupTestCase(unittest.TestCase):
         self.trajectory.f_add_parameter_to_group("Test_params", "param1", "value1")
         self.assertEqual("value1", self.trajectory.Test_params.params["param1"])
 
-    def test_juberunner_setup(self):
+    def test_runner_setup(self):
         self.experiment = Experiment(root_dir_path=self.root_dir_path)
         self.trajectory, _ = self.experiment.prepare_experiment(
             name='test_trajectory',
@@ -54,14 +54,8 @@ class SetupTestCase(unittest.TestCase):
             add_time=True,
             automatic_storing=True,
             log_stdout=False,
-            jube_parameter={},
             overwrite = True
         )
-        self.trajectory.f_add_parameter_group("JUBE_params", "Contains JUBE parameters")
-        self.trajectory.f_add_parameter_to_group("JUBE_params", "exec", "python " +
-                                      os.path.join(self.paths.simulation_path,
-                                                   "run_files/run_optimizee.py"))
-        self.trajectory.f_add_parameter_to_group("JUBE_params", "paths", self.paths)
 
         ## Benchmark function
         function_id = 14
@@ -73,7 +67,7 @@ class SetupTestCase(unittest.TestCase):
         optimizee = FunctionGeneratorOptimizee(self.trajectory, benchmark_function,
                                                seed=optimizee_seed)
 
-        jube.prepare_optimizee(optimizee, self.paths.root_dir_path)
+        prepare_optimizee(optimizee, self.paths.root_dir_path)
 
         fname = os.path.join(self.paths.root_dir_path, "optimizee.bin")
 
@@ -85,7 +79,7 @@ class SetupTestCase(unittest.TestCase):
 
 
 def suite():
-    suite = unittest.makeSuite(SetupTestCase, 'test')
+    suite = unittest.TestLoader().loadTestsFromTestCase(SetupTestCase)
     return suite
 
 

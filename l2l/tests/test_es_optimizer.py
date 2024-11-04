@@ -65,7 +65,7 @@ class ESOptimizerTestCase(OptimizerTestCase):
         self.experiment_activeWait.end_experiment(optimizer)
 
 def suite():
-    suite = unittest.makeSuite(ESOptimizerTestCase, 'test')
+    suite = unittest.TestLoader().loadTestsFromTestCase(ESOptimizerTestCase)
     return suite
 
 

@@ -26,7 +26,7 @@ class Runner():
     launch(idx)
     launch_workers()
     close_workers()
-    restart_worker(gen, idx)
+    restart_worker(w_id)
     simulate_generation(gen, n_inds)
     prepare_run_file()
     dump_traj(trajectory)
@@ -71,6 +71,7 @@ class Runner():
 
         self.outputpipes = {}
         self.inputpipes = {}
+        self.worker_to_individual_map = {}
 
         self.n_inds = len(trajectory.individuals[0])
         self.n_workers = min(self.n_inds, args['max_workers'])
@@ -196,7 +197,6 @@ class Runner():
     def restart_worker(self, w_id):
         """
         Takes care of handling the restart of a worker and its associated individual which failed by any reason, either runtime or logic.
-        :param gen: the current generation
         :param w_id: the id of the worker to be launched.
         """
         self.running_workers.pop(w_id)
@@ -210,6 +210,7 @@ class Runner():
         """
         #TODO: implement different restart strategies depending on the optimizee.
         self.pending_individuals.append(idx)
+        logger.info(f"Restarting individual {idx}")
 
 
     def populate_free_workers(self, gen):
@@ -224,7 +225,8 @@ class Runner():
             self.running_workers[w_id] = self.idle_workers.pop(w_id)
             self.running_workers_individual_indeces[w_id] = next_idx
             self.running_individuals.append(next_idx)
-            print(f"--- sent idx {next_idx} to worker {w_id}")
+            self.worker_to_individual_map[w_id] = next_idx
+            logger.info(f"--- sent idx {next_idx} to worker {w_id}")
 
 
 
@@ -247,7 +249,6 @@ class Runner():
         # Add a try catch block to manage restarting individuals correctly
         logger.info(f"Reading output from gen {gen}")
         while True:
-
             for w_id in list(self.running_workers.keys()):
                 process = self.running_workers[w_id]
                 ind_idx = self.running_workers_individual_indeces[w_id]
@@ -293,8 +294,12 @@ class Runner():
                     if status_code > 128 and retry<20:#Error spawning step, wait a bit?
                         logger.info(f"Restarting {w_id} from error {status_code}\n retry {retry}")
                         time.sleep(4)
-                        self.restart_worker(gen, w_id)
                         retry += 1
+                        self.trajectory.retry = retry
+                        self.dump_traj(self.trajectory)
+                        self.restart_worker(w_id)
+                        self.restart_individual(gen, self.worker_to_individual_map[w_id])
+                        self.running_individuals.remove(ind_idx)
                     else:
                         logger.error("Worker could not be initialized")
                         raise NotImplementedError("Restart failed for worker")
@@ -304,6 +309,7 @@ class Runner():
             self.populate_free_workers(gen=gen)
 
             if not self.running_individuals and not self.pending_individuals:
+                self.worker_to_individual_map = {}
                 # all individuals finished
                 break
             sys.stdout.flush()
@@ -368,6 +374,7 @@ class Runner():
                 '        handle_optimizee.close()\n\n' +
                 '        logger.info("Trajectory access")\n' +
                 '        logger.info(trajectory.individuals)\n' +
+                '        logger.info(trajectory.retry)\n' +
                 '        logger.info(len(trajectory.individuals[int(generation)]))\n' +
                 '        trajectory.individual = trajectory.individuals[int(generation)][int(idx)] \n'+
                 '        res = optimizee.simulate(trajectory)\n\n' +
@@ -413,6 +420,7 @@ class Runner():
 
         #tmpgen = trajectory.individuals[trajectory.individual.generation]
         tmptraj = Trajectory()
+        tmptraj.retry = trajectory.retry
         tmptraj.individual = trajectory.individual
         tmptraj.individuals[trajectory.individual.generation] = trajectory.individuals[trajectory.individual.generation]#tmpgen
         trajfname = "op_trajectory_%s.bin" % (trajectory.individual.generation)

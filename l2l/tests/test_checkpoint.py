@@ -157,7 +157,7 @@ class CheckpointTestCase(OptimizerTestCase):
         
 
 def suite():
-    suite = unittest.makeSuite(CheckpointTestCase, 'test')
+    suite = unittest.TestLoader().loadTestsFromTestCase(CheckpointTestCase)
     return suite
 
 

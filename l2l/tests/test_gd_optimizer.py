@@ -63,7 +63,7 @@ class GDOptimizerTestCase(OptimizerTestCase):
 
 
 def suite():
-    suite = unittest.makeSuite(GDOptimizerTestCase, 'test')
+    suite = unittest.TestLoader().loadTestsFromTestCase(GDOptimizerTestCase)
     return suite
 
 

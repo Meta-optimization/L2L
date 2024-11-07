@@ -56,6 +56,7 @@ class Experiment(object):
            Default runner parameters are:
             - srun: ""
             - exec: "python3 + self.paths.simulation_path/run_optimizee.py"
+            - max_workers: 32
             - work_path: self.paths.root_dir_path,
             - paths_obj: self.paths
         """

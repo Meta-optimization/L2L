@@ -20,7 +20,7 @@ class Environment:
         The trajectory object holds individual parameters and history per generation of the exploration process.
         """
         if 'trajectory' in keyword_args:
-            self.trajectory = Trajectory(name=keyword_args['trajectory'], debug = keyword_args['debug'], 
+            self.trajectory = Trajectory(name=keyword_args['trajectory'], debug = keyword_args['debug'],
                                          stop_run = keyword_args['stop_run'], timeout=keyword_args['timeout'])
         if 'checkpoint' in keyword_args:
             self.trajectory = keyword_args["checkpoint"]
@@ -39,12 +39,13 @@ class Environment:
         Runs all generations of the optimizees using the runner.
         """
         result = {}
+        logger.info(f"Environment run starting Runner for n iterations: {self.trajectory.par['n_iteration']}")
+        runner = Runner(self.trajectory, self.trajectory.par['n_iteration']+self.trajectory.individual.generation)
         for it in range(self.trajectory.individual.generation, self.trajectory.par['n_iteration']+self.trajectory.individual.generation):
             if self.multiprocessing:
                 # Multiprocessing is done through the runner
-                logger.info(f"Environment run starting Runner for n iterations: {it+1}/{self.trajectory.par['n_iteration']}")
-                runner = Runner(self.trajectory, it)
                 result[it] = []
+                logger.info(f"Iteration: {it+1}/{self.trajectory.par['n_iteration']}")
                 # execute run
                 try:
                     result[it] = runner.run(self.trajectory,it)
@@ -60,6 +61,7 @@ class Environment:
             runner.dump_traj(self.trajectory)
             # Perform the postprocessing step in order to generate the new parameter set
             self.postprocessing(self.trajectory, result[it])
+        runner.close_workers()
 
     def add_postprocessing(self, func):
         """

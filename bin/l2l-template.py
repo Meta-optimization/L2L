@@ -12,18 +12,21 @@ def main():
     # define a directory to store the results
     experiment = Experiment(root_dir_path='~/home/user/L2L/results')
     # TODO when using the template: use keywords to prepare the experiment and
-    #  create a dictionary for jube parameters
-    # prepare_experiment returns the trajectory and all jube parameters
-    jube_params = {"nodes": "2",
-                   "walltime": "10:00:00",
-                   "ppn": "1",
-                   "cpu_pp": "1"}
-    traj, all_jube_params = experiment.prepare_experiment(name='L2L',
-                                                          log_stdout=True,
-                                                          jube_parameter=jube_params,
-                                                          # To enable stderror output
-                                                          # from the optimizee set debug True
-                                                          debug=False)
+    #  create a dictionary for runner parameters
+    # prepare_experiment returns the trajectory and all runner parameters
+    runner_params = {
+        "srun": "srun -n 1 -c 50",
+        "exec": "python3",
+        "max_workers": 32, 
+    }
+    traj, runner_params = experiment.prepare_experiment(name='L2L',
+                                                        log_stdout=True,
+                                                        runner_parameter=runner_params,
+                                                        # To enable stderror output
+                                                        # from the optimizee set debug True
+                                                        debug=False,
+                                                        stop_run=True,
+                                                        timeout= False)
 
     ## Innerloop simulator
     # TODO when using the template: Change the optimizee to the appropriate

@@ -5,6 +5,7 @@ from collections import namedtuple
 
 from deap import base, creator, tools
 from deap.tools import HallOfFame
+import numpy
 
 from l2l import dict_to_list, list_to_dict
 from l2l.optimizers.optimizer import Optimizer
@@ -116,10 +117,17 @@ class GeneticAlgorithmOptimizer(Optimizer):
             self.pop = toolbox.population(n=0) 
             # add individuals to population
             for ind_data in data:
-                coords = ind_data['coords']
-                ind = creator.Individual(coords.tolist())
+                ind = []
+                for key in ind_data.params.keys():
+                    value = ind_data.params[key]
+                    if( isinstance(value, float) or isinstance(value, numpy.int64)):
+                        ind.append(value)
+                    elif isinstance(value, dict):
+                        ind.extend(value.tolist())
+                    else:
+                        ind.extend(value)
+                ind = creator.Individual(ind)
                 self.pop.append(ind)
-
             self.g = generation  # the current generation
         else:
             self.pop = toolbox.population(n=traj.pop_size)
@@ -133,11 +141,12 @@ class GeneticAlgorithmOptimizer(Optimizer):
 
         if traj.hall_of_fame is None:
             self.hall_of_fame = HallOfFame(20)
-            best_inds = tools.selBest(self.eval_pop_inds, 2)
-            self.best_individual = list_to_dict(best_inds[0], self.optimizee_individual_dict_spec)
+            self.best_individual = None
         else:
             self.hall_of_fame = traj.hall_of_fame
-            self.best_individual = None
+            best_inds = tools.selBest(self.eval_pop_inds, 2)
+            self.best_individual = list_to_dict(best_inds[0], self.optimizee_individual_dict_spec)
+            
         self._expand_trajectory(traj)
 
     def post_process(self, traj, fitnesses_results):

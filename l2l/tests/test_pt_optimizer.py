@@ -29,29 +29,43 @@ class PTOptimizerTestCase(OptimizerTestCase):
             "Warning: Decay parameter not within specifications.")
 
         optimizer_parameters = ParallelTemperingParameters(n_parallel_runs=2, noisy_step=.03, n_iteration=1,
-                                                 stop_criterion=np.Inf,
+                                                 stop_criterion=np.inf,
                                                  seed=np.random.randint(1e5), cooling_schedules=cooling_schedules,
                                                  temperature_bounds=temperature_bounds,
                                                  decay_parameters=decay_parameters)
-        optimizer = ParallelTemperingOptimizer(self.trajectory, optimizee_create_individual=self.optimizee.create_individual,
+        optimizer = ParallelTemperingOptimizer(self.trajectory_functionGenerator, optimizee_create_individual=self.optimizee_functionGenerator.create_individual,
                                                optimizee_fitness_weights=(-1,),
                                                parameters=optimizer_parameters,
-                                               optimizee_bounding_func=self.optimizee.bounding_func)
+                                               optimizee_bounding_func=self.optimizee_functionGenerator.bounding_func)
 
         self.assertIsNotNone(optimizer.parameters)
-        self.assertIsNotNone(self.experiment)
+        self.assertIsNotNone(self.experiment_functionGenerator)
 
         try:
 
-            self.experiment.run_experiment(optimizee=self.optimizee,
-                                  optimizee_parameters=self.optimizee_parameters,
+            self.experiment_functionGenerator.run_experiment(optimizee=self.optimizee_functionGenerator,
+                                  optimizee_parameters=self.optimizee_functionGenerator_parameters,
+                                  optimizer=optimizer,
+                                  optimizer_parameters=optimizer_parameters)
+        except Exception as e:
+            self.fail(e.__name__)
+
+        #activeWait optimizee
+        optimizer = ParallelTemperingOptimizer(self.trajectory_activeWait, optimizee_create_individual=self.optimizee_activeWait.create_individual,
+                                               optimizee_fitness_weights=(-1,),
+                                               parameters=optimizer_parameters,
+                                               optimizee_bounding_func=self.optimizee_activeWait.bounding_func)
+
+        try:
+            self.experiment_activeWait.run_experiment(optimizee=self.optimizee_activeWait,
+                                  optimizee_parameters=self.optimizee_activeWait_parameters,
                                   optimizer=optimizer,
                                   optimizer_parameters=optimizer_parameters)
         except Exception as e:
             self.fail(e.__name__)
 
 def suite():
-    suite = unittest.makeSuite(PTOptimizerTestCase, 'test')
+    suite = unittest.TestLoader().loadTestsFromTestCase(PTOptimizerTestCase)
     return suite
 
 

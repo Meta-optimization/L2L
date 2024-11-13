@@ -133,7 +133,13 @@ class CrossEntropyOptimizer(Optimizer):
         # This is because this array is used within the context of the cross entropy algorithm and
         # Thus needs to handle the optimizee individuals as vectors
         current_eval_pop = [self.optimizee_create_individual() for _ in range(parameters.pop_size)]
-
+        
+        #there are some problems calculation the covariance with only one dimiension
+        temp_indiv, self.optimizee_individual_dict_spec = dict_to_list(self.optimizee_create_individual(),
+                                                                       get_dict_spec=True)
+        if(len(self.optimizee_individual_dict_spec) <= 1 and self.optimizee_individual_dict_spec[0][2] <= 1):
+            raise Exception("For this optimizer, there have to be more than one parameter or the parameter has to have a shape > 1.")
+        
         if optimizee_bounding_func is not None:
             current_eval_pop = [self.optimizee_bounding_func(ind) for ind in current_eval_pop]
 

@@ -7,6 +7,7 @@ import time
 import numpy as np
 import os
 import scipy.special as sp
+import sys
 
 
 M_INFO = 10
@@ -37,11 +38,11 @@ def convert_synapse_weight(tau_m, tau_syn, C_m):
 class NestBenchmarkNetwork():
 
     params = {
-        'num_threads': 4, #{threads_per_task},  # total number of threads per process
+        'num_threads': 64, #{threads_per_task},  # total number of threads per process
         'simtime': 10_000, #{model_time_sim},  # total simulation time in ms
         'presimtime': 300, #{model_time_presim},  # simulation time until reaching equilibrium
         'dt': 0.1,  # simulation step
-        'compressed_spikes': False, #{compressed_spikes},  # whether to use spike compression
+        'compressed_spikes': True, #{compressed_spikes},  # whether to use spike compression
         'rng_seed': 42, #{rng_seed},  # random number generator seed
         'path_name': '.',  # path where all files will have to be written
         'log_file': 'logfile',  # naming scheme for the log files
@@ -178,10 +179,11 @@ class NestBenchmarkNetwork():
             self.brunel_params['filestem'],
             #'alpha_' + str(stdp_params['alpha']) + '_spikes')
             'spikes')
-        E_recorder = nest.Create('spike_recorder', params={
-            'record_to': 'ascii',
-            'label': recorder_label
-        })
+        if self.nrec > 0:
+            E_recorder = nest.Create('spike_recorder', params={
+                'record_to': 'memory',
+                # 'label': recorder_label
+            })
         # TODO save spieks to .dat or just print something?
 
         BuildNodeTime = time.time() - tic
@@ -215,9 +217,10 @@ class NestBenchmarkNetwork():
                 spikes should be recorded from. Aborting the simulation!""")
             exit(1)
 
-        nest.message(M_INFO, 'build_network', 'Connecting spike recorders.')
-        nest.Connect(local_neurons[:self.nrec], E_recorder,
-                     'all_to_all', 'static_synapse_hpc')
+        if self.nrec > 0:
+            nest.message(M_INFO, 'build_network', 'Connecting spike recorders.')
+            nest.Connect(local_neurons[:self.nrec], E_recorder,
+                         'all_to_all', 'static_synapse_hpc')
         #nest.Connect(local_neurons, E_recorder,
         #             'all_to_all', 'static_synapse_hpc')
 
@@ -235,7 +238,7 @@ class NestBenchmarkNetwork():
              'network_memory': network_memory,
              'network_memory_rss': network_memory_rss,
              'network_memory_peak': network_memory_peak}
-        recorders = E_recorder
+        recorders = E_recorder if self.nrec > 0 else None
 
         return d, recorders
 
@@ -302,6 +305,8 @@ class NestBenchmarkNetwork():
     def run_simulation(self):
         """Performs a simulation, including network construction"""
 
+        print('MEM', self.params['profile_memory'])
+        sys.stdout.flush()
 
         if self.params['profile_memory']:
             base_memory = str(get_vmsize())
@@ -392,12 +397,24 @@ class NestBenchmarkNetwork():
 
             intermediate_kernel_status = nest.kernel_status
 
+            # calculate rate
+            if self.nrec > 0:
+                average_rate = self.compute_rate(sr)
+                print('presim avg rate', average_rate, 'Hz spikes', nest.local_spike_counter)
+                sys.stdout.flush()
+                if average_rate > 200:
+                    return np.nan
+
             tic = time.time()
             nest.Run(self.params['simtime'])
             SimCPUTime = time.time() - tic
             total_memory = str(get_vmsize())
 
-        average_rate = self.compute_rate(sr)
+        if self.nrec > 0:
+            average_rate = self.compute_rate(sr)
+        else:
+            average_rate = nest.local_spike_counter/((self.NE + self.NI) * self.params['simtime'])
+        print('NE', self.NE, 'NI', self.NI, 'simtime', self.params['simtime'], 'spikes', nest.local_spike_counter)
 
         d = {'py_time_init': InitTime,
              'py_time_presimulate': PreparationTime,

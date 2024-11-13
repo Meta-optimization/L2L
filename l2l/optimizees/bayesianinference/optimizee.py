@@ -21,8 +21,8 @@ class SBIOptimizee(Optimizee):
         super().__init__(traj)
         self.ind_idx = traj.individual.ind_idx
         self.generation = traj.individual.generation
-        self.nrec = 50
-        self.scale = 0.05
+        self.nrec = 500
+        self.scale = 10
 
     def create_individual(self, n=1, prior=prior, labels=labels):
         """
@@ -66,8 +66,8 @@ class SBIOptimizee(Optimizee):
         delay = traj.individual.delay
 
         net = NestBenchmarkNetwork(scale=self.scale,
-                                   CE=500,#c_ex,
-                                   CI=100,#c_in,
+                                   CE=9000,#c_ex,
+                                   CI=2250,#c_in,
                                    weight_excitatory=23.3812,#w_ex,
                                    weight_inhibitory=-50.0,#w_in,
                                    delay=0.1,#delay,

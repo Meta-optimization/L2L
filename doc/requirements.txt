@@ -1,5 +1,5 @@
-sphinx>=2.4.0
+sphinx
 numpy
 scikit-learn
-
+sphinx-rtd-theme
 -e .

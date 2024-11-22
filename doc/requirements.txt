@@ -1,0 +1,5 @@
+sphinx>=2.4.0
+numpy
+scikit-learn
+
+-e .

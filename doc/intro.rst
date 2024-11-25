@@ -313,7 +313,7 @@ which contains details for the right execution of the program.
     * **work_path**: Specifies the path for the workspace. The results of the simulation, 
       the trajectories and the logs for the individual workers are stored here. The default-parameter is set to the root_dir_path
       of the experiment.
-    * **path_obj**: Strores the path object. 
+    * **path_obj**: Stores the path object. 
 2. Pass the dictionary to the experiment while calling **experiment.prepare_experiment(runner_params=params)**.
 
 See the :file:`bin/l2l-template.py` for a base file with all these parameters.

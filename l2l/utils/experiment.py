@@ -40,8 +40,8 @@ class Experiment(object):
             - runner_params: dict, User specified parameters for the runner.
                 See notes section for default runner parameters
             - multiprocessing, bool, enable multiprocessing, Default: False
-            - debug, bool, enable verbose mode to print out errors appearing
-                in the optimizee, Default: False
+            - debug, bool, enable verbose mode to get more detailed logs for debugging,
+                 Default: False
             - stop_run, bool, when debug is enabled and found an error, stops
                 execution, Default: True
             -timeout, bool, stops execution after 2 hours if it is not finished by then,

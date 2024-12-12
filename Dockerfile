@@ -2,5 +2,6 @@ FROM python:3.8
 WORKDIR /L2L
 COPY . .
 RUN python -m pip install -e .
+RUN chmod -R 755 .
 LABEL org.opencontainers.image.source="https://github.com/Meta-optimization/L2L"
 #CMD ["python", "./bin/l2l-fun-ga.py"]

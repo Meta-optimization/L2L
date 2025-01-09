@@ -279,12 +279,16 @@ class Runner():
                 elif out == "1": 
                     if(self.debug):
                         logger.info(f"Individual finished with error {ind_idx}: {out}. Restarting.")
+                    # if stop_run is set, simulation should stop if error occurs
+                    if(self.stop_run):
+                        raise Exception(f"An error occured in individual {ind_idx}, the execution has stopped.")(f"An error occured in individual {ind_idx}, the execution has stopped.")
                     self.running_individuals.remove(ind_idx)
                     sorted_exit_codes[ind_idx] = 1
                     # set worker to idle
                     self.idle_workers[w_id] = self.running_workers.pop(w_id)
                     # restart individual 
                     self.restart_individual(gen, ind_idx)
+                    
                 
                 if status_code == None:
                     # Indivdual still running
@@ -300,6 +304,8 @@ class Runner():
                         logger.info(f"Error status worker {w_id}: {status_code}")
                     # worker raised error
                     # TODO depending on what kind of error restart failed worker
+                    if (self.stop_run):
+                        raise Exception(f"An error occured in individual {ind_idx}, the execution has stopped.")
                     if status_code > 128 and retry<20:#Error spawning step, wait a bit?
                         if(self.debug):
                             logger.info(f"Restarting {w_id} from error {status_code}\n retry {retry}")

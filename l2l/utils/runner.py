@@ -127,7 +127,7 @@ class Runner():
             raise RuntimeError(f"Generation {generation} did not finish successfully")
         #create zipfiles for Err and Out files 
         self.create_zipfile(self.work_paths["individual_logs"], f"logs_generation_{generation}")
-
+        self.close_workers()
         return results
 
     def produce_run_command(self, idx):
@@ -192,10 +192,9 @@ class Runner():
         """
         Makes sure all workers are notified that the optimization run is over and closes all open pipes and files.
         """
-        for w_id in range(self.n_workers):
-            self.inputpipes[w_id].write(f"0 0 0\n")#.encode('ascii'))
-            self.inputpipes[w_id].flush()
-            self.outputpipes[w_id].close()
+        for w_id in list(self.running_workers.keys()):
+            process = self.running_workers[w_id]
+            process.terminate()
     
     def restart_worker(self, w_id):
         """
@@ -281,7 +280,9 @@ class Runner():
                         logger.info(f"Individual finished with error {ind_idx}: {out}. Restarting.")
                     # if stop_run is set, simulation should stop if error occurs
                     if(self.stop_run):
-                        raise Exception(f"An error occured in individual {ind_idx}, the execution has stopped.")(f"An error occured in individual {ind_idx}, the execution has stopped.")
+                        logger.info(f"Individual finished with error {ind_idx}: {out}. Stop Execution.")
+                        self.close_workers()
+                        sys.exit(1)
                     self.running_individuals.remove(ind_idx)
                     sorted_exit_codes[ind_idx] = 1
                     # set worker to idle
@@ -303,9 +304,11 @@ class Runner():
                     if(self.debug):
                         logger.info(f"Error status worker {w_id}: {status_code}")
                     # worker raised error
-                    # TODO depending on what kind of error restart failed worker
                     if (self.stop_run):
-                        raise Exception(f"An error occured in individual {ind_idx}, the execution has stopped.")
+                        logger.info(f"Error status worker {w_id}: {status_code}. Stop execution")
+                        self.close_workers()
+                        sys.exit(1)
+                    # TODO depending on what kind of error restart failed worker
                     if status_code > 128 and retry<20:#Error spawning step, wait a bit?
                         if(self.debug):
                             logger.info(f"Restarting {w_id} from error {status_code}\n retry {retry}")
@@ -330,7 +333,6 @@ class Runner():
                 break
             sys.stdout.flush()
             time.sleep(5)
-        
         #sorted_exit_codes = [self.finished_individuals[idx].poll() for idx in range(n_inds)]
         return sorted_exit_codes
 

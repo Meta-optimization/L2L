@@ -38,11 +38,10 @@ class RunnerTestCase(OptimizerTestCase):
                                              optimizee_fitness_weights=(0.1,),
                                              parameters=optimizer_parameters,
                                              optimizee_bounding_func=optimizee.bounding_func)
-        self.assertRaises(Exception, lambda: self.experiment_stop_error.run_experiment(optimizee=optimizee,
+        self.assertRaises(SystemExit, lambda: self.experiment_stop_error.run_experiment(optimizee=optimizee,
                                     optimizee_parameters=optimizee_parameters,
                                     optimizer=optimizer,
                                     optimizer_parameters=optimizer_parameters))
-        self.experiment_stop_error.end_experiment(optimizer)
 
 def suite():
     suite = unittest.TestLoader().loadTestsFromTestCase(RunnerTestCase)

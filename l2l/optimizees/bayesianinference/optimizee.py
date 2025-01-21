@@ -22,7 +22,7 @@ class SBIOptimizee(Optimizee):
         self.ind_idx = traj.individual.ind_idx
         self.generation = traj.individual.generation
         self.nrec = 500
-        self.scale = 10
+        self.scale = 0.5
 
     def create_individual(self, n=1, prior=prior, labels=labels):
         """
@@ -52,7 +52,8 @@ class SBIOptimizee(Optimizee):
 
         """
         from .network_indegree import NestBenchmarkNetwork
-        import nest
+        import nest # import mpi4py before or after?
+        from mpi4py import MPI
 
         # TODO Zeitmessung?
 
@@ -66,19 +67,30 @@ class SBIOptimizee(Optimizee):
         delay = traj.individual.delay
 
         net = NestBenchmarkNetwork(scale=self.scale,
-                                   CE=9000,#c_ex,
-                                   CI=2250,#c_in,
+                                   CE=900,#,9000,#c_ex,
+                                   CI=225,#2250,#c_in,
                                    weight_excitatory=23.3812,#w_ex,
-                                   weight_inhibitory=-50.0,#w_in,
+                                   weight_inhibitory=-100.0,#w_in,
                                    delay=0.1,#delay,
                                    nrec=self.nrec
                                    )
         average_rate = net.run_simulation()
 
-        desired_rate = x_obs[0]
-        fitness = -abs(average_rate - desired_rate) # TODO: is this a sensible way to calculate fitness?
-        print(f'gen {self.generation} ind {self.ind_idx} rate {average_rate} fitness {fitness}')
-        return (fitness, [average_rate])
+        print(f'gen {self.generation} ind {self.ind_idx} rate {average_rate}')
+
+        # MPI
+        comm = MPI.COMM_WORLD
+        rank = comm.Get_rank()
+
+        average_rate = comm.reduce(average_rate, MPI.SUM)
+
+        print(f'gen {self.generation} ind {self.ind_idx} reduced rate {average_rate}')
+
+        if rank == 0:
+            desired_rate = x_obs[0]
+            fitness = -abs(average_rate - desired_rate) # TODO: is this a sensible way to calculate fitness?
+            print(f'gen {self.generation} ind {self.ind_idx} rate {average_rate} fitness {fitness}')
+            return (fitness, [average_rate])
 
     def bounding_func(self, individual):
         """

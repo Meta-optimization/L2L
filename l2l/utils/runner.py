@@ -341,6 +341,7 @@ class Runner():
                 'import logging\n' +
                 'import socket\n' +
                 'import time\n' +
+                'from mpi4py import MPI\n' + #TODO
                 'worker_id = sys.argv[1]\n' +
                 'logfilename = f"'+self.work_paths['individual_logs']+'/workers_{worker_id}.wlog"\n' +
                 'logging.basicConfig(filename=logfilename, filemode="a", level=logging.INFO)\n' +
@@ -351,6 +352,9 @@ class Runner():
                 'inputpipename = f"'+self.work_paths['individual_logs']+'/inputpipe_{worker_id}"\n'+
                 'inputpipe = open(inputpipename, "r")\n' +
                 'running = 1\n' +
+                'comm = MPI.COMM_WORLD\n' +
+                'rank = comm.Get_rank()\n' +
+                'logger.info(f"HALLO worker {worker_id} rank {rank}")\n'
                 'while running:\n' +
                 '    try:\n' +
                 '        logger.info(f"Receiving")\n' +

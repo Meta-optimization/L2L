@@ -52,6 +52,7 @@ class Environment:
                 except Exception as e:
                     if self.logging:
                         logger.exception("Error launching run: " + str(e.__cause__))
+                    runner.close_workers()
                     raise e
 
             # Add results to the trajectory

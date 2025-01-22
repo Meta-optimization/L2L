@@ -40,7 +40,7 @@ extensions = [
     'sphinx.ext.viewcode',
     'sphinx.ext.githubpages',
     'sphinx.ext.intersphinx',
-    'sphinxjp.themes.basicstrap'
+#    'sphinxjp.themes.basicstrap'
 ]
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3', None),
@@ -136,7 +136,7 @@ todo_include_todos = True
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'bizstyle'
+html_theme = 'sphinx_rtd_theme'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -159,7 +159,7 @@ html_title = 'L2L v0.1'
 #
 # html_short_title = None
 
-html_baseurl = "https://igitugraz.github.io/L2L/"
+#html_baseurl = "https://igitugraz.github.io/L2L/"
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.

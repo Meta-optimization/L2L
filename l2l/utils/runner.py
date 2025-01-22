@@ -56,7 +56,7 @@ class Runner():
             os.makedirs(self.work_paths[dir], exist_ok=True)
 
         self.optimizeepath = os.path.join(self.path, "optimizee.bin")
-        self.debug_stderr = self.trajectory.debug
+        self.debug = self.trajectory.debug
         self.stop_run = self.trajectory.stop_run
         self.timeout = self.trajectory.timeout
 
@@ -127,7 +127,7 @@ class Runner():
             raise RuntimeError(f"Generation {generation} did not finish successfully")
         #create zipfiles for Err and Out files
         self.create_zipfile(self.work_paths["individual_logs"], f"logs_generation_{generation}")
-
+        self.close_workers()
         return results
 
     def produce_run_command(self, idx):
@@ -146,7 +146,8 @@ class Runner():
             run_ind = f"{self.exec_command} {idx}"
         args = shlex.split(run_ind)
 
-        logger.info(f"{run_ind}")
+        if(self.debug):
+            logger.info(f"run command: {run_ind}")
         return args, log_files
 
     def launch_worker(self, w_id):
@@ -158,10 +159,11 @@ class Runner():
         """
         outputpipename = os.path.join(self.work_paths['individual_logs'],f"outputpipe_{w_id}")
         open(outputpipename, 'w+').close()
-        logger.info(f"Pipe created {outputpipename}")
         inputpipename = os.path.join(self.work_paths['individual_logs'],f"inputpipe_{w_id}")
         open(inputpipename, 'w+').close()
-        logger.info(f"Pipe created {inputpipename}")
+        if(self.debug):
+            logger.info(f"Pipe created {outputpipename}")
+            logger.info(f"Pipe created {inputpipename}")
         args, log_files = self.produce_run_command(w_id)
         if log_files:
             process = subprocess.Popen(args, stdout=open(log_files['stdout'], 'w'), stderr=open(log_files['stderr'], 'w'))
@@ -174,7 +176,8 @@ class Runner():
             logger.info(f"{e}")
         #os.set_blocking(self.outputpipes[idx].fileno(), False)
         self.idle_workers[w_id] = process
-        logger.info(f"Worker created {w_id}")
+        if(self.debug):
+            logger.info(f"Worker created {w_id}")
 
     def launch_workers(self):
         """
@@ -183,16 +186,28 @@ class Runner():
         for w_id in range(self.n_workers):
             self.launch_worker(w_id)
         logger.info(f"All {self.n_workers} workers created")
+        self.check_workers()
 
 
     def close_workers(self):
         """
         Makes sure all workers are notified that the optimization run is over and closes all open pipes and files.
         """
-        for w_id in range(self.n_workers):
-            self.inputpipes[w_id].write(f"0 0 0\n")#.encode('ascii'))
-            self.inputpipes[w_id].flush()
-            self.outputpipes[w_id].close()
+        for w_id in list(self.running_workers.keys()):
+            process = self.running_workers[w_id]
+            process.terminate()
+
+    def check_workers(self):
+        """
+        Checks if all the workers are running properly
+        """
+        for w_id in list(self.running_workers.keys()):
+            process = self.running_workers[w_id]
+            exitcode = process.poll()
+            if exitcode is not None: # None would imply that it's running
+                logger.info(str(process.stdout.read()))
+                logger.info(str(process.stderr.read()))
+                raise NotImplementedError("Worker crashed")
 
     def restart_worker(self, w_id):
         """
@@ -226,7 +241,8 @@ class Runner():
             self.running_workers_individual_indeces[w_id] = next_idx
             self.running_individuals.append(next_idx)
             self.worker_to_individual_map[w_id] = next_idx
-            logger.info(f"--- sent idx {next_idx} to worker {w_id}")
+            if(self.debug):
+                logger.info(f"--- sent idx {next_idx} to worker {w_id}")
 
 
 
@@ -245,9 +261,10 @@ class Runner():
         # Restart failed individuals
         retry=0
         sorted_exit_codes = [1]*n_inds
-        logger.info(f"All workers started running individuals for gen {gen}\n")
-        # Add a try catch block to manage restarting individuals correctly
-        logger.info(f"Reading output from gen {gen}")
+        if (self.debug):
+            logger.info(f"All workers started running individuals for gen {gen}\n")
+            # Add a try catch block to manage restarting individuals correctly
+            logger.info(f"Reading output from gen {gen}")
         while True:
             for w_id in list(self.running_workers.keys()):
                 process = self.running_workers[w_id]
@@ -260,7 +277,8 @@ class Runner():
                     continue
 
                 if out == "0":
-                    logger.info(f"Individual finished without error {ind_idx}: {out}")
+                    if(self.debug):
+                        logger.info(f"Individual finished without error {ind_idx}: {out}")
                     # individual finished without error
                     self.running_individuals.remove(ind_idx)
                     self.finished_individuals.append(ind_idx)
@@ -271,13 +289,20 @@ class Runner():
 
                 #TODO error control of problematic optimizees
                 elif out == "1":
-                    logger.info(f"Individual finished with error {ind_idx}: {out}. Restarting.")
+                    if(self.debug):
+                        logger.info(f"Individual finished with error {ind_idx}: {out}. Restarting.")
+                    # if stop_run is set, simulation should stop if error occurs
+                    if(self.stop_run):
+                        logger.info(f"Individual finished with error {ind_idx}: {out}. Stop Execution.")
+                        self.close_workers()
+                        sys.exit(1)
                     self.running_individuals.remove(ind_idx)
                     sorted_exit_codes[ind_idx] = 1
                     # set worker to idle
                     self.idle_workers[w_id] = self.running_workers.pop(w_id)
                     # restart individual
                     self.restart_individual(gen, ind_idx)
+
 
                 if status_code == None:
                     # Indivdual still running
@@ -286,13 +311,20 @@ class Runner():
                 elif status_code == 0:
                     # Process closed
                     self.running_workers.pop(w_id)
-                    logger.info(f"Finished worker {w_id}: {status_code}")
+                    if(self.debug):
+                        logger.info(f"Finished worker {w_id}: {status_code}")
                 else:
-                    logger.info(f"Error status worker {w_id}: {status_code}")
+                    if(self.debug):
+                        logger.info(f"Error status worker {w_id}: {status_code}")
                     # worker raised error
+                    if (self.stop_run):
+                        logger.info(f"Error status worker {w_id}: {status_code}. Stop execution")
+                        self.close_workers()
+                        sys.exit(1)
                     # TODO depending on what kind of error restart failed worker
                     if status_code > 128 and retry<20:#Error spawning step, wait a bit?
-                        logger.info(f"Restarting {w_id} from error {status_code}\n retry {retry}")
+                        if(self.debug):
+                            logger.info(f"Restarting {w_id} from error {status_code}\n retry {retry}")
                         time.sleep(4)
                         retry += 1
                         self.trajectory.retry = retry
@@ -314,7 +346,6 @@ class Runner():
                 break
             sys.stdout.flush()
             time.sleep(5)
-
         #sorted_exit_codes = [self.finished_individuals[idx].poll() for idx in range(n_inds)]
         return sorted_exit_codes
 

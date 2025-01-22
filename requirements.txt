@@ -3,6 +3,7 @@ scipy
 pyyaml
 sphinx
 sphinxjp.themes.basicstrap
+sphinx-rtd-theme
 jinja2
 gitpython
 scikit-learn

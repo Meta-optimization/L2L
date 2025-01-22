@@ -40,11 +40,10 @@ class Experiment(object):
             - runner_params: dict, User specified parameters for the runner.
                 See notes section for default runner parameters
             - multiprocessing, bool, enable multiprocessing, Default: False
-            - debug, bool, enable verbose mode to print out errors appearing
-                in the optimizee, Default: False
-            - stop_run, bool, when debug is enabled and found an error, stops
-                execution, Default: True
-            -timeout, bool, stops execution after 2 hours if it is not finished by then,
+            - debug, bool, enable verbose mode to get more detailed logs for debugging,
+                 Default: False
+            - stop_run, bool, when an error occures the execution is stoped, Default: False
+            - timeout, bool, stops execution after 2 hours if it is not finished by then,
                 Default: True
             -overwrite, bool, specifies whether existing files should be overwritten
                 Default: False
@@ -100,7 +99,7 @@ class Experiment(object):
                 log_stdout=kwargs.get('log_stdout', False),  # Sends stdout to logs
                 multiprocessing=kwargs.get('multiprocessing', True),
                 debug = kwargs.get('debug', False),
-                stop_run = kwargs.get('stop_run', True),
+                stop_run = kwargs.get('stop_run',False),
                 timeout = kwargs.get('timeout', True)
             )
         else:
@@ -114,7 +113,7 @@ class Experiment(object):
                 log_stdout=kwargs.get('log_stdout', False),  # Sends stdout to logs
                 multiprocessing=kwargs.get('multiprocessing', True),
                 debug = kwargs.get('debug', False),
-                stop_run = kwargs.get('stop_run', True),
+                stop_run = kwargs.get('stop_run', False),
                 timeout = kwargs.get('timeout', True)
             )
             # Get the trajectory from the environment

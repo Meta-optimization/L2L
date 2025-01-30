@@ -14,7 +14,7 @@ from l2l.optimizers.multigradientdescent.optimizer import MultiRMSPropParameters
 def main():
     name = 'L2L-FUN-MGD'
     experiment = Experiment("../results")
-    traj, all_jube_params = experiment.prepare_experiment(name=name,
+    traj, runner_params = experiment.prepare_experiment(name=name,
                                                           trajectory_name=name)
 
     ## Benchmark function

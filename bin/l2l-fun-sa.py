@@ -9,7 +9,7 @@ from l2l.optimizers.simulatedannealing.optimizer import SimulatedAnnealingParame
 def main():
     name = 'L2L-FunctionGenerator-SA'
     experiment = Experiment("../results/")
-    traj, all_jube_params = experiment.prepare_experiment(name=name,
+    traj, runner_params = experiment.prepare_experiment(name=name,
                                                           log_stdout=True)
 
     ## Benchmark function

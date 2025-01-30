@@ -130,10 +130,10 @@ class CheckpointTestCase(OptimizerTestCase):
         
         self.assertEqual(loaded_traj.individual.generation, iterations-1)
 
-        jube_params = {}
-        self.trajectory_checkpoint, all_jube_params = experiment.prepare_experiment(name='L2L-checkpoint',
+        runner_params = {}
+        self.trajectory_checkpoint, runner_params = experiment.prepare_experiment(name='L2L-checkpoint',
                                                                               log_stdout=True,
-                                                                              jube_parameter=jube_params,
+                                                                              runner_params=runner_params,
                                                                               overwrite=True,
                                                                               checkpoint=loaded_traj)
 

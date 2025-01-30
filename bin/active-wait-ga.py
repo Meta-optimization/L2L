@@ -14,7 +14,7 @@ def run_experiment():
         "exec": "python3.9"
     } 
     traj, _ = experiment.prepare_experiment(
-        runner_params=runner_params, name=f"jube_removal_aw_ga", overwrite=True)
+        runner_params=runner_params, name=f"aw_ga", overwrite=True)
         
 
     # Active Wait Optimizee

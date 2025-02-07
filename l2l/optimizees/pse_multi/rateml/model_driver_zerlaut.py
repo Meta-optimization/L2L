@@ -1,5 +1,9 @@
 from __future__ import print_function
 
+# patch
+# import os
+# os.environ["PATH"] += ":/usr/local/cuda-10.2/bin"
+
 import logging
 import itertools
 import argparse
@@ -136,8 +140,8 @@ class Driver_Setup:
 		parser = argparse.ArgumentParser(description='Run parameter sweep.')
 
 		# for every parameter that needs to be swept, the size can be set
-		parser.add_argument('-s0', '--n_sweep_arg0', default=4, help='num grid points for 1st parameter', type=int)
-		parser.add_argument('-s1', '--n_sweep_arg1', default=4, help='num grid points for 2st parameter', type=int)
+		parser.add_argument('-s0', '--n_sweep_arg0', default=2, help='num grid points for 1st parameter', type=int)
+		parser.add_argument('-s1', '--n_sweep_arg1', default=2, help='num grid points for 2st parameter', type=int)
 		parser.add_argument('-s2', '--n_sweep_arg2', default=0, help='num grid points for 3st parameter', type=int)
 		parser.add_argument('-s3', '--n_sweep_arg3', default=0, help='num grid points for 4st parameter', type=int)
 		parser.add_argument('-s4', '--n_sweep_arg4', default=0, help='num grid points for 5st parameter', type=int)

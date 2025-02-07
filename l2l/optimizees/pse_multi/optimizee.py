@@ -1,7 +1,7 @@
 import logging
 
 import numpy as np
-from sdict import sdict
+from l2l.utils.sdict import sdict
 
 from l2l.optimizees.optimizee import Optimizee
 import subprocess
@@ -34,6 +34,7 @@ class PSEOptimizee(Optimizee):
     def simulate(self, trajectory):
         self.id = trajectory.individual.ind_idx
         self.p0 = trajectory.individual.p0
+        print(self.p0)
         # self.p0 = self.min_max_normalize(np.asarray(self.p0), self.minnorp0, self.maxnorp0, renormalize=True)
         self.p1 = trajectory.individual.p1
         # self.p1 = self.min_max_normalize(np.asarray(self.p1), self.minnorp1, self.maxnorp1, renormalize=True)
@@ -43,11 +44,11 @@ class PSEOptimizee(Optimizee):
         # self.p3 = self.min_max_normalize(np.asarray(self.p3), self.minnorp3, self.maxnorp3, renormalize=True)
         self.p4 = trajectory.individual.p4
 
-        # print('p0', self.p0)
-        # print('p1', self.p1)
-        # print('p2', self.p2)
-        # print('p3', self.p3)
-        # print('p4', self.p4)
+        print('p0', self.p0)
+        print('p1', self.p1)
+        print('p2', self.p2)
+        print('p3', self.p3)
+        print('p4', self.p4)
 
         import os
         # print("wp", os.getcwd())
@@ -84,16 +85,16 @@ class PSEOptimizee(Optimizee):
         # Start the to optimize process which can be any executable
         # Make sure to read in the pickled data from L2L
         # Set the rateML execution and results folder on your system
-        # TODO: make nicer
+        # TODO: make nicer. 1 set the parameters sizes to traj.n_inner_steps, 2 link params sizes more automatically
         try:
             subprocess.run(['python', 'rateml/model_driver_zerlaut.py',
                             # '--model', 'oscillator',
-                            '-s0', '6',
-                            '-s1', '6',
-                            '-s2', '6',
-                            '-s3', '6',
-                            '-s4', '5',
-                            '-n', '500', '-v', '-sm', '3', '-w',
+                            '-s0', '2',
+                            '-s1', '2',
+                            '-s2', '2',
+                            '-s3', '2',
+                            '-s4', '2',
+                            '-n', '5', '-v', '-sm', '3', '-w',
                             # '--tvbn', '76', '--stts', '2',
                             '--procid', str(self.id)], check=True)
         except subprocess.CalledProcessError:
@@ -235,9 +236,9 @@ def main():
     import os
     import logging.config
 
-    from ltl import DummyTrajectory
-    from ltl.paths import Paths
-    from ltl import timed
+    from l2l import DummyTrajectory
+    from l2l.paths import Paths
+    from l2l import timed
 
     # TODO: Set root_dir_path here
     paths = Paths('pse', dict(run_num='test'), root_dir_path='.')  # root_dir_path='.'

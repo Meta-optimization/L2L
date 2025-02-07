@@ -231,6 +231,8 @@ class MultiGradientDescentOptimizer(Optimizer):
         """
         # print('g counter:', self.g)
         old_eval_pop = self.eval_pop.copy()
+        # setting each result of the GPU in the format of L2L original
+        # thus making all individual out of them
         old_eval_pop_expanded = self.expand_individual(old_eval_pop,traj.n_inner_params)
         #print("oldshape", len(fitnesses_results))
         #print("finnessres", fitnesses_results)
@@ -305,11 +307,12 @@ class MultiGradientDescentOptimizer(Optimizer):
         # Performs descending arg-sort of weighted fitness
         fitness_sorting_indices = list(reversed(np.argsort(weighted_fitness_list, axis=0)))
         #print('fsi', fitness_sorting_indices)
-        old_eval_pop_as_array = np.array([dict_to_list(x) for x in old_eval_pop])
+        # old_eval_pop_as_array = np.array([dict_to_list(x) for x in old_eval_pop])
+        old_eval_pop_as_array = np.array([dict_to_list(x) for x in old_eval_pop_expanded])
         # print("innerparams, lenindivparams", traj.n_inner_params, len(traj.individual.params))
         # print('oepa', old_eval_pop_as_array, '', old_eval_pop_as_array.shape)
         # old_eval_pop_as_array = old_eval_pop_as_array[0].reshape(traj.n_inner_params, len(traj.individual.params))
-        old_eval_pop_as_array = old_eval_pop_as_array[0].reshape(len(traj.individual.params), traj.n_inner_params).T
+        # old_eval_pop_as_array = old_eval_pop_as_array[0].reshape(len(traj.individual.params), traj.n_inner_params).T
         # print('oepashapafter', old_eval_pop_as_array)
         fitness_sorting_indices = np.array(fitness_sorting_indices).squeeze()
 

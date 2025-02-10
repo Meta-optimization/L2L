@@ -11,11 +11,11 @@ from l2l import list_to_dict
 from l2l.optimizers.optimizer import Optimizer
 from l2l import get_grouped_dict
 
-logger = logging.getLogger("optimizers.gradientdescent")
+logger = logging.getLogger("optimizers.multigradientdescent")
 
 MultiClassicGDParameters = namedtuple(
     'ClassicGDParameters',
-    ['learning_rate', 'exploration_step_size', 'n_random_steps', 'n_iteration', 'stop_criterion', 'seed'])
+    ['learning_rate', 'exploration_step_size', 'n_random_steps', 'n_iteration', 'stop_criterion', 'seed', 'n_inner_params'])
 MultiClassicGDParameters.__doc__ = """
 :param learning_rate: The rate of learning per step of gradient descent
 :param exploration_step_size: The standard deviation of random steps used for finite difference gradient
@@ -27,7 +27,7 @@ MultiClassicGDParameters.__doc__ = """
 MultiStochasticGDParameters = namedtuple(
     'StochasticGDParameters',
     ['learning_rate', 'stochastic_deviation', 'stochastic_decay', 'exploration_step_size', 'n_random_steps', 'n_iteration',
-     'stop_criterion', 'seed'])
+     'stop_criterion', 'seed', 'n_inner_params'])
 MultiStochasticGDParameters.__doc__ = """
 :param learning_rate: The rate of learning per step of gradient descent
 :param stochastic_deviation: The standard deviation of the random vector used to perturbate the gradient
@@ -42,7 +42,7 @@ MultiStochasticGDParameters.__doc__ = """
 MultiAdamParameters = namedtuple(
     'AdamParameters',
     ['learning_rate', 'exploration_step_size', 'n_random_steps', 'first_order_decay', 'second_order_decay', 'n_iteration',
-     'stop_criterion', 'seed'])
+     'stop_criterion', 'seed', 'n_inner_params'])
 MultiAdamParameters.__doc__ = """
 :param learning_rate: The rate of learning per step of gradient descent
 :param exploration_step_size: The standard deviation of random steps used for finite difference gradient

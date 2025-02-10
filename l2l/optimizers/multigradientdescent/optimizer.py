@@ -52,7 +52,6 @@ MultiAdamParameters.__doc__ = """
 :param n_iteration: number of iteration to perform
 :param stop_criterion: Stop if change in fitness is below this value
 :param n_inner_params: Number of internal parameters explored per multi-individual
-
 """
 
 MultiRMSPropParameters = namedtuple(
@@ -147,10 +146,8 @@ class MultiGradientDescentOptimizer(Optimizer):
         # individual_dicts = self.optimizee_create_individual() # [{delay: a1, coupling: b1}, {delay: a1, coupling: b2},...]
         # self.current_individual = self.optimizee_create_individual()
 
-        oci = self.optimizee_create_individual()
-        # print('CIraw', oci)
         self.current_individual = np.array(
-            dict_to_list(oci))  # [one random sample]
+            dict_to_list(self.optimizee_create_individual()))  # [one random sample]
 
         # Depending on the algorithm used, initialize the necessary variables
         self.updateFunction = None

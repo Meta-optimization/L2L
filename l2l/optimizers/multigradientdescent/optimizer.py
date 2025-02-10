@@ -3,8 +3,6 @@ import logging
 from collections import namedtuple
 
 import numpy as np
-import sys
-np.set_printoptions(threshold=sys.maxsize)
 
 from l2l import dict_to_list
 from l2l import list_to_dict
@@ -22,6 +20,7 @@ MultiClassicGDParameters.__doc__ = """
 :param n_random_steps: The amount of random steps used to estimate gradient
 :param n_iteration: number of iteration to perform
 :param stop_criterion: Stop if change in fitness is below this value
+:param n_inner_params: Number of internal parameters explored per multi-individual
 """
 
 MultiStochasticGDParameters = namedtuple(
@@ -37,6 +36,7 @@ MultiStochasticGDParameters.__doc__ = """
 :param n_random_steps: The amount of random steps used to estimate gradient
 :param n_iteration: number of iteration to perform
 :param stop_criterion: Stop if change in fitness is below this value
+:param n_inner_params: Number of internal parameters explored per multi-individual
 """
 
 MultiAdamParameters = namedtuple(
@@ -51,6 +51,7 @@ MultiAdamParameters.__doc__ = """
 :param second_order_decay: Specifies the amount of decay of the historic second order momentum per gradient descent step
 :param n_iteration: number of iteration to perform
 :param stop_criterion: Stop if change in fitness is below this value
+:param n_inner_params: Number of internal parameters explored per multi-individual
 
 """
 
@@ -65,11 +66,19 @@ MultiRMSPropParameters.__doc__ = """
 :param n_iteration: number of iteration to perform
 :param stop_criterion: Stop if change in fitness is below this value
 :param seed: The random seed used for random number generation in the optimizer
+:param n_inner_params: Number of internal parameters explored per multi-individual
 """
 
 
 class MultiGradientDescentOptimizer(Optimizer):
     """
+    Class for a generic gradient descent solver with individuals which contain multiple parameters inside.
+    This type of optimizer allows for the definition and deployment of multi-individuals which inside contain
+    several individuals, each with a parameter combination.
+    This optimizer is particularly useful when the hardware used to execute the individuals offers a second
+    hierarchy of parallelization, e.g. in the case of GPUs, where one multi-individual can be defined per GPU and
+    several individuals with independent parameter combinations can be deployed within each GPU.
+
     Class for a generic gradient descent solver.
     In the pseudo code the algorithm does:
 
@@ -192,6 +201,14 @@ class MultiGradientDescentOptimizer(Optimizer):
         return self.recorder_parameters._asdict()
 
     def expand_individual(self, c_population, inner_params):
+        """
+        Expands a multi-individual into many individuals, each with their own parameter combination.
+        This expansion is necessary in order for the evolutionary algorithm to be applied correctly on the parameter
+        space being explored.
+        :param  c_population: the population of multi-individuals to be expanded
+        :param inner_params: a description of the parameters which describe each of the individuals within
+        the multi-individual.
+        """
         individual_exp = [{} for i in range(len(c_population)*inner_params)]
         for ind_id, elem in enumerate(c_population):
             for key in self.grouped_params_dict.keys():
@@ -201,6 +218,14 @@ class MultiGradientDescentOptimizer(Optimizer):
         return individual_exp
 
     def compress_individual(self, e_population, inner_params):
+        """
+        Compresses a set of individuals into a set of multi-individuals.
+        This is required after the optimization algorithm has been applied in order to return the description
+        of the individuals to the way it can be correctly interpreted during execution.
+        :param  e_population: the population of individuals to be compressed
+        :param inner_params: a description of the parameters which describe each of the individuals within
+        the multi-individual.
+        """
         e_population_reform = []
         for s in range(int(len(e_population) / inner_params)):
            tmp_dict = {}

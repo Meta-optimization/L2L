@@ -14,7 +14,7 @@ class GDOptimizerTestCase(OptimizerTestCase):
     def test_gd(self):
         optimizer_parameters = RMSPropParameters(learning_rate=0.01, exploration_step_size=0.01,
                                        n_random_steps=1, momentum_decay=0.5,
-                                       n_iteration=1, stop_criterion=np.Inf, seed=99)
+                                       n_iteration=1, stop_criterion=np.inf, seed=99)
 
         #test with function generator optimizee
         optimizer = GradientDescentOptimizer(self.trajectory_functionGenerator,

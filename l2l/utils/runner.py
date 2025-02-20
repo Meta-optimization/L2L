@@ -7,7 +7,7 @@ import time
 import copy
 import zipfile
 import sys
-  
+
 from l2l.utils.trajectory import Trajectory
 
 logger = logging.getLogger("utils.runner")
@@ -75,7 +75,7 @@ class Runner():
 
         self.n_inds = len(trajectory.individuals[0])
         self.n_workers = min(self.n_inds, args['max_workers'])
-        
+
 
         self.prepare_run_file()
         self.launch_workers()
@@ -125,7 +125,7 @@ class Runner():
         else:
             # not all individuals finished without error (even potentially after restarting)
             raise RuntimeError(f"Generation {generation} did not finish successfully")
-        #create zipfiles for Err and Out files 
+        #create zipfiles for Err and Out files
         self.create_zipfile(self.work_paths["individual_logs"], f"logs_generation_{generation}")
         self.close_workers()
         return results
@@ -136,7 +136,7 @@ class Runner():
         :param idx: the id of the individual to be launched.
         """
         log_files = {'stdout': os.path.join(self.work_paths['individual_logs'], f'out_{idx}.log'),
-                     'stderr': os.path.join(self.work_paths['individual_logs'], f'err_{idx}.log')} 
+                     'stderr': os.path.join(self.work_paths['individual_logs'], f'err_{idx}.log')}
         if self.srun_command:
             # HPC case with slurm
             log_files ={}
@@ -167,7 +167,7 @@ class Runner():
         args, log_files = self.produce_run_command(w_id)
         if log_files:
             process = subprocess.Popen(args, stdout=open(log_files['stdout'], 'w'), stderr=open(log_files['stderr'], 'w'))
-        else: 
+        else:
             process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)#, stdin=subprocess.PIPE)
         try:
             self.outputpipes[w_id] = open(outputpipename, 'r')
@@ -178,7 +178,7 @@ class Runner():
         self.idle_workers[w_id] = process
         if(self.debug):
             logger.info(f"Worker created {w_id}")
-    
+
     def launch_workers(self):
         """
         Takes care of launching enough workers as allowed by the available computing resources.
@@ -195,7 +195,7 @@ class Runner():
         for w_id in list(self.running_workers.keys()):
             process = self.running_workers[w_id]
             process.terminate()
-    
+
     def restart_worker(self, w_id):
         """
         Takes care of handling the restart of a worker and its associated individual which failed by any reason, either runtime or logic.
@@ -245,7 +245,7 @@ class Runner():
 
 
         # Wait for all individual to finish
-        # Restart failed individuals 
+        # Restart failed individuals
         retry=0
         sorted_exit_codes = [1]*n_inds
         if (self.debug):
@@ -259,7 +259,7 @@ class Runner():
                 status_code = process.poll()
                 try:
                     out = self.outputpipes[w_id].readline().replace('\n', '')
-                except Exception as e: 
+                except Exception as e:
                     logger.error(f"Exception: {e}")
                     continue
 
@@ -273,9 +273,9 @@ class Runner():
                     # set worker to idle
                     self.idle_workers[w_id] = self.running_workers.pop(w_id)
 
-                
+
                 #TODO error control of problematic optimizees
-                elif out == "1": 
+                elif out == "1":
                     if(self.debug):
                         logger.info(f"Individual finished with error {ind_idx}: {out}. Restarting.")
                     # if stop_run is set, simulation should stop if error occurs
@@ -287,10 +287,10 @@ class Runner():
                     sorted_exit_codes[ind_idx] = 1
                     # set worker to idle
                     self.idle_workers[w_id] = self.running_workers.pop(w_id)
-                    # restart individual 
+                    # restart individual
                     self.restart_individual(gen, ind_idx)
-                    
-                
+
+
                 if status_code == None:
                     # Indivdual still running
                     continue
@@ -300,7 +300,7 @@ class Runner():
                     self.running_workers.pop(w_id)
                     if(self.debug):
                         logger.info(f"Finished worker {w_id}: {status_code}")
-                else: 
+                else:
                     if(self.debug):
                         logger.info(f"Error status worker {w_id}: {status_code}")
                     # worker raised error
@@ -336,9 +336,6 @@ class Runner():
         #sorted_exit_codes = [self.finished_individuals[idx].poll() for idx in range(n_inds)]
         return sorted_exit_codes
 
-
-
-
     def prepare_run_file(self):
         """
         Writes a python run file which takes care of loading the optimizee from a binary file, the trajectory object
@@ -347,75 +344,15 @@ class Runner():
         :param path_ready: path to store the ready files
         :return true if all files are present, false otherwise
         """
-        trajpath = os.path.join(self.work_paths["trajectories"],
-                                "op_trajectory_")
-        respath = os.path.join(self.work_paths['results'],
-                               "results_")
-        f = open(os.path.join(self.path, "run_optimizee.py"), "w")
-        f.write('import pickle\n' +
-                'import sys\n' +
-                'import gc\n' +
-                'import os\n' +
-                'import logging\n' +
-                'import socket\n' +
-                'import time\n' +
-                'worker_id = sys.argv[1]\n' +
-                'logfilename = f"'+self.work_paths['individual_logs']+'/workers_{worker_id}.wlog"\n' +
-                'logging.basicConfig(filename=logfilename, filemode="a", level=logging.INFO)\n' +
-                'logger = logging.getLogger("Optimizee")\n'+
-                'logger.info(socket.gethostname())\n' +
-                'outputpipename = f"'+self.work_paths['individual_logs']+'/outputpipe_{worker_id}"\n'+
-                'outputpipe = open(outputpipename, "wb")\n' +
-                'inputpipename = f"'+self.work_paths['individual_logs']+'/inputpipe_{worker_id}"\n'+
-                'inputpipe = open(inputpipename, "r")\n' +
-                'running = 1\n' + 
-                'while running:\n' +
-                '    try:\n' +
-                '        logger.info(f"Receiving")\n' +
-                '        params = ""\n' +
-                '        while not params:\n' +
-                '            params = inputpipe.readline()\n' +
-                '            time.sleep(5)\n' +
-                '        logger.info(f"Params received: {params}")\n' +
-                '        params = params.split()\n' +
-                '        logger.info(params)\n' +
-                '        generation = params[0]\n' +
-                '        idx = params[1]\n' +
-                '        running = int(params[2])\n' +
-                '        if not running:\n' +
-                '            break\n' +
-                '        handle_trajectory = open("' + trajpath + '"+ str(generation) + ".bin", "rb")\n' +
-                '        trajectory = pickle.load(handle_trajectory)\n' +
-                '        handle_trajectory.close()\n' +
-                '        handle_optimizee = open("' + self.optimizeepath + '", "rb")\n' +
-                '        optimizee = pickle.load(handle_optimizee)\n' +
-                '        handle_optimizee.close()\n\n' +
-                '        logger.info("Trajectory access")\n' +
-                '        logger.info(trajectory.individuals)\n' +
-                '        logger.info(trajectory.retry)\n' +
-                '        logger.info(len(trajectory.individuals[int(generation)]))\n' +
-                '        trajectory.individual = trajectory.individuals[int(generation)][int(idx)] \n'+
-                '        res = optimizee.simulate(trajectory)\n\n' +
-                '        handle_res = open("' + respath + '"+ str(generation) + "_" + str(idx) + ".bin", "wb")\n' +
-                '        pickle.dump(res, handle_res, pickle.HIGHEST_PROTOCOL)\n' +
-                '        handle_res.close()\n' + 
-                '        del optimizee\n' +
-                '        outputpipe.write(f"0\\n".encode(\'ascii\'))\n' +
-                #'        outputpipe.write("0\\n")\n' +
-                '        outputpipe.flush()\n' +
-                '        logger.info(f"Finished {idx}")\n' +
-                '        gc.collect()\n' +
-                '    except Exception as e:\n' +
-                '        logger.info(str(e))\n' +
-                '        logger.info(f"Params received in except: {params}")\n' +
-                '        if params == "":\n' +
-                '            continue\n' +
-                '        #else:\n' +
-                '        #    sys.stderr.write(b"1")\n' +
-                '        #    sys.stderr.flush()\n' +
-                'outputpipe.close()\n'+
-                'inputpipe.close()')
-        f.close()
+        read_path = os.path.join(os.path.dirname(__file__), 'run_optimizee.py')
+        with open(read_path, 'r') as r:
+            code = r.readlines()
+        with open(os.path.join(self.path, "run_optimizee.py"), "w") as f:
+            f.write(f'trajpath = "{os.path.join(self.work_paths["trajectories"], "op_trajectory_")}"\n')
+            f.write(f'respath = "{os.path.join(self.work_paths["results"], "results_")}"\n')
+            f.write(f'logpath = "{self.work_paths["individual_logs"]}"\n')
+            f.write(f'optimizeepath = "{self.optimizeepath}"\n')
+            f.writelines(code)
 
     def dump_traj(self, trajectory):
         """Dumpes trajectory files.

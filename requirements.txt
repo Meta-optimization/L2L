@@ -9,3 +9,4 @@ gitpython
 scikit-learn
 flake8
 deap
+dwave-ocean-sdk

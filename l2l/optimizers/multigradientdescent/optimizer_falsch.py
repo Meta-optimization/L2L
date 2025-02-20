@@ -142,6 +142,7 @@ class MultiGradientDescentOptimizer(Optimizer):
         # print('CIraw', oci)
         self.current_individual = np.array(
             dict_to_list(oci))  # [one random sample]
+        # print('CId2l', self.current_individual)
 
         # Depending on the algorithm used, initialize the necessary variables
         self.updateFunction = None
@@ -168,6 +169,7 @@ class MultiGradientDescentOptimizer(Optimizer):
                          self.optimizee_individual_dict_spec)
             for i in range((parameters.n_random_steps*traj.n_inner_params)-1)
         ]
+        # print(new_individual_list)
 
         # Also add the current individual to determine it's fitness
         new_individual_list.append(list_to_dict(self.current_individual, self.optimizee_individual_dict_spec))
@@ -182,6 +184,8 @@ class MultiGradientDescentOptimizer(Optimizer):
         self.g =  traj.individual.generation
         new_individual_list = self.compress_individual(new_individual_list, traj.n_inner_params)
         self.eval_pop = new_individual_list
+        #print('evalpop', self.eval_pop)
+        #print('traj', traj)
         self._expand_trajectory(traj)
 
     def get_params(self):
@@ -194,10 +198,16 @@ class MultiGradientDescentOptimizer(Optimizer):
     def expand_individual(self, c_population, inner_params):
         individual_exp = [{} for i in range(len(c_population)*inner_params)]
         for ind_id, elem in enumerate(c_population):
+            #print('c_pop', c_population)
+            #print('sgpdk', self.grouped_params_dict.keys())
             for key in self.grouped_params_dict.keys():
                 parameters = elem[key]
+                #print('parei', parameters)
                 for ix, e in enumerate(parameters):
+                    #print('eeeee', e)
+                    #print('eeee1', e[0])
                     individual_exp[ind_id*inner_params+ix][key] = float(e)
+        #print('expa', individual_exp)
         return individual_exp
 
     def compress_individual(self, e_population, inner_params):
@@ -210,27 +220,33 @@ class MultiGradientDescentOptimizer(Optimizer):
                    tmp.append(e_population[s*inner_params + p][key])
                tmp_dict[key] = tmp
            e_population_reform.append(tmp_dict)
+        #print('comp', e_population_reform)
         return e_population_reform
 
     def post_process(self, traj, fitnesses_results):
         """
         See :meth:`~ltl.optimizers.optimizer.Optimizer.post_process`
         """
+        # print('g counter:', self.g)
         old_eval_pop = self.eval_pop.copy()
-        # setting each result of the GPU in the format of L2L original
-        # thus making all individual out of them
         old_eval_pop_expanded = self.expand_individual(old_eval_pop,traj.n_inner_params)
+        #print("oldshape", len(fitnesses_results))
+        #print("finnessres", fitnesses_results)
+        # print('oldepop', old_eval_pop, '')
+        #print('oldepop0', old_eval_pop_expanded[0])
+        #print('oldepop3', old_eval_pop_expanded[3])
         self.eval_pop.clear()
 
         logger.info("  Evaluating %i individuals" % len(fitnesses_results))
         logger.info(f'fitness {fitnesses_results}')
-        logger.info(f'inds {old_eval_pop}')
 
         assert len(fitnesses_results) == traj.n_random_steps
 
         # We need to collect the directions of the random steps along with the fitness evaluated there
         fitnesses = np.zeros((traj.n_random_steps*traj.n_inner_params))
+        #print('lentrajparams',len(traj.individual.params))
         dx = np.zeros((traj.n_random_steps*traj.n_inner_params, len(traj.individual.params) ))
+        #print('trajind', traj.individual)
         # dx = np.zeros((len(fitnesses_results), len(traj.individual))))
         # dx = np.zeros((16, 4))
         weighted_fitness_list = []
@@ -243,34 +259,71 @@ class MultiGradientDescentOptimizer(Optimizer):
             # We need to convert the current run index into an ind_idx
             # (index of individual within one generation
             traj.v_idx = run_index
+            # print('runindex', run_index)
             ind_index = i#traj.par.ind_idx
-
+            #print('iiiii', i)
+            #if i > len(fitnesses_results):
+            #    break
             individual = old_eval_pop_expanded[i]
+            #print('indinloop', individual)
             traj.f_add_result('$set.$.individual', individual)
             traj.f_add_result('$set.$.fitness', fitness)
-            # print(fitness)
+            #print('fitnessinloop', fitness)
             weighted_fitness = np.dot(fitness, self.optimizee_fitness_weights)
             weighted_fitness_list.append(weighted_fitness)
 
+            # print('individual', dict_to_list(individual))
+
+            # mv
             # take best fitness from last iteration
             indictlist = np.array(dict_to_list(individual))
-            # TODO should current individual be from last generation or best or mean from current? (MV)
+            # TODO should current individual be from last generation or best or mean from current?
             dx[i] = indictlist - self.current_individual
+            # print('indictlist', indictlist.shape, '', indictlist)
+            # curind = np.array(self.current_individual, 'f')
+            # print('curind', curind.shape, '', curind)
 
             fitnesses[i] = weighted_fitness
 
+            # The last element of the list is the evaluation of the individual obtained via gradient descent
+            # if i == len(fitnesses_results_exp) - 1:
+            #     #print('ilast', i)
+            #     self.current_fitness = weighted_fitness
+            #     print('currentind', self.current_individual)
+            # else:
+            #     fitnesses[i] = weighted_fitness
+            #     #print('fitnessi', fitnesses[i])
+            #     #print('fressize', fitnesses_results)
+            #     #print('selfcurI', self.current_individual)
+            #     #print('dct2lstI', dict_to_list(individual))
+            #     dx[i] = np.array(dict_to_list(individual)) - self.current_individual
+            #     #print('dxidxidxid', dx[i])
         traj.v_idx = -1  # set the trajectory back to default
 
+        #print('wfl',weighted_fitness_list)
         # Performs descending arg-sort of weighted fitness
         fitness_sorting_indices = list(reversed(np.argsort(weighted_fitness_list, axis=0)))
-        old_eval_pop_as_array = np.array([dict_to_list(x) for x in old_eval_pop_expanded])
+        #print('fsi', fitness_sorting_indices)
+        old_eval_pop_as_array = np.array([dict_to_list(x) for x in old_eval_pop])
+        # print("innerparams, lenindivparams", traj.n_inner_params, len(traj.individual.params))
+        # print('oepa', old_eval_pop_as_array, '', old_eval_pop_as_array.shape)
+        # old_eval_pop_as_array = old_eval_pop_as_array[0].reshape(traj.n_inner_params, len(traj.individual.params))
+        old_eval_pop_as_array = old_eval_pop_as_array[0].reshape(len(traj.individual.params), traj.n_inner_params).T
+        # print('oepashapafter', old_eval_pop_as_array)
         fitness_sorting_indices = np.array(fitness_sorting_indices).squeeze()
 
-        # Sorting the data according to fitness and taking the highest indexed
+        # print('fitness_sorting_indices', fitness_sorting_indices.shape, ' ', )
+        # Sorting the data according to fitness and taking the highest index
         best_index = fitness_sorting_indices[0]
+        logger.info(f'old {old_eval_pop_as_array.shape} idx {best_index}')
         best_individual = old_eval_pop_as_array[best_index]
+        # print('sortedpop', sorted_population, '', sorted_population.shape)
         avrg_fitness = np.asarray(np.mean(weighted_fitness_list))
         best_fitness = weighted_fitness_list[best_index]
+
+        # print('fitness_sorting_indices', fitness_sorting_indices, ' ',)
+        # print('weighted_fitness_list', weighted_fitness_list, ' ',)
+        # print('best_index', best_index, ' ',)
 
         logger.info("-- End of generation %d --", self.g)
         # logger.info("  Evaluated %d individuals", len(fitnesses_results))
@@ -299,16 +352,37 @@ class MultiGradientDescentOptimizer(Optimizer):
 
         if self.g < traj.n_iteration -1 and traj.stop_criterion > self.current_fitness:
             # Create new individual using the appropriate gradient descent
+
+            # print('fitn-scfit', fitnesses-self.current_fitness)
+            #print('np.linalg.pinv(dx)', np.linalg.pinv(dx))
+            #print('dotlinalg', np.dot(np.linalg.pinv(dx), fitnesses - self.current_fitness))
+
+            # print('nilr', new_individual_list_reform)
+            # scf = np.array(self.current_fitness, 'f')
+            # print('scurfitnes', scf.shape, ' ', scf)
+            # fts = np.array(fitnesses, 'f')
+            # print('fitnesses', fts.shape, ' ', fts)
+            # dxx = np.array(dx, 'f')
+            # print('dxdxdxdx', dxx.shape, ' ')
+            # dpv = np.array(np.linalg.pinv(dx), 'f')
+            # print('pinv', dpv.shape, ' ', dpv)
+
             self.update_function(traj, np.dot(np.linalg.pinv(dx), fitnesses - self.current_fitness))
+            # print('fitnesses ', fitnesses)
             current_individual_dict = list_to_dict(self.current_individual, self.optimizee_individual_dict_spec)
             if self.optimizee_bounding_func is not None:
                 current_individual_dict = self.optimizee_bounding_func(current_individual_dict)
             self.current_individual = np.array(dict_to_list(current_individual_dict))
 
             # Explore the neighbourhood in the parameter space of the current individual
+            # newstepsize = ((1-best_fitness)/best_fitness) * traj.exploration_step_size
+            # traj.exploration_step_size = newstepsize
+            # print('newstepsize', newstepsize)
+            newstepsize = traj.exploration_step_size
+
             new_individual_list = [
                 list_to_dict(self.current_individual +
-                             self.random_state.normal(0.0, traj.exploration_step_size, self.current_individual.size),
+                             self.random_state.normal(0.0, newstepsize, self.current_individual.size),
                              self.optimizee_individual_dict_spec)
                 for _ in range((traj.n_random_steps*traj.n_inner_params)-1)
             ]
@@ -317,6 +391,17 @@ class MultiGradientDescentOptimizer(Optimizer):
             new_individual_list.append(current_individual_dict)
 
             new_individual_list_reform = self.compress_individual(new_individual_list, traj.n_inner_params)
+
+            #print("newshape", new_individual_list_reform)
+            #for s in range(len(new_individual_list)/traj.n_inner_params):
+            #    tmp = []
+            #    tmp_dict = {}
+            #    for key in self.grouped_params_dict.keys():
+            #        for p in range(traj.n_inner_params):
+            #            tmp.append(new_individual_list[s*traj.n_inner_params+p][key])
+            #        tmp_dict[key] = tmp
+            #    new_individual_list_reform.append(tmp_dict)
+            #print(new_individual_list_reform)
             fitnesses_results.clear()
             self.eval_pop = new_individual_list_reform
             self.g += 1  # Update generation counter

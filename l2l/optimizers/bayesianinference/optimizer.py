@@ -122,6 +122,7 @@ class SBIOptimizer(Optimizer):
 
         """
         logger.info('Gathering simulation results')
+        logger.info(f'fitness {fitnesses_results}')
         # x = torch.Tensor([traj.current_results[i][1] for i in range(traj.pop_size)])
         # individuals = traj.individuals[self.g]
         # theta = torch.stack([individuals[i].parameters for i in range(traj.pop_size)]) # TODO best way?

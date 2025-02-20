@@ -186,6 +186,7 @@ class Runner():
         for w_id in range(self.n_workers):
             self.launch_worker(w_id)
         logger.info(f"All {self.n_workers} workers created")
+        time.sleep(2) # TODO not an ideal solution
         self.check_workers()
 
 
@@ -201,12 +202,13 @@ class Runner():
         """
         Checks if all the workers are running properly
         """
-        for w_id in list(self.running_workers.keys()):
-            process = self.running_workers[w_id]
+        for w_id in list(self.idle_workers.keys()):
+            process = self.idle_workers[w_id]
             exitcode = process.poll()
             if exitcode is not None: # None would imply that it's running
-                logger.info(str(process.stdout.read()))
-                logger.info(str(process.stderr.read()))
+                logger.info(f'Process exited with code {exitcode}')
+                logger.info("STDOUT: " + str(process.stdout.read()))
+                logger.info("STDERR: " + str(process.stderr.read()))
                 raise NotImplementedError("Worker crashed")
 
     def restart_worker(self, w_id):
@@ -352,7 +354,7 @@ class Runner():
 
 
 
-    def prepare_run_file(self):
+    def prepare_run_file_alt(self):
         """
         Writes a python run file which takes care of loading the optimizee from a binary file, the trajectory object
         of each individual. Then executes the 'simulate' function of the optimizee using the trajectory and
@@ -378,30 +380,31 @@ class Runner():
                 'logging.basicConfig(filename=logfilename, filemode="a", level=logging.INFO)\n' +
                 'logger = logging.getLogger("Optimizee")\n'+
                 'logger.info(socket.gethostname())\n' +
-                'outputpipename = f"'+self.work_paths['individual_logs']+'/outputpipe_{worker_id}"\n'+
+                'outputpipename = f"'+self.work_paths['individual_logs']+'/outputpipe_{worker_id}"\n'+ # TODO rank 0 only
                 'outputpipe = open(outputpipename, "wb")\n' +
                 'inputpipename = f"'+self.work_paths['individual_logs']+'/inputpipe_{worker_id}"\n'+
-                'inputpipe = open(inputpipename, "r")\n' +
+                'inputpipe = open(inputpipename, "r")\n'                                                #######
                 'running = 1\n' +
-                'comm = MPI.COMM_WORLD\n' +
-                'rank = comm.Get_rank()\n' +
-                'logger.info(f"HALLO worker {worker_id} rank {rank}")\n'
+                '#comm = MPI.COMM_WORLD\n' +
+                '#rank = comm.Get_rank()\n' +
+                '#logger.info(f"HALLO worker {worker_id} rank {rank}")\n'
                 'while running:\n' +
                 '    try:\n' +
-                '        logger.info(f"Receiving")\n' +
+                '        logger.info(f"Receiving")\n' + # TODO rank 0
                 '        params = ""\n' +
                 '        while not params:\n' +
                 '            params = inputpipe.readline()\n' +
                 '            time.sleep(5)\n' +
-                '        logger.info(f"Params received: {params}")\n' +
+                '        logger.info(f"Params received: {params}")\n' + #######
+                # TODO barrier?
                 '        params = params.split()\n' +
                 '        logger.info(params)\n' +
-                '        generation = params[0]\n' +
-                '        idx = params[1]\n' +
+                '        generation = params[0]\n' + # to all ranks broadcast
+                '        idx = params[1]\n' + # to all
                 '        running = int(params[2])\n' +
                 '        if not running:\n' +
                 '            break\n' +
-                '        handle_trajectory = open("' + trajpath + '"+ str(generation) + ".bin", "rb")\n' +
+                '        handle_trajectory = open("' + trajpath + '"+ str(generation) + ".bin", "rb")\n' + # done by all processes
                 '        trajectory = pickle.load(handle_trajectory)\n' +
                 '        handle_trajectory.close()\n' +
                 '        handle_optimizee = open("' + self.optimizeepath + '", "rb")\n' +
@@ -410,16 +413,16 @@ class Runner():
                 '        logger.info("Trajectory access")\n' +
                 '        logger.info(trajectory.individuals)\n' +
                 '        logger.info(trajectory.retry)\n' +
-                '        logger.info(len(trajectory.individuals[int(generation)]))\n' +
+                '        logger.info(len(trajectory.individuals[int(generation)]))\n' + #######################################
                 '        trajectory.individual = trajectory.individuals[int(generation)][int(idx)] \n'+
-                '        res = optimizee.simulate(trajectory)\n\n' +
-                '        handle_res = open("' + respath + '"+ str(generation) + "_" + str(idx) + ".bin", "wb")\n' +
+                '        res = optimizee.simulate(trajectory)\n\n' + # everybody
+                '        handle_res = open("' + respath + '"+ str(generation) + "_" + str(idx) + ".bin", "wb")\n' + # TODO only rank 0
                 '        pickle.dump(res, handle_res, pickle.HIGHEST_PROTOCOL)\n' +
                 '        handle_res.close()\n' +
                 '        del optimizee\n' +
                 '        outputpipe.write(f"0\\n".encode(\'ascii\'))\n' +
                 #'        outputpipe.write("0\\n")\n' +
-                '        outputpipe.flush()\n' +
+                '        outputpipe.flush()\n' + # only 0
                 '        logger.info(f"Finished {idx}")\n' +
                 '        gc.collect()\n' +
                 '    except Exception as e:\n' +
@@ -433,6 +436,24 @@ class Runner():
                 'outputpipe.close()\n'+
                 'inputpipe.close()')
         f.close()
+
+    def prepare_run_file(self):
+        """
+        Writes a python run file which takes care of loading the optimizee from a binary file, the trajectory object
+        of each individual. Then executes the 'simulate' function of the optimizee using the trajectory and
+        writes the results in a binary file.
+        :param path_ready: path to store the ready files
+        :return true if all files are present, false otherwise
+        """
+        read_path = os.path.join(os.path.dirname(__file__), 'run_optimizee.py')
+        with open(read_path, 'r') as r:
+            code = r.readlines()
+        with open(os.path.join(self.path, "run_optimizee.py"), "w") as f:
+            f.write(f'trajpath = "{os.path.join(self.work_paths["trajectories"], "op_trajectory_")}"\n')
+            f.write(f'respath = "{os.path.join(self.work_paths["results"], "results_")}"\n')
+            f.write(f'logpath = "{self.work_paths["individual_logs"]}"\n')
+            f.write(f'optimizeepath = "{self.optimizeepath}"\n')
+            f.writelines(code)
 
     def dump_traj(self, trajectory):
         """Dumpes trajectory files.

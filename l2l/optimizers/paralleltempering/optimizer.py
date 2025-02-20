@@ -207,7 +207,7 @@ class ParallelTemperingOptimizer(Optimizer):
         self.decay_parameters = parameters.decay_parameters
         self.temperature_bounds = parameters.temperature_bounds
         # Keep track of current fitness value to decide whether we want the next individual to be accepted or not
-        self.current_fitness_value_list = [-np.Inf] * parameters.n_parallel_runs
+        self.current_fitness_value_list = [-np.inf] * parameters.n_parallel_runs
 
         new_individual_list = [
             list_to_dict(ind_as_list + np.random.normal(0.0, parameters.noisy_step, ind_as_list.size) * traj.noisy_step,

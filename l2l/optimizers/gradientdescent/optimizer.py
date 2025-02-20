@@ -166,7 +166,7 @@ class GradientDescentOptimizer(Optimizer):
             new_individual_list = [self.optimizee_bounding_func(ind) for ind in new_individual_list]
 
         # Storing the fitness of the current individual
-        self.current_fitness = -np.Inf
+        self.current_fitness = -np.inf
         self.g = 0
         
         self.eval_pop = new_individual_list

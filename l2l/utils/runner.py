@@ -140,7 +140,7 @@ class Runner():
         if self.srun_command:
             # HPC case with slurm
             log_files ={}
-            run_ind = f'{self.srun_command} --output="{self.work_paths['individual_logs']}/out_{idx}.log" --error="{self.work_paths['individual_logs']}/err_{idx}.log" {self.exec_command} {idx} &'
+            run_ind = f"{self.srun_command} --output='{self.work_paths['individual_logs']}/out_{idx}.log' --error='{self.work_paths['individual_logs']}/err_{idx}.log' {self.exec_command} {idx} &"
         else:
             # local case without slurm
             run_ind = f"{self.exec_command} {idx}"
@@ -164,9 +164,7 @@ class Runner():
         if(self.debug):
             logger.info(f"Pipe created {outputpipename}")
             logger.info(f"Pipe created {inputpipename}")
-        logger.info("test1")
         args, log_files = self.produce_run_command(w_id)
-        logger.info("test2")
         if log_files:
             process = subprocess.Popen(args, stdout=open(log_files['stdout'], 'w'), stderr=open(log_files['stderr'], 'w'))
         else: 

@@ -211,7 +211,7 @@ class MultiGradientDescentOptimizer(Optimizer):
             for key in self.grouped_params_dict.keys():
                 parameters = elem[key]
                 for ix, e in enumerate(parameters):
-                    individual_exp[ind_id*inner_params+ix][key] = float(e)                   
+                    individual_exp[ind_id*inner_params+ix][key] =  [float(val) for val in e]                   
         return individual_exp
 
     def compress_individual(self, e_population, inner_params):
@@ -246,11 +246,17 @@ class MultiGradientDescentOptimizer(Optimizer):
 
         logger.info("  Evaluating %i individuals" % len(fitnesses_results))
         
-        assert len(fitnesses_results) == traj.n_random_steps
+        #assert len(fitnesses_results) == traj.n_random_steps
 
         # We need to collect the directions of the random steps along with the fitness evaluated there
         fitnesses = np.zeros((traj.n_random_steps*traj.n_inner_params))
-        dx = np.zeros((traj.n_random_steps*traj.n_inner_params, len(traj.individual.params) ))
+
+        num_rows = traj.n_random_steps * traj.n_inner_params
+        num_cols = sum(len(values[0]) for values in traj.individual.params.values())
+        dx = np.zeros((num_rows, num_cols))
+
+        #dx = np.zeros((traj.n_random_steps*traj.n_inner_params, len(traj.individual.params)))
+        # dx = np.zeros((4,2))
         # dx = np.zeros((len(fitnesses_results), len(traj.individual))))
         # dx = np.zeros((16, 4))
         weighted_fitness_list = []

@@ -1,8 +1,10 @@
 import os
+import random
 from collections import namedtuple
 from l2l.optimizees.optimizee import Optimizee
 from .helpers import create_config
 from dwave.cloud.config import load_config
+from dwave.cloud.client import Client
 
 AWOptimizeeDWaveParameters = namedtuple(
     'AWOptimizeeParameters', ['difficulty', 'APIToken', 'path'])
@@ -44,6 +46,13 @@ class AWOptimizeeDWave(Optimizee):
         """
         config = load_config(self.config_path)
         print(config)
+        try:
+            client = Client.from_config(config_file=self.config_path)
+            # code that uses client
+            solvers = client.get_solvers()
+            client.close()
+        except:
+            print("error")
 
         self.ind_idx = traj.individual.ind_idx
         self.generation = traj.individual.generation
@@ -55,7 +64,7 @@ class AWOptimizeeDWave(Optimizee):
             if self.is_prime(number):
                 primes.append(number)
         
-        fitness = 0
+        fitness = len(solvers)
         return (fitness,) 
     
 

@@ -19,14 +19,21 @@ def main():
         "exec": "python3",
         "max_workers": 32, 
     }
+
     traj, runner_params = experiment.prepare_experiment(name='L2L',
                                                         log_stdout=True,
                                                         runner_parameter=runner_params,
-                                                        # To enable stderror output
-                                                        # from the optimizee set debug True
+                                                        # To enable more detailed output for debugging
+                                                        # set debug to True
                                                         debug=False,
-                                                        stop_run=True,
-                                                        timeout= False)
+                                                        # If you do not want to restart the optimizee
+                                                        # and the simulation should be stopped
+                                                        # set stop_run to True 
+                                                        stop_run=False,
+                                                        # if you want to overwrite previous results,
+                                                        # set overwrite to True, 
+                                                        # sotherwise specify a different root_dir_path.
+                                                        overwrite= False)
 
     ## Innerloop simulator
     # TODO when using the template: Change the optimizee to the appropriate

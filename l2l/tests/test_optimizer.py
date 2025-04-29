@@ -22,7 +22,6 @@ class OptimizerTestCase(unittest.TestCase):
 
         #set up funtiongenerator optimizee
         self.experiment_functionGenerator = Experiment(root_dir_path=root_dir_path)
-        jube_params = {}
         self.trajectory_functionGenerator, all_runner_params = self.experiment_functionGenerator.prepare_experiment(name='L2L',
                                                                               log_stdout=True,
                                                                               overwrite=True,

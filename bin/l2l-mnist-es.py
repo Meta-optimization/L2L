@@ -7,7 +7,7 @@ def run_experiment():
     name = 'L2L-MNIST-ES'
     trajectory_name = 'mirroring-and-fitness-shaping'
     experiment = Experiment("../results/")
-    traj, all_jube_params = experiment.prepare_experiment(name=name,
+    traj, runner_params = experiment.prepare_experiment(name=name,
                                                           trajectory_name=trajectory_name,
                                                           log_stdout=True)
 

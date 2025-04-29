@@ -15,14 +15,14 @@ class SetupTestCase(unittest.TestCase):
         home_path =  os.environ.get("HOME")
         self.root_dir_path = os.path.join(home_path, 'results')
         self.experiment = Experiment(root_dir_path=self.root_dir_path)
-        jube_params = {}
+        runner_params = {}
         try:
             self.trajectory, _ = self.experiment.prepare_experiment(
                 name='test_trajectory',
                 log_stdout=True,
                 add_time=True,
                 automatic_storing=True,
-                jube_parameter=jube_params,
+                runner_params=runner_params,
                 overwrite = True)
         except FileNotFoundError as fe:
             self.fail(

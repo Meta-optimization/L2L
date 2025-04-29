@@ -1,6 +1,7 @@
 import os
 import configparser
-import math
+import numpy as np
+from collections import defaultdict
 
 def create_config(API_token, path):
     if not os.path.exists(path):
@@ -10,28 +11,15 @@ def create_config(API_token, path):
     with open(path + "/dwave.conf", "w") as configfile:
         config.write(configfile)
 
-def get_distance(coordinate_0, coordinate_1):
-    diff_x = coordinate_0.x - coordinate_1.x
-    diff_y = coordinate_0.y - coordinate_1.y
+def get_distance(p1, p2):
+    return np.linalg.norm(np.array(p1) - np.array(p2))
 
-    return math.sqrt(diff_x**2 + diff_y**2)
-
-def get_max_distance(coordinates):
-    max_distance = 0
-    for i, coord0 in enumerate(coordinates[:-1]):
-        for coord1 in coordinates[i+1:]:
-            distance = get_distance(coord0, coord1)
-            max_distance = max(max_distance, distance)
-
-    return max_distance
-
-class Coordinate:
-    def __init__(self, x, y):
-        self.x = x
-        self.y = y
-
-        # coordinate labels for groups red, green, and blue
-        label = "{0},{1}_".format(x, y)
-        self.r = label + "r"
-        self.g = label + "g"
-        self.b = label + "b"
+def get_labels_from_sample(sample, num_points, num_clusters):
+    y = [-1] * num_points
+    for i in range(num_points):
+        for c in range(num_clusters):
+            var_name = f"x_{i}_{c}"
+            if sample.get(var_name, 0) == 1:
+                y[i] = c
+                break
+    return y

@@ -3,25 +3,29 @@ import numpy as np
 import math
 from collections import namedtuple
 from l2l.optimizees.optimizee import Optimizee
-from .helpers import create_config, get_distance, get_max_distance
+from .helpers import create_config, get_distance, get_labels_from_sample
 from dwave.cloud.config import load_config
 from dwave.cloud.client import Client
-import dwavebinarycsp
+from sklearn.metrics import calinski_harabasz_score
+import dimod
+import itertools
 from dwave.system import EmbeddingComposite, DWaveSampler
 
 ClusteringOptimizeeParameters = namedtuple(
-    'ClusteringOptimizeeParameters', ['APIToken', 'path', 'num_reads', 'coordinates'])
+    'ClusteringOptimizeeParameters', ['APIToken', 'config_path', 'num_reads', 'points', 'result_path'])
 
 
 class ClusteringOptimizee(Optimizee):
     def __init__(self, traj, parameters):
         super().__init__(traj)
         self.num_reads = parameters.num_reads
-        self.coordinates = parameters.coordinates
+        self.points = parameters.points
         self.ind_idx = traj.individual.ind_idx
         self.generation = traj.individual.generation
         self.bound = [0, 2000]
-        self.config_path = os.path.join(parameters.path, "dwave.conf")
+        self.config_path = os.path.join(parameters.config_path, "dwave.conf")
+        os.makedirs(parameters.result_path, exist_ok=True)
+        self.result_path = os.path.join(parameters.result_path, "result.txt")
         if not os.path.exists(self.config_path):
             create_config(parameters.APIToken, parameters.path)
 
@@ -44,50 +48,51 @@ class ClusteringOptimizee(Optimizee):
         """
         Does Clustering
         """
+        self.ind_idx = traj.individual.ind_idx
+        self.generation = traj.individual.generation
+
         config = load_config(self.config_path)
         print(config)
 
-        max_distance = max(get_max_distance(self.coordinates), 1)
+        num_points = len(self.points)
+        num_clusters = 3 #TODO get clusters from parameters or 
+        max_distance = max(get_distance(a, b) for a, b in itertools.combinations(self.points, 2))
 
-        # Build constraints
-        csp = dwavebinarycsp.ConstraintSatisfactionProblem(dwavebinarycsp.BINARY)
+        # Define variables for each point and cluster
+        variables = {(i, c): f"x_{i}_{c}" for i in range(num_points) for c in range(num_clusters)}
+        bqm = dimod.BinaryQuadraticModel({}, {}, 0.0, vartype='BINARY')
 
-        # Apply constraint: coordinate can only be in one colour group
-        choose_one_group = {(0, 0, 1), (0, 1, 0), (1, 0, 0)}
-        for coord in self.coordinates:
-            csp.add_constraint(choose_one_group, (coord.r, coord.g, coord.b))
+        # One-hot constraints: ensure each point is assigned to exactly one cluster
+        for i in range(num_points):
+            vars_i = [variables[(i, c)] for c in range(num_clusters)]
+            for v in vars_i:
+                bqm.add_variable(v, -1)  # Bias for assignment
+            for v1, v2 in itertools.combinations(vars_i, 2):
+                bqm.add_interaction(v1, v2, 2)  # Penalize multiple assignments to the same point
 
-        # Build initial BQM
-        bqm = dwavebinarycsp.stitch(csp)
+        # Attraction: points close together should be assigned to the same cluster
+        # Encourage nearby points to be in the same cluster
+        for (i, p0), (j, p1) in itertools.combinations(enumerate(self.points), 2):
+            d = get_distance(p0, p1) / max_distance
+            same_cluster_weight = -math.cos(d * math.pi)
 
-        # Edit BQM to bias for close together points to share the same color
-        for i, coord0 in enumerate(self.coordinates[:-1]):
-            for coord1 in self.coordinates[i+1:]:
-                # Set up weight
-                d = get_distance(coord0, coord1) / max_distance  # rescale distance
-                weight = -math.cos(d*math.pi)
+            for c in range(num_clusters):
+                var1 = variables[(i, c)]
+                var2 = variables[(j, c)]
+                # Encourage same cluster for close points
+                bqm.add_interaction(var1, var2, same_cluster_weight)
 
-                # Apply weights to BQM
-                bqm.add_interaction(coord0.r, coord1.r, weight)
-                bqm.add_interaction(coord0.g, coord1.g, weight)
-                bqm.add_interaction(coord0.b, coord1.b, weight)
+            # Encourage far-apart points to be in different clusters
+            d_far = math.sqrt(get_distance(p0, p1) / max_distance)
+            different_cluster_weight = -math.tanh(d_far) * 0.1
 
-        # Edit BQM to bias for far away points to have different colors
-        for i, coord0 in enumerate(self.coordinates[:-1]):
-            for coord1 in self.coordinates[i+1:]:
-                # Set up weight
-                # Note: rescaled and applied square root so that far off distances
-                #   are all weighted approximately the same
-                d = math.sqrt(get_distance(coord0, coord1) / max_distance)
-                weight = -math.tanh(d) * 0.1
+            for c1 in range(num_clusters):
+                for c2 in range(num_clusters):
+                    if c1 != c2:
+                        var1 = variables[(i, c1)]
+                        var2 = variables[(j, c2)]
+                        bqm.add_interaction(var1, var2, different_cluster_weight)
 
-                # Apply weights to BQM
-                bqm.add_interaction(coord0.r, coord1.b, weight)
-                bqm.add_interaction(coord0.r, coord1.g, weight)
-                bqm.add_interaction(coord0.b, coord1.r, weight)
-                bqm.add_interaction(coord0.b, coord1.g, weight)
-                bqm.add_interaction(coord0.g, coord1.r, weight)
-                bqm.add_interaction(coord0.g, coord1.b, weight)
 
         try:
             client = Client.from_config(config_file=self.config_path)
@@ -106,8 +111,15 @@ class ClusteringOptimizee(Optimizee):
         except:
             print("error")
 
+        #safe results
+        labels = get_labels_from_sample(best_sample, len(self.points), num_clusters)
+        with open(self.result_path, "a", encoding="utf-8") as f:
+            f.write(f'Generation: {self.generation}, Individual: {self.ind_idx} \n')
+            f.write(f'best sample: {best_sample} \n')
+            f.write(f'labels: {labels} \n\n')
+
         fitness = len(solvers)
-        return (fitness,) 
+        return (1/calinski_harabasz_score(self.points, labels), ) 
     
 
 

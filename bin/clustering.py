@@ -3,10 +3,9 @@ import numpy as np
 
 from l2l.optimizees.clustering import ClusteringOptimizee, ClusteringOptimizeeParameters
 from l2l.optimizers.evolution import GeneticAlgorithmParameters, GeneticAlgorithmOptimizer
-from l2l.optimizees.clustering.helpers import Coordinate
 def run_experiment():
     experiment = Experiment(
-        root_dir_path='../masterarbeit/first-tests')
+        root_dir_path='../masterarbeit/fitness')
     
     runner_params = {
         "srun": "",
@@ -16,8 +15,7 @@ def run_experiment():
         runner_params=runner_params, name=f"cluster", overwrite=True, debug=True)
 
     scattered_points = [(0, 0), (1, 1), (2, 4), (3, 2)]
-    c = [Coordinate(x, y) for x, y in scattered_points]
-    optimizee_parameters = ClusteringOptimizeeParameters(APIToken='wEdq-d95ea6c975496e423e1e52a09aad0389ff90e336', path='./dwave', num_reads=100.0, coordinates=c)
+    optimizee_parameters = ClusteringOptimizeeParameters(APIToken='test', config_path='./dwave', num_reads=100.0, points=scattered_points, result_path='./cluster/fitness')
     optimizee = ClusteringOptimizee(traj, optimizee_parameters)
 
 
@@ -26,7 +24,7 @@ def run_experiment():
                                                       pop_size=2,
                                                       cx_prob=0.7,
                                                       mut_prob=0.7,
-                                                      n_iteration=3,
+                                                      n_iteration=2,
                                                       ind_prob=0.45,
                                                       tourn_size=4,
                                                       mate_par=0.5,

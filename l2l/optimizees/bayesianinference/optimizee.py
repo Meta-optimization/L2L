@@ -1,6 +1,8 @@
 from collections import namedtuple
 from l2l.optimizees.optimizee import Optimizee
 from .prior import prior, labels, x_obs
+import torch
+import numpy as np
 
 SBIOptimizeeParameters = namedtuple('SBIOptimizeeParameters', [])
 
@@ -23,6 +25,7 @@ class SBIOptimizee(Optimizee):
         self.generation = traj.individual.generation
         self.nrec = 500
         self.scale = 0.5
+        self.COUNT = 0
 
     def create_individual(self, n=1, prior=prior, labels=labels):
         """
@@ -33,7 +36,11 @@ class SBIOptimizee(Optimizee):
 
         :return dict: A dictionary containing the names of the parameters and their values
         """
-        samples = prior.sample((n,))
+        if n == 1000:
+            samples = torch.load(['theta_ppc.pt', 'theta_sbc.pt'][self.COUNT])
+            self.COUNT += 1
+        else:
+            samples = prior.sample((n,))
         pop = [dict(zip(labels, sample)) for sample in samples]
         if n == 1:
             return pop[0], prior # TODO okay?
@@ -60,18 +67,18 @@ class SBIOptimizee(Optimizee):
         # self.ind_idx = traj.individual.ind_idx
         # self.generation = traj.individual.generation
 
-        w_ex = traj.individual.w_ex
-        w_in = traj.individual.w_in
+        w_ex = float(traj.individual.w_ex)
+        w_in = float(traj.individual.w_in)
         c_ex = int(traj.individual.c_ex)
         c_in = int(traj.individual.c_in)
-        delay = traj.individual.delay
+        delay = np.round(float(traj.individual.delay), 1)
 
         net = NestBenchmarkNetwork(scale=self.scale,
-                                   CE=9000,#c_ex,
-                                   CI=2250,#c_in,
-                                   weight_excitatory=23.3812,#w_ex,
-                                   weight_inhibitory=-100.0,#w_in,
-                                   delay=0.1,#delay,
+                                   CE=c_ex,
+                                   CI=c_in,
+                                   weight_excitatory=w_ex,
+                                   weight_inhibitory=w_in,
+                                   delay=delay,
                                    nrec=self.nrec
                                    )
         average_rate = net.run_simulation()
@@ -81,8 +88,9 @@ class SBIOptimizee(Optimizee):
         # MPI
         comm = MPI.COMM_WORLD
         rank = comm.Get_rank()
+        size = comm.Get_size()
 
-        average_rate = comm.reduce(average_rate, MPI.SUM) # TODO avg nehmen
+        average_rate = comm.reduce(average_rate, MPI.SUM)/size
 
         print(f'gen {self.generation} ind {self.ind_idx} reduced rate {average_rate}')
 

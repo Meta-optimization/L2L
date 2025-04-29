@@ -38,7 +38,7 @@ def convert_synapse_weight(tau_m, tau_syn, C_m):
 class NestBenchmarkNetwork():
 
     params = {
-        'num_threads': 64, #{threads_per_task},  # total number of threads per process
+        'num_threads': 47, #{threads_per_task},  # total number of threads per process
         'simtime': 10_000, #{model_time_sim},  # total simulation time in ms
         'presimtime': 300, #{model_time_presim},  # simulation time until reaching equilibrium
         'dt': 0.1,  # simulation step
@@ -399,19 +399,29 @@ class NestBenchmarkNetwork():
 
             # calculate rate
             if self.nrec > 0:
-                average_rate = self.compute_rate(sr)
+                average_rate = self.compute_rate(sr, self.params['presimtime'])
                 print('presim avg rate', average_rate, 'Hz spikes', nest.local_spike_counter)
                 sys.stdout.flush()
-                if average_rate > 200:
-                    return np.nan
+                # if average_rate > 30:
+                #     return np.nan
+
+            # if PreparationTime*(self.params['simtime']/self.params['presimtime']) > 10*60: # if full simulation would need more than 10 mins
+            #     print('Presimulation took too long')
+            #     return np.nan
+
+            #sr.set({'n_events': 0})
 
             tic = time.time()
-            nest.Run(self.params['simtime'])
+            for i in range(self.params['simtime']//200):
+                #nest.Run(self.params['simtime'])
+                nest.Run(200)
+                if (time.time()-tic) > 5*60:
+                    return np.nan
             SimCPUTime = time.time() - tic
             total_memory = str(get_vmsize())
 
         if self.nrec > 0:
-            average_rate = self.compute_rate(sr)
+            average_rate = self.compute_rate(sr, self.params['simtime']+self.params['presimtime'])
         else:
             average_rate = nest.local_spike_counter/((self.NE + self.NI) * self.params['simtime'])
         print('NE', self.NE, 'NI', self.NI, 'simtime', self.params['simtime'], 'spikes', nest.local_spike_counter)
@@ -465,7 +475,7 @@ class NestBenchmarkNetwork():
 
 
 
-    def compute_rate(self, sr):
+    def compute_rate(self, sr, duration):
         """Compute local approximation of average firing rate
 
         This approximation is based on the number of local nodes, number
@@ -476,7 +486,7 @@ class NestBenchmarkNetwork():
 
         n_local_spikes = sr.n_events
         n_local_neurons = self.nrec
-        simtime = self.params['simtime']
+        simtime = duration#self.params['simtime']
         return 1. * n_local_spikes / (n_local_neurons * simtime) * 1e3
 
 

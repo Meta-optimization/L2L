@@ -1,6 +1,7 @@
 import os
 import numpy as np
 import math
+import time
 from collections import namedtuple
 from l2l.optimizees.optimizee import Optimizee
 from .helpers import create_config, get_distance, get_labels_from_sample
@@ -12,7 +13,7 @@ import itertools
 from dwave.system import EmbeddingComposite, DWaveSampler
 
 ClusteringOptimizeeParameters = namedtuple(
-    'ClusteringOptimizeeParameters', ['APIToken', 'config_path', 'num_reads', 'points', 'result_path'])
+    'ClusteringOptimizeeParameters', ['APIToken', 'config_path', 'num_reads', 'points', 'num_clusters', 'result_path'])
 
 
 class ClusteringOptimizee(Optimizee):
@@ -20,6 +21,7 @@ class ClusteringOptimizee(Optimizee):
         super().__init__(traj)
         self.num_reads = parameters.num_reads
         self.points = parameters.points
+        self.num_clusters = parameters.num_clusters
         self.ind_idx = traj.individual.ind_idx
         self.generation = traj.individual.generation
         self.bound = [0, 2000]
@@ -55,16 +57,15 @@ class ClusteringOptimizee(Optimizee):
         print(config)
 
         num_points = len(self.points)
-        num_clusters = 3 #TODO get clusters from parameters or 
         max_distance = max(get_distance(a, b) for a, b in itertools.combinations(self.points, 2))
 
         # Define variables for each point and cluster
-        variables = {(i, c): f"x_{i}_{c}" for i in range(num_points) for c in range(num_clusters)}
+        variables = {(i, c): f"x_{i}_{c}" for i in range(num_points) for c in range(self.num_clusters)}
         bqm = dimod.BinaryQuadraticModel({}, {}, 0.0, vartype='BINARY')
 
         # One-hot constraints: ensure each point is assigned to exactly one cluster
         for i in range(num_points):
-            vars_i = [variables[(i, c)] for c in range(num_clusters)]
+            vars_i = [variables[(i, c)] for c in range(self.num_clusters)]
             for v in vars_i:
                 bqm.add_variable(v, -1)  # Bias for assignment
             for v1, v2 in itertools.combinations(vars_i, 2):
@@ -76,7 +77,7 @@ class ClusteringOptimizee(Optimizee):
             d = get_distance(p0, p1) / max_distance
             same_cluster_weight = -math.cos(d * math.pi)
 
-            for c in range(num_clusters):
+            for c in range(self.num_clusters):
                 var1 = variables[(i, c)]
                 var2 = variables[(j, c)]
                 # Encourage same cluster for close points
@@ -86,8 +87,8 @@ class ClusteringOptimizee(Optimizee):
             d_far = math.sqrt(get_distance(p0, p1) / max_distance)
             different_cluster_weight = -math.tanh(d_far) * 0.1
 
-            for c1 in range(num_clusters):
-                for c2 in range(num_clusters):
+            for c1 in range(self.num_clusters):
+                for c2 in range(self.num_clusters):
                     if c1 != c2:
                         var1 = variables[(i, c1)]
                         var2 = variables[(j, c2)]
@@ -99,12 +100,22 @@ class ClusteringOptimizee(Optimizee):
             # code that uses client
             solvers = client.get_solvers()
             solver = solvers[5]
-            print(solver)
+
+            start = time.perf_counter()
             sampler = EmbeddingComposite(DWaveSampler(solver=solver.id))
+            end = time.perf_counter()
+            embedding_time_ms = (end-start)*1000
+
+            start = time.perf_counter()
             sampleset = sampler.sample(bqm,
                                     chain_strength=4,
-                                    num_reads=1000,
+                                    num_reads=int(self.num_reads),
                                     label='Example - Clustering')
+            end = time.perf_counter()
+
+            wall_time_ms = (end - start) * 1000
+            qpu_access_time_ms = sampleset.info['timing']['qpu_access_time'] / 1000
+            queue_time_ms = wall_time_ms - qpu_access_time_ms
 
             best_sample = sampleset.first.sample
             client.close()
@@ -112,13 +123,17 @@ class ClusteringOptimizee(Optimizee):
             print("error")
 
         #safe results
-        labels = get_labels_from_sample(best_sample, len(self.points), num_clusters)
+        labels = get_labels_from_sample(best_sample, len(self.points), self.num_clusters)
         with open(self.result_path, "a", encoding="utf-8") as f:
+            f.write(f"Embedding time: {embedding_time_ms:.2f} ms \n")
+            f.write(f"Sampling time: {wall_time_ms:.2f} ms \n")
+            f.write(f"QPU access time: {qpu_access_time_ms:.2f} ms \n")
+            f.write(f"Estimated queueing/host overhead: {queue_time_ms:.2f} ms \n")
             f.write(f'Generation: {self.generation}, Individual: {self.ind_idx} \n')
-            f.write(f'best sample: {best_sample} \n')
+            f.write(f'points: {self.points} \n')
             f.write(f'labels: {labels} \n\n')
 
-        fitness = len(solvers)
+        #fitness = len(solvers)
         return (1/calinski_harabasz_score(self.points, labels), ) 
     
 

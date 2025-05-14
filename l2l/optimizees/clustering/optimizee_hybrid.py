@@ -52,7 +52,7 @@ class HybridClusteringOptimizee(Optimizee):
         return {'alpha': np.clip(individual['alpha'], a_min=0, a_max=50),
                 'gamma': np.clip(individual['gamma'], a_min=0, a_max=50),
                 'delta': np.clip(individual['delta'], a_min=0, a_max=50),
-                'one_hot_strength': np.clip(individual['one_hot_strength'], a_min=0, a_max=50*self.num_points)}
+                'one_hot_strength': np.clip(individual['one_hot_strength'], a_min=0, a_max=50*len(self.points))}
 
     def simulate(self, traj):
         """

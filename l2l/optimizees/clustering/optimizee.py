@@ -4,7 +4,7 @@ import math
 import time
 from collections import namedtuple
 from l2l.optimizees.optimizee import Optimizee
-from .helpers import create_config, get_distance, get_labels_from_sample
+from .helpers import create_config, get_distance, get_labels_from_sample, is_valid_one_hot, fix_sample_one_hot
 from dwave.cloud.config import load_config
 from dwave.cloud.client import Client
 from sklearn.metrics import calinski_harabasz_score
@@ -13,7 +13,8 @@ import itertools
 from dwave.system import EmbeddingComposite, DWaveSampler
 
 ClusteringOptimizeeParameters = namedtuple(
-    'ClusteringOptimizeeParameters', ['APIToken', 'config_path', 'num_reads', 'points', 'num_clusters', 'result_path'])
+    'ClusteringOptimizeeParameters', ['APIToken', 'config_path', 'num_reads', 'alpha', 'gamma', 'delta', 
+                                      'one_hot_strength', 'points', 'num_clusters', 'result_path'])
 
 
 class ClusteringOptimizee(Optimizee):
@@ -22,6 +23,10 @@ class ClusteringOptimizee(Optimizee):
         self.num_reads = parameters.num_reads
         self.points = parameters.points
         self.num_clusters = parameters.num_clusters
+        self.alpha = parameters.alpha
+        self.gamma = parameters.gamma
+        self.delta = parameters.delta
+        self.one_hot_strength = parameters.one_hot_strength
         self.ind_idx = traj.individual.ind_idx
         self.generation = traj.individual.generation
         self.bound = [0, 2000]
@@ -36,7 +41,8 @@ class ClusteringOptimizee(Optimizee):
         Creates and returns the individual
         """
         # create individual
-        individual = {'num_reads': self.num_reads}
+        individual = {'num_reads': self.num_reads, "alpha": self.alpha, "gamma": self.gamma, 
+                      "delta":self.delta, "one_hot_strength": self.one_hot_strength}
         return individual
     
 
@@ -44,7 +50,11 @@ class ClusteringOptimizee(Optimizee):
         """
         Bounds the individual within the required bounds via coordinate clipping
         """
-        return {'coords': np.clip(individual['num_reads'], a_min=self.bound[0], a_max=self.bound[1])}
+        return {'num_reads' :np.clip(individual['num_reads'], a_min=0, a_max=1000),
+                'alpha': np.clip(individual['alpha'], a_min=0, a_max=50),
+                'gamma': np.clip(individual['gamma'], a_min=0, a_max=50),
+                'delta': np.clip(individual['delta'], a_min=0, a_max=50),
+                'one_hot_strength': np.clip(individual['one_hot_strength'], a_min=0, a_max=50*len(self.points))}
 
     def simulate(self, traj):
         """
@@ -67,15 +77,15 @@ class ClusteringOptimizee(Optimizee):
         for i in range(num_points):
             vars_i = [variables[(i, c)] for c in range(self.num_clusters)]
             for v in vars_i:
-                bqm.add_variable(v, -1)  # Bias for assignment
+                bqm.add_variable(v, -1*self.one_hot_strength)  # Bias for assignment
             for v1, v2 in itertools.combinations(vars_i, 2):
-                bqm.add_interaction(v1, v2, 2)  # Penalize multiple assignments to the same point
+                bqm.add_interaction(v1, v2, 2*self.one_hot_strength)  # Penalize multiple assignments to the same point
 
         # Attraction: points close together should be assigned to the same cluster
         # Encourage nearby points to be in the same cluster
         for (i, p0), (j, p1) in itertools.combinations(enumerate(self.points), 2):
             d = get_distance(p0, p1) / max_distance
-            same_cluster_weight = -math.cos(d * math.pi)
+            same_cluster_weight = -math.cos(self.alpha * d * math.pi)
 
             for c in range(self.num_clusters):
                 var1 = variables[(i, c)]
@@ -85,7 +95,7 @@ class ClusteringOptimizee(Optimizee):
 
             # Encourage far-apart points to be in different clusters
             d_far = math.sqrt(get_distance(p0, p1) / max_distance)
-            different_cluster_weight = -math.tanh(d_far) * 0.1
+            different_cluster_weight = -math.tanh(self.gamma * d_far) * self.delta
 
             for c1 in range(self.num_clusters):
                 for c2 in range(self.num_clusters):
@@ -110,14 +120,24 @@ class ClusteringOptimizee(Optimizee):
             sampleset = sampler.sample(bqm,
                                     chain_strength=4,
                                     num_reads=int(self.num_reads),
-                                    label='Example - Clustering')
+                                    label='Example - Clustering- L2L')
             end = time.perf_counter()
 
             wall_time_ms = (end - start) * 1000
             qpu_access_time_ms = sampleset.info['timing']['qpu_access_time'] / 1000
             queue_time_ms = wall_time_ms - qpu_access_time_ms
 
-            best_sample = sampleset.first.sample
+            best_sample = None
+
+            for sample, energy in zip(sampleset.samples(), sampleset.record['energy']):
+                if is_valid_one_hot(sample, num_points, self.num_clusters, variables):
+                    best_sample = sample
+                    break
+
+            if best_sample is None:
+                print("⚠️ Kein gültiges Sample gefunden. Wende Postprocessing an.")
+                best_sample = fix_sample_one_hot(sampleset.first.sample, num_points, self.num_clusters, variables)
+
             client.close()
         except:
             print("error")

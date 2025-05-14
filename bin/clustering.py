@@ -1,11 +1,12 @@
 from l2l.utils.experiment import Experiment
-import numpy as np
+from sklearn.datasets import make_blobs
+import matplotlib.pyplot as plt
 
 from l2l.optimizees.clustering import ClusteringOptimizee, ClusteringOptimizeeParameters
 from l2l.optimizers.evolution import GeneticAlgorithmParameters, GeneticAlgorithmOptimizer
 def run_experiment():
     experiment = Experiment(
-        root_dir_path='../masterarbeit/fitness')
+        root_dir_path='../masterarbeit/test')
     
     runner_params = {
         "srun": "",
@@ -15,7 +16,22 @@ def run_experiment():
         runner_params=runner_params, name=f"cluster", overwrite=True, debug=True)
 
     scattered_points = [(0, 0), (1, 1), (2, 4), (3, 2)]
-    optimizee_parameters = ClusteringOptimizeeParameters(APIToken='test', config_path='./dwave', num_reads=100.0, points=scattered_points, result_path='./cluster/fitness')
+    num_clusters = 3
+    X, y = make_blobs(n_samples=4, centers=num_clusters, cluster_std=1, random_state=42)
+
+    plt.scatter(X[:, 0], X[:, 1], c=y, cmap='viridis')
+    plt.show()
+
+    optimizee_parameters = ClusteringOptimizeeParameters(APIToken='test', 
+                                                         config_path='./dwave', 
+                                                         num_reads=100.0,
+                                                         alpha = 1.0,
+                                                         gamma = 3.0,
+                                                         delta=2.0,
+                                                         one_hot_strength=5.0,
+                                                         points=scattered_points, 
+                                                         num_clusters=num_clusters, 
+                                                         result_path='./cluster/test')
     optimizee = ClusteringOptimizee(traj, optimizee_parameters)
 
 
@@ -28,12 +44,13 @@ def run_experiment():
                                                       ind_prob=0.45,
                                                       tourn_size=4,
                                                       mate_par=0.5,
-                                                      mut_par=1
+                                                      mut_par=10
                                                       )
     optimizer = GeneticAlgorithmOptimizer(traj, 
                                           optimizee_create_individual=optimizee.create_individual,
                                           optimizee_fitness_weights=(1,),
-                                          parameters=optimizer_parameters)
+                                          parameters=optimizer_parameters,
+                                          optimizee_bounding_func=optimizee.bounding_func)
 
 
     # Run experiment

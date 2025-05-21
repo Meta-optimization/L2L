@@ -34,7 +34,7 @@ class HybridCommunityOptimizee(Optimizee):
         Creates and returns the individual
         """
         # create individual
-        individual = {}
+        individual = {'num_partitions': self.num_partitions}
         return individual
     
 
@@ -42,7 +42,7 @@ class HybridCommunityOptimizee(Optimizee):
         """
         Bounds the individual within the required bounds via coordinate clipping
         """
-        return {}
+        return {'num_partitons': np.clip(individual['num_partitions'], a_min=1, a_max=50)}
 
     def simulate(self, traj):
         """
@@ -54,13 +54,13 @@ class HybridCommunityOptimizee(Optimizee):
         config = load_config(self.config_path)
         print(config)
 
-        partitions = range(self.num_partitions)
+        partitions = range(int(traj.individual.num_partitions))
         B = nx.modularity_matrix(self.G)
         # Initialize the DQM object
         dqm = DiscreteQuadraticModel()
 
         for i in self.G.nodes():
-            dqm.add_variable(self.num_partitions, label=i)
+            dqm.add_variable(int(traj.individual.num_partitions), label=i)
 
         for i in self.G.nodes():
             for j in self.G.nodes():
@@ -86,7 +86,7 @@ class HybridCommunityOptimizee(Optimizee):
                 traceback.print_exc(file=f)
 
         # Count the nodes in each partition
-        counts = np.zeros(self.num_partitions)
+        counts = np.zeros(int(traj.individual.num_partitions))
             
         #create communities as parameter for evaluation function
         communities=[]
@@ -101,18 +101,20 @@ class HybridCommunityOptimizee(Optimizee):
         for i in best_sample:
             counts[best_sample[i]] += 1
         modularity = nx.community.modularity(self.G, communities)
+
         #safe results
-       
         with open(self.result_path, "a", encoding="utf-8") as f:
             f.write(f"Sampling time: {run_time:.2f} ms \n")
             f.write(f'Generation: {self.generation}, Individual: {self.ind_idx} \n')
             f.write(f'best sample: {best_sample} \n')
             f.write(f'Communites: {communities} \n')
             f.write(f'modularity: {modularity} \n\n')
-            
 
-        #fitness = len(solvers)
-        return (1/modularity, ) 
+        if modularity > 0:
+            fitness = 1/modularity
+        else:
+            fitness = 100
+        return (fitness, ) 
     
 
 

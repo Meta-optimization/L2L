@@ -40,7 +40,7 @@ class HybridClusteringOptimizee(Optimizee):
         """
         # create individual
         individual = {"alpha": self.alpha, "gamma": self.gamma, 
-                      "delta":self.delta, "one_hot_strength": self.one_hot_strength}
+                      "delta": self.delta, "one_hot_strength": self.one_hot_strength}
         return individual
     
 
@@ -70,19 +70,19 @@ class HybridClusteringOptimizee(Optimizee):
         variables = {(i, c): f"x_{i}_{c}" for i in range(num_points) for c in range(self.num_clusters)}
         bqm = dimod.BinaryQuadraticModel({}, {}, 0.0, vartype='BINARY')
 
-        # One-hot constraints: ensure each point is assigned to exactly one cluster
+        ## One-hot constraints: ensure each point is assigned to exactly one cluster
         for i in range(num_points):
             vars_i = [variables[(i, c)] for c in range(self.num_clusters)]
             for v in vars_i:
-                bqm.add_variable(v, -1*self.one_hot_strength)  # Bias for assignment
+                bqm.add_variable(v, -1*traj.individual.one_hot_strength)  # Bias for assignment
             for v1, v2 in itertools.combinations(vars_i, 2):
-                bqm.add_interaction(v1, v2, 2*self.one_hot_strength)  # Penalize multiple assignments to the same point
+                bqm.add_interaction(v1, v2, 2*traj.individual.one_hot_strength)  # Penalize multiple assignments to the same point
 
         # Attraction: points close together should be assigned to the same cluster
         # Encourage nearby points to be in the same cluster
         for (i, p0), (j, p1) in itertools.combinations(enumerate(self.points), 2):
             d = get_distance(p0, p1) / max_distance
-            same_cluster_weight = -math.cos(self.alpha * d * math.pi)
+            same_cluster_weight = -math.cos(traj.individual.alpha * d * math.pi)
 
             for c in range(self.num_clusters):
                 var1 = variables[(i, c)]
@@ -92,7 +92,7 @@ class HybridClusteringOptimizee(Optimizee):
 
             # Encourage far-apart points to be in different clusters
             d_far = math.sqrt(get_distance(p0, p1) / max_distance)
-            different_cluster_weight = -math.tanh(self.gamma * d_far) * self.delta
+            different_cluster_weight = -math.tanh(traj.individual.gamma * d_far) * traj.individual.delta
 
             for c1 in range(self.num_clusters):
                 for c2 in range(self.num_clusters):
@@ -104,7 +104,7 @@ class HybridClusteringOptimizee(Optimizee):
         try:
             # code that uses client
             client = Client.from_config(config_file=self.config_path)
-            sampler = LeapHybridDQMSampler()
+            sampler = LeapHybridSampler()
 
             start = time.perf_counter()
             sampleset = sampler.sample(bqm,
@@ -144,7 +144,7 @@ class HybridClusteringOptimizee(Optimizee):
             f.write(f'labels: {labels} \n\n')
 
         #fitness = len(solvers)
-        return (1/calinski_harabasz_score(self.points, labels), ) 
+        return (1/calinski_harabasz_score(self.points, labels), )
     
 
 

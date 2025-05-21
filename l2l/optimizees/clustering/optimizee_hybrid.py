@@ -27,8 +27,7 @@ class HybridClusteringOptimizee(Optimizee):
         self.delta = parameters.delta
         self.one_hot_strength = parameters.one_hot_strength
         self.ind_idx = traj.individual.ind_idx
-        self.generation = traj.individual.generation
-        self.bound = [0, 2000]
+        self.generation = traj.individual.generatio
         self.config_path = os.path.join(parameters.config_path, "dwave.conf")
         os.makedirs(parameters.result_path, exist_ok=True)
         self.result_path = os.path.join(parameters.result_path, "result.txt")
@@ -105,7 +104,7 @@ class HybridClusteringOptimizee(Optimizee):
         try:
             # code that uses client
             client = Client.from_config(config_file=self.config_path)
-            sampler = LeapHybridSampler()
+            sampler = LeapHybridDQMSampler()
 
             start = time.perf_counter()
             sampleset = sampler.sample(bqm,

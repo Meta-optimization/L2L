@@ -9,7 +9,7 @@ class SAOptimizerTestCase(OptimizerTestCase):
 
     def test_sa(self):
         optimizer_parameters = SimulatedAnnealingParameters(n_parallel_runs=1, noisy_step=.03, temp_decay=.99, n_iteration=1,
-                                                  stop_criterion=np.Inf, seed=np.random.randint(1e5),
+                                                  stop_criterion=np.inf, seed=np.random.randint(1e5),
                                                   cooling_schedule=AvailableCoolingSchedules.QUADRATIC_ADDAPTIVE)
 
         optimizer = SimulatedAnnealingOptimizer(self.trajectory_functionGenerator, optimizee_create_individual=self.optimizee_functionGenerator.create_individual,
@@ -43,7 +43,7 @@ class SAOptimizerTestCase(OptimizerTestCase):
             self.fail(e.__name__)
 
 def suite():
-    suite = unittest.makeSuite(SAOptimizerTestCase, 'test')
+    suite = unittest.TestLoader().loadTestsFromTestCase(SAOptimizerTestCase)
     return suite
 
 

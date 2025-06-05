@@ -93,9 +93,6 @@ class MNISTOptimizee(Optimizee):
         :param ~l2l.utils.trajectory.Trajectory traj: Trajectory
         :return: a single element :obj:`tuple` containing the value of the chosen function
         """
-        # configure_loggers(exactly_once=True)  # logger configuration is here since this function is paralellised
-        # taken care of by jube
-
         flattened_weights = traj.individual.weights
         weight_shapes = self.nn.get_weights_shapes()
 

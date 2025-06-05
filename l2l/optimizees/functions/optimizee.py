@@ -48,8 +48,6 @@ class FunctionGeneratorOptimizee(Optimizee):
         :param ~l2l.utils.trajectory.Trajectory traj: Trajectory
         :return: a single element :obj:`tuple` containing the value of the chosen function
         """
-        # configure_loggers(exactly_once=True)    # logger configuration is here since this function is paralellised
-        # logging is now taken care by jube for each individual
 
         individual = np.array(traj.individual.coords)
         return (self.cost_fn(individual, random_state=self.random_state), )

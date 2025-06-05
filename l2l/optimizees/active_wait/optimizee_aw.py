@@ -19,7 +19,7 @@ class AWOptimizee(Optimizee):
         Creates and returns the individual
         """
         # create individual
-        individual = {'difficulty':self.difficulty}
+        individual = {'difficulty': self.difficulty}
         return individual
     
     def is_prime(self, n):

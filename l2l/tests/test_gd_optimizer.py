@@ -14,7 +14,7 @@ class GDOptimizerTestCase(OptimizerTestCase):
     def test_gd(self):
         optimizer_parameters = RMSPropParameters(learning_rate=0.01, exploration_step_size=0.01,
                                        n_random_steps=1, momentum_decay=0.5,
-                                       n_iteration=1, stop_criterion=np.Inf, seed=99)
+                                       n_iteration=1, stop_criterion=np.inf, seed=99)
 
         #test with function generator optimizee
         optimizer = GradientDescentOptimizer(self.trajectory_functionGenerator,
@@ -27,14 +27,13 @@ class GDOptimizerTestCase(OptimizerTestCase):
 
 
         try:
-
             self.experiment_functionGenerator.run_experiment(optimizee=self.optimizee_functionGenerator,
                                   optimizee_parameters=self.optimizee_functionGenerator_parameters,
                                   optimizer=optimizer,
                                   optimizer_parameters=optimizer_parameters)
         except Exception as e:
             self.fail(e.__name__)
-        print(self.experiment_functionGenerator.optimizer)
+
         best = list_to_dict(self.experiment_functionGenerator.optimizer.current_individual.tolist(),
                              self.experiment_functionGenerator.optimizer.optimizee_individual_dict_spec)['coords']
         self.assertEqual(best[0],-4.998856251826551)
@@ -63,7 +62,7 @@ class GDOptimizerTestCase(OptimizerTestCase):
 
 
 def suite():
-    suite = unittest.makeSuite(GDOptimizerTestCase, 'test')
+    suite = unittest.TestLoader().loadTestsFromTestCase(GDOptimizerTestCase)
     return suite
 
 

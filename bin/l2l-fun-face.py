@@ -11,7 +11,7 @@ def main():
     name = 'L2L-FUN-FACE'
     experiment = Experiment("../results/")
     trajectory_name = name
-    traj, all_jube_params, = experiment.prepare_experiment(name=name,
+    traj, runner_params, = experiment.prepare_experiment(name=name,
                                                            trajectory_name=trajectory_name,
                                                            log_stdout=True)
 

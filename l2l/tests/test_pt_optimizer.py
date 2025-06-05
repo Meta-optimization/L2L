@@ -29,7 +29,7 @@ class PTOptimizerTestCase(OptimizerTestCase):
             "Warning: Decay parameter not within specifications.")
 
         optimizer_parameters = ParallelTemperingParameters(n_parallel_runs=2, noisy_step=.03, n_iteration=1,
-                                                 stop_criterion=np.Inf,
+                                                 stop_criterion=np.inf,
                                                  seed=np.random.randint(1e5), cooling_schedules=cooling_schedules,
                                                  temperature_bounds=temperature_bounds,
                                                  decay_parameters=decay_parameters)
@@ -65,7 +65,7 @@ class PTOptimizerTestCase(OptimizerTestCase):
             self.fail(e.__name__)
 
 def suite():
-    suite = unittest.makeSuite(PTOptimizerTestCase, 'test')
+    suite = unittest.TestLoader().loadTestsFromTestCase(PTOptimizerTestCase)
     return suite
 
 

@@ -15,25 +15,42 @@ def run_experiment():
         runner_params=runner_params, name=f"community", overwrite=True, debug=True)
 
     #G = nx.karate_club_graph()
-    A = np.genfromtxt(f"/home/hanna/Documents/Meta-optimization/BrainNetViewer_20191031/Data/ExampleFiles/AAL90/Edge_AAL90_Binary.edge"
-, 
+    A = np.array([
+    [0, 1, 1, 0, 0, 0],
+    [1, 0, 1, 0, 0, 0],
+    [1, 1, 0, 0, 0, 0],
+    [0, 0, 0, 0, 1, 1],
+    [0, 0, 0, 1, 0, 1],
+    [0, 0, 0, 1, 1, 0]
+        ])
+
+
+
+    # Graph aus der Matrix erzeugen
+    #G = nx.from_numpy_array(A)
+    """A = np.genfromtxt(f"/home/hanna/Documents/Meta-optimization/BrainNetViewer_20191031/Data/ExampleFiles/AAL90/Edge_AAL90_Binary.edge",
                       delimiter='	')
-    G = nx.from_numpy_array(A)
+    G = nx.from_numpy_array(A)"""
+    #TVB
+    A = np.genfromtxt(f"/home/hanna/Documents/tvb_data/tvb_data/connectivity/connectivity_66/weights.txt",
+                      delimiter=' ')
+    binary_matrix = (A != 0).astype(int)
+    G = nx.from_numpy_array(binary_matrix)
 
     optimizee_parameters = HybridCommunityOptimizeeParameters(APIToken='test', 
                                                             config_path='./dwave', 
-                                                            num_partitions=11,
+                                                            num_partitions=11.0,
                                                             Graph = G, 
-                                                            result_path='./community/first_test')
+                                                            result_path='./community/tvb')
     optimizee = HybridCommunityOptimizee(traj, optimizee_parameters)
 
 
     # Genetic Algorithm Optimizer
     optimizer_parameters = GeneticAlgorithmParameters(seed=15, 
-                                                      pop_size=1,
+                                                      pop_size=2,
                                                       cx_prob=0.7,
                                                       mut_prob=0.7,
-                                                      n_iteration=1,
+                                                      n_iteration=2,
                                                       ind_prob=0.45,
                                                       tourn_size=4,
                                                       mate_par=0.5,

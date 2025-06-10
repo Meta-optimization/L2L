@@ -27,14 +27,13 @@ class GDOptimizerTestCase(OptimizerTestCase):
 
 
         try:
-
             self.experiment_functionGenerator.run_experiment(optimizee=self.optimizee_functionGenerator,
                                   optimizee_parameters=self.optimizee_functionGenerator_parameters,
                                   optimizer=optimizer,
                                   optimizer_parameters=optimizer_parameters)
         except Exception as e:
             self.fail(e.__name__)
-        print(self.experiment_functionGenerator.optimizer)
+
         best = list_to_dict(self.experiment_functionGenerator.optimizer.current_individual.tolist(),
                              self.experiment_functionGenerator.optimizer.optimizee_individual_dict_spec)['coords']
         self.assertEqual(best[0],-4.998856251826551)

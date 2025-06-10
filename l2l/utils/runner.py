@@ -140,7 +140,7 @@ class Runner():
         if self.srun_command:
             # HPC case with slurm
             log_files ={}
-            run_ind = f"{self.srun_command} --output={self.work_paths['individual_logs']}/out_{idx}.log --error={self.work_paths['individual_logs']}/err_{idx}.log {self.exec_command} {idx} &"
+            run_ind = f"{self.srun_command} --output='{self.work_paths['individual_logs']}/out_{idx}.log' --error='{self.work_paths['individual_logs']}/err_{idx}.log' {self.exec_command} {idx} &"
         else:
             # local case without slurm
             run_ind = f"{self.exec_command} {idx}"

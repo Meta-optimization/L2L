@@ -323,8 +323,7 @@ Examples
 
 * See :class:`~.FunctionGeneratorOptimizee` for an example of an `Optimizee` (based on simple function minimization).
 * See :class:`~.SimulatedAnnealingOptimizer` for an example of an implementation of simulated annealing `Optimizer`.
-* See :class:`~.HybridCommunityOptimizee` or :class:`~.ClusteringOptimizee` 
-for an example of an implementation for a quantum annealing based optimizee.
+* See :class:`~.HybridCommunityOptimizee` or :class:`~.ClusteringOptimizee` for an example of an implementation for a quantum annealing based optimizee.
 * See :ref:`l2l-experiments` for an example implementation of an L2L experiment with an arbitrary `Optimizee` and `Optimizer`.
 
 

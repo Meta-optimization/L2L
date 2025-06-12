@@ -8,10 +8,16 @@ The fitness function is equivalent to 1/modularity, meaning that the optimized m
 HybridCommunityOptimizee
 --------------------------
 
-.. autoclass:: l2l.optimizees.community_detection.optimizee_hybrid
+.. autoclass:: l2l.optimizees.community_detection.HybridCommunityOptimizee
     :members:
     :undoc-members:
     :show-inheritance:
+
+HybridCommunityOptimizeeParameters
+------------------------
+.. autoclass:: l2l.optimizees.community_detection.HybridCommunityOptimizeeParameters
+    :members:
+    :undoc-members:
 
 
 l2l.optimizees.community_detection.helpers

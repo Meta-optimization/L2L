@@ -323,6 +323,8 @@ Examples
 
 * See :class:`~.FunctionGeneratorOptimizee` for an example of an `Optimizee` (based on simple function minimization).
 * See :class:`~.SimulatedAnnealingOptimizer` for an example of an implementation of simulated annealing `Optimizer`.
+* See :class:`~.HybridCommunityOptimizee` or :class:`~.ClusteringOptimizee` 
+for an example of an implementation for a quantum annealing based optimizee.
 * See :ref:`l2l-experiments` for an example implementation of an L2L experiment with an arbitrary `Optimizee` and `Optimizer`.
 
 
@@ -359,7 +361,7 @@ you will need an access token for the D-Wave Cloud platform and an internet conn
 Access Token as an optimizee parameter, and the optimizee should generate a config file for the access. 
 Then, the optimizer can send jobs to the D-Wave cloud using the Ocean SDK cloud client package.
 Please look at the :class:`~.HybridCommunityOptimizee` or :class:`~.ClusteringOptimizee` examples.
-If you want to learn more about quantum annealing, check out the `D-Wave Documentation <https://docs.dwavequantum.com/en/latest/index.html>`.
+If you want to learn more about quantum annealing, check out the `D-Wave Documentation <https://docs.dwavequantum.com/en/latest/index.html>`_.
 
 .. _logging:
 

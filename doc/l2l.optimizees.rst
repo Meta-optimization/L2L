@@ -19,3 +19,4 @@ Implemented examples
 
     l2l.optimizees.functions
     l2l.optimizees.mnist
+    l2l.optimizees.qa

@@ -46,75 +46,89 @@ class HybridCommunityOptimizee(Optimizee):
 
     def simulate(self, traj):
         """
-        Does Clustering
+        Performs community detection on the graph using the D-Wave Quantum Computer.
+
+        Args:
+        - traj: The trajectory object containing the individual's parameters.
+
+        Returns:
+        - A tuple containing the fitness value (1/modularity) of the clustering.
         """
         self.ind_idx = traj.individual.ind_idx
         self.generation = traj.individual.generation
 
+        # Load the configuration from the specified path
         config = load_config(self.config_path)
-        print(config)
+        print(config) 
 
+        # Define the range of partitions for the clustering
         partitions = range(int(traj.individual.num_partitions))
+
+
         B = nx.modularity_matrix(self.G)
-        # Initialize the DQM object
+
+        # Initialize the Discrete Quadratic Model (DQM) object
         dqm = DiscreteQuadraticModel()
 
+        # Add variables to the DQM for each node in the graph
         for i in self.G.nodes():
             dqm.add_variable(int(traj.individual.num_partitions), label=i)
 
+        # Set the quadratic terms for the DQM
         for i in self.G.nodes():
             for j in self.G.nodes():
-                if i==j:
-                    continue #the algorithm skips the linear term in QUBO/Ising formulation as in k-community a node has to belong to one community, therefore there is no effect in the maximising constellation
-                dqm.set_quadratic(i,j, {(c, c): ((-1)*B[i,j]) for c in partitions})
+                if i == j:
+                    continue  # Skip the linear term in QUBO/Ising formulation
+                dqm.set_quadratic(i, j, {(c, c): ((-1)*B[i, j]) for c in partitions})
 
         try:
-            # code that uses client
+            # Sample a DQM using LeapHybridDQMSampler and retrieve the best solution
             client = Client.from_config(config_file=self.config_path)
             sampler = LeapHybridDQMSampler()
-
-            sampleset = sampler.sample_dqm(dqm, time_limit=10, label='karate')
-
-            run_time=(sampleset.info['run_time'])*0.001 #total runtime in milliseconds
-            best_sample=sampleset.first.sample
+            sampleset = sampler.sample_dqm(dqm, time_limit=10, label='community detection')
+            run_time = (sampleset.info['run_time'])*0.001
+            best_sample = sampleset.first.sample
             client.close()
 
         except Exception as e:
             with open(self.result_path, "a", encoding="utf-8") as f:
                 import traceback
-                f.write("an error occuerd")
+                f.write("An error occurred")
                 traceback.print_exc(file=f)
 
         # Count the nodes in each partition
         counts = np.zeros(int(traj.individual.num_partitions))
-            
-        #create communities as parameter for evaluation function
-        communities=[]
+
+        # Create communities as a parameter for the evaluation function
+        communities = []
         for k in partitions:
-            comm=[]
+            comm = []
             for i in best_sample:
-                if best_sample[i]==k:
+                if best_sample[i] == k:
                     comm.append(i)
             communities.append(set(comm))
 
-        #compute number of nodes in each community
-        for i in best_sample:
-            counts[best_sample[i]] += 1
+        # Compute the modularity of the clustering
         modularity = nx.community.modularity(self.G, communities)
 
-        #safe results
+        # Write the results to the result file
         with open(self.result_path, "a", encoding="utf-8") as f:
             f.write(f"Sampling time: {run_time:.2f} ms \n")
             f.write(f'Generation: {self.generation}, Individual: {self.ind_idx} \n')
-            f.write(f'best sample: {best_sample} \n')
-            f.write(f'Communites: {communities} \n')
-            f.write(f'modularity: {modularity} \n\n')
+            f.write(f'Best sample: {best_sample} \n')
+            f.write(f'Communities: {communities} \n')
+            f.write(f'Modularity: {modularity} \n\n')
 
+        # Compute the fitness value (1/modularity) for the clustering
+        # Note: The fitness value is the inverse of the modularity because the
+        # optimization algorithm is minimizing the fitness value, but higher
+        # modularity values are better.
         if modularity > 0:
             fitness = 1/modularity
         else:
-            fitness = 100
-        return (fitness, ) 
+            fitness = 100 
+
+        return (fitness, )
     
 
 

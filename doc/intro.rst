@@ -349,6 +349,17 @@ Parallelization
 
 We also support running different instances of the experiments on different cores.
 
+.. _qa:
+
+Quantum Annealing
+***************
+
+We also support the utilization of a D-Wave quantum annealer as a backend for the Optimizee. To use the quantum annealer, 
+you will need an access token for the D-Wave Cloud platform and an internet connection. The user must specify the 
+Access Token as an optimizee parameter, and the optimizee should generate a config file for the access. 
+Then, the optimizer can send jobs to the D-Wave cloud using the Ocean SDK cloud client package.
+Please look at the :class:`~.HybridCommunityOptimizee` or :class:`~.ClusteringOptimizee` examples.
+If you want to learn more about quantum annealing, check out the `D-Wave Documentation <https://docs.dwavequantum.com/en/latest/index.html>`.
 
 .. _logging:
 

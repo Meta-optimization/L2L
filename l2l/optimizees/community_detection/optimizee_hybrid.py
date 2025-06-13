@@ -13,7 +13,7 @@ from dwave.system import LeapHybridDQMSampler
 import networkx as nx
 
 HybridCommunityOptimizeeParameters = namedtuple(
-    'HybridClusteringOptimizeeParameters', ['APIToken', 'config_path', 'num_partitions', 'Graph','result_path'])
+    'HybridCommunityOptimizeeParameters', ['APIToken', 'config_path', 'num_partitions', 'Graph','result_path'])
 
 
 class HybridCommunityOptimizee(Optimizee):

@@ -134,7 +134,7 @@ class ClusteringOptimizee(Optimizee):
                     break
 
             if best_sample is None:
-                print("⚠️ Kein gültiges Sample gefunden. Wende Postprocessing an.")
+                print("No valid sample was found, to postprocessing")
                 best_sample = fix_sample_one_hot(sampleset.first.sample, num_points, self.num_clusters, variables)
 
             client.close()

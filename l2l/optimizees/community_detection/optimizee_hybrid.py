@@ -96,9 +96,6 @@ class HybridCommunityOptimizee(Optimizee):
                 f.write("An error occurred")
                 traceback.print_exc(file=f)
 
-        # Count the nodes in each partition
-        counts = np.zeros(int(traj.individual.num_partitions))
-
         # Create communities as a parameter for the evaluation function
         communities = []
         for k in partitions:

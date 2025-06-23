@@ -1,6 +1,7 @@
 from l2l.utils.experiment import Experiment
 import networkx as nx
 import numpy as np
+import matplotlib.pyplot as plt
 from l2l.optimizees.community_detection import CommunityOptimizee, CommunityOptimizeeParameters
 from l2l.optimizers.evolution import GeneticAlgorithmParameters, GeneticAlgorithmOptimizer
 def run_experiment():
@@ -36,12 +37,17 @@ def run_experiment():
                       delimiter=' ')
     binary_matrix = (A != 0).astype(int)
     G = nx.from_numpy_array(binary_matrix)"""
+    A = np.genfromtxt(f"/home/hanna/Downloads/mnorm_H1_left")
+
+    G = nx.from_numpy_array(A)
 
     optimizee_parameters = CommunityOptimizeeParameters(APIToken='test', 
                                                             config_path='./dwave', 
                                                             num_partitions=4.0,
+                                                            num_reads=100.0,
+                                                            one_hot_strength=3.0,
                                                             Graph = G, 
-                                                            result_path='./community/qpu_karate')
+                                                            result_path='./community/qpu_UK')
     optimizee = CommunityOptimizee(traj, optimizee_parameters)
 
 
@@ -50,7 +56,7 @@ def run_experiment():
                                                       pop_size=2,
                                                       cx_prob=0.7,
                                                       mut_prob=0.7,
-                                                      n_iteration=1,
+                                                      n_iteration=5,
                                                       ind_prob=0.45,
                                                       tourn_size=4,
                                                       mate_par=0.5,

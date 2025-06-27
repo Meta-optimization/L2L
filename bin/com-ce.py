@@ -25,6 +25,7 @@ def run_experiment():
                                                             num_reads=50.0,
                                                             one_hot_strength=5.0,
                                                             Graph = G, 
+                                                            weight = None,
                                                             result_path='./community/ce')
     optimizee = CommunityOptimizee(traj, optimizee_parameters)
 

@@ -2,7 +2,7 @@ import os
 import numpy as np
 from collections import namedtuple
 from l2l.optimizees.optimizee import Optimizee
-from .helpers import create_config
+from .helpers import create_config, result_csv
 from dwave.cloud.client import Client
 import networkx as nx
 from dimod import BinaryQuadraticModel
@@ -13,7 +13,8 @@ from collections import defaultdict
 
 
 CommunityOptimizeeParameters = namedtuple(
-    'CommunityOptimizeeParameters', ['APIToken', 'config_path', 'num_partitions', 'one_hot_strength', 'num_reads', 'Graph','result_path'])
+    'CommunityOptimizeeParameters', ['APIToken', 'config_path', 'num_partitions', 'one_hot_strength', 
+                                     'num_reads', 'Graph', 'weight','result_path'])
 
 
 class CommunityOptimizee(Optimizee):
@@ -23,11 +24,12 @@ class CommunityOptimizee(Optimizee):
         self.one_hot_strength = parameters.one_hot_strength
         self.num_reads = parameters.num_reads
         self.G = parameters.Graph
+        self.weight = parameters.weight
         self.ind_idx = traj.individual.ind_idx
         self.generation = traj.individual.generation
         self.config_path = os.path.join(parameters.config_path, "dwave.conf")
         os.makedirs(parameters.result_path, exist_ok=True)
-        self.result_path = os.path.join(parameters.result_path, "result.txt")
+        self.result_path = os.path.join(parameters.result_path, "result.csv")
         if not os.path.exists(self.config_path):
             create_config(parameters.APIToken, parameters.config_path)
 
@@ -46,7 +48,7 @@ class CommunityOptimizee(Optimizee):
         Bounds the individual within the required bounds via coordinate clipping
         """
         return {'num_reads' :np.clip(individual['num_reads'], a_min=1, a_max=1000),
-                'one_hot_strength': np.clip(individual['one_hot_strength'], a_min=1, a_max=50*len(self.G.nodes)),
+                'one_hot_strength': np.clip(individual['one_hot_strength'], a_min=0.0001, a_max=50),
                 #num partitions is not possible to calculate like this 
                 'num_partitions': np.clip(individual['num_partitions'], a_min=2, a_max=6)} #a_max = len(self.G.nodes)
 
@@ -59,7 +61,7 @@ class CommunityOptimizee(Optimizee):
         partitions = range(int(traj.individual.num_partitions))
         
         # Compute the modularity matrix of the graph
-        B = nx.modularity_matrix(self.G)
+        B = nx.modularity_matrix(self.G, weight=self.weight)
         
         # Initialize a binary quadratic model (BQM)
         bqm = BinaryQuadraticModel('BINARY')
@@ -118,14 +120,24 @@ class CommunityOptimizee(Optimizee):
             wall_time = (time.time() - start) 
             
             best_sample = sampleset.first.sample
-            """sampler = LeapHybridSampler()
-            sampleset = sampler.sample(bqm,
-                                    label='Hybrid-BQM-Community')
-            best_sample = sampleset.first.sample"""
             client.close()
 
-            #Robust Decoding
+            # Iterate over samples in the sampleset
+            valid_sample = None
+            for sample in sampleset.samples():
+                is_valid = True
+                for node in self.G.nodes():
+                    # Count how many partitions this node is assigned to (i.e., how many variables for this node are 1)
+                    assigned = sum(sample[f"{node}__{c}"] for c in partitions)
+                    if assigned != 1:
+                        is_valid = False
+                        break  # No need to continue if one node already violates the constraint
+                if is_valid:
+                    valid_sample = sample
+                    break
             
+            sample = valid_sample if valid_sample is not None else best_sample
+            #Robust Decoding
             raw_assignments = defaultdict(list)
 
             # Collect all 1-valued variables per node
@@ -154,8 +166,8 @@ class CommunityOptimizee(Optimizee):
                             max_edges = edges
                             max_community = c
                     if max_community is None:
-                        max_community = 0  # fallback
-                    assignment[node] = max_community
+                        max_community = np.random.randint(0, partitions)  # fallback
+                    assignment[node] =  max_community
 
             #Build community sets
             communities = []
@@ -166,14 +178,9 @@ class CommunityOptimizee(Optimizee):
 
             modularity = nx.community.modularity(self.G, communities)
 
-            with open(self.result_path, "a", encoding="utf-8") as f:
-                f.write(f"Embedding time: {embedding_time} s \n")
-                f.write(f"Sampling time: {wall_time} s \n")
-                f.write(f"QPU access time: {sampleset.info['timing']['qpu_access_time'] / 1000} ms \n")
-                f.write(f'Generation: {self.generation}, Individual: {self.ind_idx} \n')
-                f.write(f'Best sample: {best_sample} \n')
-                f.write(f'Communities: {communities} \n')
-                f.write(f'Modularity: {modularity} \n\n')
+            result_csv(path=self.result_path, embedding_time=embedding_time, wall_time=wall_time, 
+                       qpu_time=sampleset.info['timing']['qpu_access_time']/1000, generation=self.generation, 
+                       ind_idx=self.ind_idx, best_sample=best_sample, communities=communities, modularity=modularity)
 
             # Compute fitness score: better modularity means lower fitness
             if modularity > 0:
@@ -186,7 +193,7 @@ class CommunityOptimizee(Optimizee):
                 import traceback
                 f.write("An error occurred\n")
                 traceback.print_exc(file=f)
-            fitness = 100
+            fitness=None
 
         return (fitness,)
 

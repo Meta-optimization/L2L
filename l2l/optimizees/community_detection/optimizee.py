@@ -48,7 +48,7 @@ class CommunityOptimizee(Optimizee):
         Bounds the individual within the required bounds via coordinate clipping
         """
         return {'num_reads' :np.clip(individual['num_reads'], a_min=1, a_max=1000),
-                'one_hot_strength': np.clip(individual['one_hot_strength'], a_min=0.0001, a_max=50),
+                'one_hot_strength': np.clip(individual['one_hot_strength'], a_min=0.01, a_max=50),
                 #num partitions is not possible to calculate like this 
                 'num_partitions': np.clip(individual['num_partitions'], a_min=2, a_max=6)} #a_max = len(self.G.nodes)
 
@@ -58,7 +58,7 @@ class CommunityOptimizee(Optimizee):
         self.generation = traj.individual.generation
 
         # Define partitions (clusters) and initialize variables
-        partitions = range(int(traj.individual.num_partitions))
+        partitions = range(int(np.round(traj.individual.num_partitions)))
         
         # Compute the modularity matrix of the graph
         B = nx.modularity_matrix(self.G, weight=self.weight)
@@ -116,7 +116,8 @@ class CommunityOptimizee(Optimizee):
 
             # Submit the BQM for sampling and time the process
             start = time.time()
-            sampleset = sampler.sample(bqm, num_reads=int(traj.individual.num_reads),label="Community Detection via BQM")
+            sampleset = sampler.sample(bqm, num_reads=int(np.round(traj.individual.num_reads)),
+                                       label="Community Detection via BQM")
             wall_time = (time.time() - start) 
             
             best_sample = sampleset.first.sample
@@ -182,20 +183,13 @@ class CommunityOptimizee(Optimizee):
                        qpu_time=sampleset.info['timing']['qpu_access_time']/1000, generation=self.generation, 
                        ind_idx=self.ind_idx, best_sample=best_sample, communities=communities, modularity=modularity)
 
-            # Compute fitness score: better modularity means lower fitness
-            if modularity > 0:
-                fitness = 1 / modularity
-            else:
-                fitness = 100  # Penalize very poor solutions
-
         except Exception as e:
             with open(self.result_path, "a", encoding="utf-8") as f:
                 import traceback
                 f.write("An error occurred\n")
                 traceback.print_exc(file=f)
-            fitness=None
 
-        return (fitness,)
+        return (modularity,)
 
     
 

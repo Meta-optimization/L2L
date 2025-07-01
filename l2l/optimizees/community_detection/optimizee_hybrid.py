@@ -182,20 +182,14 @@ class HybridCommunityOptimizee(Optimizee):
             # Write the results to the result file
             result_csv_hybrid(self.result_path, run_time, self.generation, self.ind_idx, best_sample, communities, modularity)
 
-            # Compute fitness score: better modularity means lower fitness
-            if modularity > 0:
-                fitness = 1 / modularity
-            else:
-                fitness = 100  # Penalize very poor solutions
 
         except Exception as e:
             with open(self.result_path, "a", encoding="utf-8") as f:
                 import traceback
                 f.write("An error occurred\n")
                 traceback.print_exc(file=f)
-            fitness = None
 
-        return (fitness,)
+        return (modularity,)
 
     
 

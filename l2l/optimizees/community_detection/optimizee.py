@@ -14,7 +14,7 @@ from collections import defaultdict
 
 CommunityOptimizeeParameters = namedtuple(
     'CommunityOptimizeeParameters', ['APIToken', 'config_path', 'num_partitions', 'one_hot_strength', 
-                                     'num_reads', 'Graph', 'weight','result_path'])
+                                     'num_reads', 'annealing_time', 'Graph', 'weight','result_path'])
 
 
 class CommunityOptimizee(Optimizee):
@@ -23,6 +23,7 @@ class CommunityOptimizee(Optimizee):
         self.num_partitions = parameters.num_partitions
         self.one_hot_strength = parameters.one_hot_strength
         self.num_reads = parameters.num_reads
+        self.annealing_time = parameters.annealing_time
         self.G = parameters.Graph
         self.weight = parameters.weight
         self.ind_idx = traj.individual.ind_idx
@@ -39,7 +40,7 @@ class CommunityOptimizee(Optimizee):
         """
         # create individual
         individual = {'num_partitions': self.num_partitions, "one_hot_strength": self.one_hot_strength, 
-                      'num_reads': self.num_reads}
+                      'num_reads': self.num_reads, 'annealing_time': self.annealing_time}
         return individual
     
 
@@ -49,8 +50,8 @@ class CommunityOptimizee(Optimizee):
         """
         return {'num_reads' :np.clip(individual['num_reads'], a_min=1, a_max=1000),
                 'one_hot_strength': np.clip(individual['one_hot_strength'], a_min=0.01, a_max=50),
-                #num partitions is not possible to calculate like this 
-                'num_partitions': np.clip(individual['num_partitions'], a_min=2, a_max=6)} #a_max = len(self.G.nodes)
+                'num_partitions': np.clip(individual['num_partitions'], a_min=2, a_max=6),
+                'anneling_time': np.clip(individual['annealing_time'], a_min=10, a_max=1000)} 
 
     def simulate(self, traj):
         # Extract metadata from trajectory object
@@ -117,6 +118,7 @@ class CommunityOptimizee(Optimizee):
             # Submit the BQM for sampling and time the process
             start = time.time()
             sampleset = sampler.sample(bqm, num_reads=int(np.round(traj.individual.num_reads)),
+                                       annealing_time = int(np.round(traj.individual.annealing_time)),
                                        label="Community Detection via BQM")
             wall_time = (time.time() - start) 
             

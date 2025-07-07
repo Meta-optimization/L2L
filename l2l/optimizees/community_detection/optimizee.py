@@ -13,21 +13,21 @@ from collections import defaultdict
 
 
 CommunityOptimizeeParameters = namedtuple(
-    'CommunityOptimizeeParameters', ['APIToken', 'config_path', 'num_partitions', 'one_hot_strength', 
-                                     'num_reads', 'annealing_time', 'Graph', 'weight','result_path'])
+    'CommunityOptimizeeParameters', ['APIToken', 'config_path', 'seed', 'Graph', 'weight','result_path'])
 
 
 class CommunityOptimizee(Optimizee):
     def __init__(self, traj, parameters):
         super().__init__(traj)
-        self.num_partitions = parameters.num_partitions
-        self.one_hot_strength = parameters.one_hot_strength
-        self.num_reads = parameters.num_reads
-        self.annealing_time = parameters.annealing_time
+        seed = np.uint32(parameters.seed)
+        self.random_state = np.random.RandomState(seed=seed)
+
         self.G = parameters.Graph
         self.weight = parameters.weight
+
         self.ind_idx = traj.individual.ind_idx
         self.generation = traj.individual.generation
+
         self.config_path = os.path.join(parameters.config_path, "dwave.conf")
         os.makedirs(parameters.result_path, exist_ok=True)
         self.result_path = os.path.join(parameters.result_path, "result.csv")
@@ -39,8 +39,10 @@ class CommunityOptimizee(Optimizee):
         Creates and returns the individual
         """
         # create individual
-        individual = {'num_partitions': self.num_partitions, "one_hot_strength": self.one_hot_strength, 
-                      'num_reads': self.num_reads, 'annealing_time': self.annealing_time}
+        individual = {'num_partitions': self.random_state.uniform(2,6), 
+                      "one_hot_strength": self.random_state.uniform(0.01,10), 
+                      'num_reads': self.random_state.uniform(50,1000), 
+                      'annealing_time': self.random_state.uniform(10,100)}
         return individual
     
 
@@ -48,10 +50,10 @@ class CommunityOptimizee(Optimizee):
         """
         Bounds the individual within the required bounds via coordinate clipping
         """
-        return {'num_reads' :np.clip(individual['num_reads'], a_min=1, a_max=1000),
-                'one_hot_strength': np.clip(individual['one_hot_strength'], a_min=0.01, a_max=50),
-                'num_partitions': np.clip(individual['num_partitions'], a_min=2, a_max=6),
-                'anneling_time': np.clip(individual['annealing_time'], a_min=10, a_max=1000)} 
+        return {'num_partitions': np.clip(individual['num_partitions'], a_min=2, a_max=6),
+                'one_hot_strength': np.clip(individual['one_hot_strength'], a_min=0.01, a_max=10),
+                'num_reads' :np.clip(individual['num_reads'], a_min=50, a_max=1000),
+                'anneling_time': np.clip(individual['annealing_time'], a_min=10, a_max=100)} 
 
     def simulate(self, traj):
         # Extract metadata from trajectory object

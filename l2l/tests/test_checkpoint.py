@@ -2,8 +2,8 @@ import unittest
 import os
 
 import numpy as np
-from l2l.optimizers.gradientdescent.optimizer import GradientDescentOptimizer
-from l2l.optimizers.gradientdescent.optimizer import RMSPropParameters
+from l2l.optimizers.crossentropy.distribution import NoisyGaussian
+from l2l.optimizers.crossentropy import CrossEntropyOptimizer, CrossEntropyParameters
 from l2l.tests.test_optimizer import OptimizerTestCase
 from l2l.optimizers.evolution import GeneticAlgorithmOptimizer, GeneticAlgorithmParameters
 
@@ -24,7 +24,7 @@ class CheckpointTestCase(OptimizerTestCase):
                                               optimizee_fitness_weights=(-0.1,),
                                               parameters=optimizer_parameters)
         
-        #run experiment to createan trajectory which can be loaeded
+        #run experiment to create an trajectory which can be loaeded
         self.load_trajectory(optimizer, optimizer_parameters, iterations, self.optimizee_functionGenerator, self.optimizee_functionGenerator_parameters, self.experiment_functionGenerator)
 
         #created optimizer with loaded trajectory
@@ -68,13 +68,6 @@ class CheckpointTestCase(OptimizerTestCase):
                                                           tourn_size=1, mate_par=0.5,
                                                           mut_par=1
                                                           )
-        
-        #create lambda function to raise an expected error message
-        createErrorOptimizer = lambda : {
-            GeneticAlgorithmOptimizer(self.trajectory_checkpoint, optimizee_create_individual=self.optimizee_activeWait.create_individual,
-                                              optimizee_fitness_weights=(-0.1,),
-                                              parameters=optimizer_parameters_error)
-        }
 
         optimizer = GeneticAlgorithmOptimizer(self.trajectory_activeWait, optimizee_create_individual=self.optimizee_activeWait.create_individual,
                                               optimizee_fitness_weights=(-0.1,),
@@ -97,6 +90,13 @@ class CheckpointTestCase(OptimizerTestCase):
                                                           mut_prob=0.3, n_iteration=1, ind_prob=0.02,
                                                           tourn_size=1, mate_par=0.5,
                                                           mut_par=1)
+        
+        #create lambda function to raise an expected error message
+        createErrorOptimizer = lambda : {
+            GeneticAlgorithmOptimizer(self.trajectory_checkpoint, optimizee_create_individual=self.optimizee_functionGenerator.create_individual,
+                                              optimizee_fitness_weights=(-0.1,),
+                                              parameters=optimizer_parameters_error)
+        }
     
         #checks
         self.checkpointing(optimizer_checkpoint= optimizer_checkpoint,
@@ -108,7 +108,7 @@ class CheckpointTestCase(OptimizerTestCase):
         best = optimizer.best_individual['difficulty']
         best_checkpoint = optimizer_checkpoint.best_individual['difficulty']
         self.assertEqual(best, best_checkpoint)
-        
+
     def load_trajectory(self, optimizer, optimizer_parameters, iterations, optimizee, optimizee_parameters, experiment):
         """
             function to run the optimizer and load the trajectory for checkpointing,
@@ -167,9 +167,9 @@ def run():
 
 def run_optimizer(optimizer, optimizer_parameters, experiment, optimizee):
         experiment.run_experiment(optimizee=optimizee,
-                                            optimizee_parameters=optimizee,
-                                            optimizer=optimizer,
-                                            optimizer_parameters=optimizer_parameters)
+                                optimizee_parameters=optimizee,
+                                optimizer=optimizer,
+                                optimizer_parameters=optimizer_parameters)
 
         experiment.end_experiment(optimizer)
 

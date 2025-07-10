@@ -1,20 +1,14 @@
 import unittest
-<<<<<<< HEAD
-=======
 import os
->>>>>>> master
 
 import numpy as np
 from l2l.tests.test_optimizer import OptimizerTestCase
 from l2l.optimizers.gradientdescent.optimizer import GradientDescentOptimizer
 from l2l.optimizers.gradientdescent.optimizer import RMSPropParameters
 from l2l.optimizees.test_cases.optimizee_testcase import TestcaseOptimizee, TestcaseOptimizeeParameters 
-<<<<<<< HEAD
-=======
 from l2l.optimizees.functions.benchmarked_functions import BenchmarkedFunctions
 from l2l.optimizees.functions.optimizee import FunctionGeneratorOptimizee
 from l2l.utils.experiment import Experiment
->>>>>>> master
 
 class RunnerTestCase(OptimizerTestCase):
 
@@ -52,8 +46,6 @@ class RunnerTestCase(OptimizerTestCase):
                                     optimizee_parameters=optimizee_parameters,
                                     optimizer=optimizer,
                                     optimizer_parameters=optimizer_parameters))
-<<<<<<< HEAD
-=======
         
         #test if runner can handle spaces in path name
         home_path =  os.environ.get("HOME")
@@ -95,7 +87,6 @@ class RunnerTestCase(OptimizerTestCase):
         self.experiment.run_experiment(optimizee=optimizee,
                                   optimizer=optimizer,
                                   optimizer_parameters=optimizer_parameters)
->>>>>>> master
 
 def suite():
     suite = unittest.TestLoader().loadTestsFromTestCase(RunnerTestCase)

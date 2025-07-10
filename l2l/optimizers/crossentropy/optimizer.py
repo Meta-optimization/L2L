@@ -87,8 +87,12 @@ class CrossEntropyOptimizer(Optimizer):
             raise Exception("smoothing has to be in interval [0, 1)")
 
         # The following parameters are recorded
-        traj.f_add_parameter('pop_size', parameters.pop_size,
-                             comment='Number of minimal individuals simulated in each run')
+        if not traj.is_loaded:
+            traj.f_add_parameter('pop_size', parameters.pop_size, comment='Number of minimal individuals simulated in each run')  
+        elif traj.is_loaded and traj.parameters["pop_size"] == parameters.pop_size:
+            traj.f_add_parameter('pop_size', parameters.pop_size, comment='Number of minimal individuals simulated in each run')
+        else: 
+            raise ValueError("The passed population size does not match the population size of the trajectory")
         traj.f_add_parameter('rho', parameters.rho,
                              comment='Fraction of individuals considered elite in each generation')
         traj.f_add_parameter('n_iteration', parameters.n_iteration,
@@ -110,29 +114,40 @@ class CrossEntropyOptimizer(Optimizer):
                                      comment='The dimension of the parameter space of the optimizee')
         traj.f_add_derived_parameter('n_elite', int(parameters.rho * parameters.pop_size),
                                      comment='Number of samples to be considered as elite')
-
-        # Added a generation-wise parameter logging
-        traj.results.f_add_result_group('generation_params',
-                                        comment='This contains the optimizer parameters that are'
-                                                ' common across a generation')
+        if not traj.is_loaded:
+          # Added a generation-wise parameter logging
+          traj.results.f_add_result_group('generation_params',
+                                          comment='This contains the optimizer parameters that are'
+                                                  ' common across a generation')
 
         # The following parameters are recorded as generation parameters i.e. once per generation
-        self.g = 0  # the current generation
-        # This is the value above which the samples are considered elite in the
-        # current generation
-        self.gamma = -np.inf
-        self.T = 1  # This is the temperature used to filter evaluated samples in this run
-        self.pop_size = parameters.pop_size  # Population size is dynamic in FACE
-        self.best_fitness_in_run = -np.inf
-        self.best_individual = None
+        if traj.is_loaded:
+            self.g = traj.individual.generation
+            generation_name = 'generation_{}'.format(self.g-1)
+            algorithm_params = traj.results['generation_params'][generation_name]['algorithm_params']
+            self.gamma = algorithm_params['gamma']
+            self.T = algorithm_params['T']
+            self.pop_size = algorithm_params['pop_size']
+            self.best_fitness_in_run = algorithm_params['best_fitness_in_run']
+            self.best_individual = None
+            current_eval_pop = traj.individuals[self.g]
+        else:
+          self.g = 0  # the current generation
+          # This is the value above which the samples are considered elite in the
+          # current generation
+          self.gamma = -np.inf
+          self.T = 1  # This is the temperature used to filter evaluated samples in this run
+          self.pop_size = parameters.pop_size  # Population size is dynamic in FACE
+          self.best_fitness_in_run = -np.inf
+          self.best_individual = None
 
-        # The first iteration does not pick the values out of the Gaussian distribution. It picks randomly
-        # (or at-least as randomly as optimizee_create_individual creates individuals)
+          # The first iteration does not pick the values out of the Gaussian distribution. It picks randomly
+          # (or at-least as randomly as optimizee_create_individual creates individuals)
 
-        # Note that this array stores individuals as an np.array of floats as opposed to Individual-Dicts
-        # This is because this array is used within the context of the cross entropy algorithm and
-        # Thus needs to handle the optimizee individuals as vectors
-        current_eval_pop = [self.optimizee_create_individual() for _ in range(parameters.pop_size)]
+          # Note that this array stores individuals as an np.array of floats as opposed to Individual-Dicts
+          # This is because this array is used within the context of the cross entropy algorithm and
+          # Thus needs to handle the optimizee individuals as vectors
+          current_eval_pop = [self.optimizee_create_individual() for _ in range(parameters.pop_size)]
         
         #there are some problems calculation the covariance with only one dimiension
         temp_indiv, self.optimizee_individual_dict_spec = dict_to_list(self.optimizee_create_individual(),
@@ -167,6 +182,7 @@ class CrossEntropyOptimizer(Optimizer):
         n_iteration, smoothing, temp_decay = \
             traj.n_iteration, traj.smoothing, traj.temp_decay
         stop_criterion, n_elite = traj.stop_criterion, traj.n_elite
+        iterations = 0
 
         weighted_fitness_list = []
         #**************************************************************************************************************
@@ -271,7 +287,7 @@ class CrossEntropyOptimizer(Optimizer):
         self.eval_pop.clear()
 
         # check if to stop
-        if self.g < n_iteration - 1 and self.best_fitness_in_run < stop_criterion:
+        if iterations < n_iteration - 1 and self.best_fitness_in_run < stop_criterion:
             #Sample from the constructed distribution
             self.eval_pop_asarray = self.current_distribution.sample(self.pop_size)
             self.eval_pop = [list_to_dict(ind_asarray, self.optimizee_individual_dict_spec)

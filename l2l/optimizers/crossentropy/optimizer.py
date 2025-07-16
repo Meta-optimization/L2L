@@ -182,7 +182,7 @@ class CrossEntropyOptimizer(Optimizer):
         n_iteration, smoothing, temp_decay = \
             traj.n_iteration, traj.smoothing, traj.temp_decay
         stop_criterion, n_elite = traj.stop_criterion, traj.n_elite
-        iterations = 0
+        iterations = 0 # needed for checkpointing
 
         weighted_fitness_list = []
         #**************************************************************************************************************
@@ -297,6 +297,7 @@ class CrossEntropyOptimizer(Optimizer):
                 self.eval_pop = [self.optimizee_bounding_func(individual) for individual in self.eval_pop]
                 self.eval_pop_asarray = np.array([dict_to_list(x) for x in self.eval_pop])
             self.g += 1  # Update generation counter
+            iterations += 1
             self.T *= temp_decay
             self._expand_trajectory(traj)
 

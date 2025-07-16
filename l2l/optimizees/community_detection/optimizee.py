@@ -53,7 +53,7 @@ class CommunityOptimizee(Optimizee):
         return {'num_partitions': np.clip(individual['num_partitions'], a_min=2, a_max=6),
                 'one_hot_strength': np.clip(individual['one_hot_strength'], a_min=0.01, a_max=10),
                 'num_reads' :np.clip(individual['num_reads'], a_min=50, a_max=1000),
-                'anneling_time': np.clip(individual['annealing_time'], a_min=10, a_max=100)} 
+                'annealing_time': np.clip(individual['annealing_time'], a_min=10, a_max=100)} 
 
     def simulate(self, traj):
         # Extract metadata from trajectory object
@@ -192,6 +192,7 @@ class CommunityOptimizee(Optimizee):
                 import traceback
                 f.write("An error occurred\n")
                 traceback.print_exc(file=f)
+            modularity = 0
 
         return (modularity,)
 

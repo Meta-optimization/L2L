@@ -13,6 +13,7 @@ from l2l.tests import test_outerloop
 from l2l.tests import test_setup
 from l2l.tests import test_checkpoint
 from l2l.tests import test_checkpoint_ce
+from l2l.tests import test_checkpoint_sa
 from l2l.tests import test_runner
 
 
@@ -29,6 +30,7 @@ def test_suite():
     suite.addTest(test_gs_optimizer.suite())
     suite.addTest(test_checkpoint.suite())
     suite.addTest(test_checkpoint_ce.suite())
+    suite.addTest(test_checkpoint_sa.suite())
     suite.addTest(test_runner.suite())
 
     return suite

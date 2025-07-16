@@ -127,6 +127,14 @@ class SimulatedAnnealingOptimizer(Optimizer):
         self.optimizee_bounding_func = optimizee_bounding_func
 
         # The following parameters are recorded
+        if not traj.is_loaded:
+            traj.f_add_parameter('n_parallel_runs', parameters.n_parallel_runs,
+                             comment='Number of parallel simulated annealing runs / Size of Population')
+        elif traj.is_loaded and traj.parameters["n_parallel_runs"] == parameters.n_parallel_runs:
+            traj.f_add_parameter('n_parallel_runs', parameters.n_parallel_runs,
+                             comment='Number of parallel simulated annealing runs / Size of Population')
+        else: 
+            raise ValueError("The passed population size does not match the population size of the trajectory")
         traj.f_add_parameter('n_parallel_runs', parameters.n_parallel_runs,
                              comment='Number of parallel simulated annealing runs / Size of Population')
         traj.f_add_parameter('noisy_step', parameters.noisy_step, comment='Size of the random step')
@@ -136,21 +144,35 @@ class SimulatedAnnealingOptimizer(Optimizer):
         traj.f_add_parameter('stop_criterion', parameters.stop_criterion, comment='Stopping criterion parameter')
         traj.f_add_parameter('seed', np.uint32(parameters.seed), comment='Seed for RNG')
 
+        if not traj.is_loaded:
+          # Added a generation-wise parameter logging
+          traj.results.f_add_result_group('generation_params',
+                                          comment='This contains the optimizer parameters that are'
+                                                  ' common across a generation')
+
         _, self.optimizee_individual_dict_spec = dict_to_list(self.optimizee_create_individual(), get_dict_spec=True)
 
         # Note that this array stores individuals as an np.array of floats as opposed to Individual-Dicts
         # This is because this array is used within the context of the simulated annealing algorithm and
         # Thus needs to handle the optimizee individuals as vectors
-        self.current_individual_list = [np.array(dict_to_list(self.optimizee_create_individual()))
-                                        for _ in range(parameters.n_parallel_runs)]
+        if not traj.is_loaded:
+            self.current_individual_list = [np.array(dict_to_list(self.optimizee_create_individual()))
+                                            for _ in range(parameters.n_parallel_runs)]
         self.random_state = np.random.RandomState(parameters.seed)
 
-        # The following parameters are NOT recorded
-        self.T = 1.  # Initialize temperature
-        self.g = 0  # the current generation
+        if traj.is_loaded:
+            self.g = traj.individual.generation
+            generation_name = 'generation_{}'.format(self.g-1)
+            algorithm_params = traj.results['generation_params'][generation_name]['algorithm_params']
+            self.T = algorithm_params['T'] 
+            self.current_fitness_value_list = algorithm_params['current_fitness_value_list']
+            self.current_individual_list = algorithm_params['current_individual_lsit']
+        else:
+            self.T = 1.  # Initialize temperature
+            self.g = 0  # the current generation
 
-        # Keep track of current fitness value to decide whether we want the next individual to be accepted or not
-        self.current_fitness_value_list = [-np.inf] * parameters.n_parallel_runs
+            # Keep track of current fitness value to decide whether we want the next individual to be accepted or not
+            self.current_fitness_value_list = [-np.inf] * parameters.n_parallel_runs
 
         new_individual_list = [
             list_to_dict(
@@ -208,6 +230,7 @@ class SimulatedAnnealingOptimizer(Optimizer):
         """
         noisy_step, temp_decay, n_iteration, stop_criterion = \
             traj.noisy_step, traj.temp_decay, traj.n_iteration, traj.stop_criterion
+        iterations = 0 # needed for checkpointing
         old_eval_pop = self.eval_pop.copy()
         self.eval_pop.clear()
         temperature = self.T
@@ -253,16 +276,30 @@ class SimulatedAnnealingOptimizer(Optimizer):
                          i, self.current_fitness_value_list[i], new_individual)
             self.eval_pop.append(new_individual)
 
-        logger.debug("Current best fitness within population is %.2f", max(self.current_fitness_value_list))
+        logger.info("Current best fitness within population is %.2f", max(self.current_fitness_value_list))
 
         traj.v_idx = -1  # set the trajectory back to default
         logger.info("-- End of generation {} --".format(self.g))
 
+        generation_result_dict = {
+            'generation': self.g,
+            'T': self.T,
+            'current_fitness_value_list': self.current_fitness_value_list,
+            'current_individual_lsit': self.current_individual_list
+        }
+
+        generation_name = 'generation_{}'.format(self.g)
+        traj.results.generation_params.f_add_result_group(generation_name)
+        traj.results.generation_params.f_add_result(
+            generation_name + '.algorithm_params', generation_result_dict,
+            comment="These are the parameters that correspond to the algorithm")
+
         # ------- Create the next generation by crossover and mutation -------- #
         # not necessary for the last generation
-        if self.g < n_iteration - 1 and stop_criterion > max(self.current_fitness_value_list):
+        if iterations < n_iteration - 1 and stop_criterion > max(self.current_fitness_value_list):
             fitnesses_results.clear()
             self.g += 1  # Update generation counter
+            iterations += 1 #needed for checkpointing
             self._expand_trajectory(traj)
 
     def end(self, traj):

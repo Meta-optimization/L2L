@@ -195,12 +195,12 @@ class Experiment(object):
         #         raise ValueError('Parameter of type integer is not allowed')
         self.optimizee = optimizee
         self.optimizer = optimizer
-        self.optimizer = optimizer
         self.logger.info("Optimizee parameters: %s", optimizee_parameters)
         self.logger.info("Optimizer parameters: %s", optimizer_parameters)
         runner.prepare_optimizee(optimizee, self.paths.simulation_path)
         # Add post processing
         self.env.add_postprocessing(optimizer.post_process)
+        self.env.optimizer = self.optimizer
         # Run the simulation
         self.env.run()
 

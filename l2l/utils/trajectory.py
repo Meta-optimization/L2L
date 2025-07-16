@@ -30,6 +30,7 @@ class Trajectory:
         self._parameters.parameter_group = {}
         self._parameters.parameter = {}
         self.individuals = {}
+        self.failed_individuals = {}
         self.v_idx = 0
         if 'debug' in keyword_args:
             self.debug = keyword_args['debug']
@@ -123,6 +124,7 @@ class Trajectory:
 
         generation = gen[0]
         self.individuals[generation] = []
+        self.failed_individuals[generation] = []
 
         for i in ind_idx:
             ind = Individual(generation,i,[])

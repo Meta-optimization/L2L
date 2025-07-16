@@ -1,5 +1,6 @@
 from collections import namedtuple
 from l2l.optimizees.optimizee import Optimizee
+import time
 
 MultiOptimizeeParameters = namedtuple('MultiOptimizeeParameters', [])
 
@@ -18,8 +19,6 @@ class MultiOptimizee(Optimizee):
         the trajectory.
         """
         super().__init__(traj)
-        self.ind_idx = traj.individual.ind_idx
-        self.generation = traj.individual.generation
 
     def create_individual(self):
         """
@@ -44,8 +43,11 @@ class MultiOptimizee(Optimizee):
             multi-dimensional fitness function.
 
         """
+        self.ind_idx = traj.individual.ind_idx
+        self.generation = traj.individual.generation
+
         print(traj.individual, flush=True) # {'eins': [1,1,1,1], ...}
-        res = [i/17 for i in range(len(traj.individual['eins']))]
+        res = [self.ind_idx+i/10 for i in range(len(traj.individual['eins']))]
         print(res, flush=True)
         return res
 

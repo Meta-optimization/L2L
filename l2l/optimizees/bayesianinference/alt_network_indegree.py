@@ -8,18 +8,7 @@ import numpy as np
 import os
 import scipy.special as sp
 import sys
-import nest.raster_plot
-import matplotlib.pyplot as plt
-# import dill
 
-# def save_obj(obj, path):
-#     with open(path, 'wb') as handle:
-#         dill.dump(obj, handle)
-
-# def load_obj(path):
-#     with open(path, "rb") as handle:
-#         obj = dill.load(handle)
-#     return obj
 
 M_INFO = 10
 M_ERROR = 30
@@ -49,7 +38,7 @@ def convert_synapse_weight(tau_m, tau_syn, C_m):
 class NestBenchmarkNetwork():
 
     params = {
-        'num_threads': 2*64, #{threads_per_task},  # total number of threads per process
+        'num_threads': 47, #{threads_per_task},  # total number of threads per process
         'simtime': 10_000, #{model_time_sim},  # total simulation time in ms
         'presimtime': 300, #{model_time_presim},  # simulation time until reaching equilibrium
         'dt': 0.1,  # simulation step
@@ -103,7 +92,7 @@ class NestBenchmarkNetwork():
     }
 
 
-    def __init__(self, scale, CE, CI, weight_excitatory, weight_inhibitory, delay, nrec, ev_name, seed, extra_kernel_params=None):
+    def __init__(self, scale, CE, CI, weight_excitatory, weight_inhibitory, delay, nrec, extra_kernel_params=None):
         nest.ResetKernel()
         nest.set_verbosity(M_INFO)
 
@@ -117,14 +106,12 @@ class NestBenchmarkNetwork():
 
         self.delay = delay
 
-        self.ev_name = ev_name
-
         self.nrec = min(nrec, self.NE)
 
         # set global kernel parameters
         nest.SetKernelStatus({'local_num_threads': self.params['num_threads'],
                               'resolution': self.params['dt'],
-                              'rng_seed': seed,
+                              'rng_seed': self.params['rng_seed'],
                               'overwrite_files': True,
                               'use_compressed_spikes': self.params['compressed_spikes'],
                               'keep_source_table': False})
@@ -428,15 +415,15 @@ class NestBenchmarkNetwork():
             for i in range(self.params['simtime']//200):
                 #nest.Run(self.params['simtime'])
                 nest.Run(200)
-                if (time.time()-tic) > 10*60:
+                if (time.time()-tic) > 5*60:
                     return np.nan
             SimCPUTime = time.time() - tic
             total_memory = str(get_vmsize())
 
-        # if self.nrec > 0:
-        #     average_rate = self.compute_rate(sr, self.params['simtime']+self.params['presimtime'])
-        # else:
-        #     average_rate = nest.local_spike_counter/((self.NE + self.NI) * self.params['simtime'])
+        if self.nrec > 0:
+            average_rate = self.compute_rate(sr, self.params['simtime']+self.params['presimtime'])
+        else:
+            average_rate = nest.local_spike_counter/((self.NE + self.NI) * self.params['simtime'])
         print('NE', self.NE, 'NI', self.NI, 'simtime', self.params['simtime'], 'spikes', nest.local_spike_counter)
 
         d = {'py_time_init': InitTime,
@@ -484,15 +471,7 @@ class NestBenchmarkNetwork():
                 for d in range(presim_steps + sim_steps):
                     f.write(str(times[d]) + ' ' + ' '.join(str(step_data[key][d]) for key in self.params['step_data_keys']) + '\n')
 
-        print('AVG RATE', average_rate)
-
-        #nest.raster_plot.from_device(sr, hist=True)
-        #plt.savefig('raster_test.png')
-
-        sr_data = sr.get('events')
-        # save_obj(sr_data, f'events_{self.ev_name}.dill')
-
-        return sr_data
+        return average_rate
 
 
 

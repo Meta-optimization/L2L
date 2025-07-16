@@ -25,6 +25,7 @@ class TestSBIOptimizee(Optimizee):
         if self.type not in ['valid', 'invalid', 'mixed']:
             raise ValueError("Invalid type. Type must be 'valid', 'invalid' or 'mixed'")
         self.prior = utils.BoxUniform(low=torch.Tensor([0.0, -200.0, 0.1, 0.0, 0.0]), high=torch.Tensor([200.0, 0.0, 5.0, 1.0, 1.0]))
+        self.i = 0
 
     def create_individual(self, n=1, prior=prior, labels=labels):
         """
@@ -53,15 +54,21 @@ class TestSBIOptimizee(Optimizee):
             multi-dimensional fitness function.
 
         """
-        if self.type == 'valid':
+        self.ind_idx = traj.individual.ind_idx
+        if self.type == 'valid' or self.i >= 2:
             res = np.random.rand(2).tolist()
         elif self.type == 'invalid':
             res = (np.nan, np.nan)
         else:
             res = np.random.rand(2).tolist() if np.random.rand()<0.5 else (np.nan, np.nan)
 
-        mse = np.mean(np.square(np.subtract(res, x_obs)))
-        print('output', mse, res)
+        # if np.isnan(res).any():
+        #     exit(1)
+
+        self.i += 1
+
+        mse = np.mean(res)
+        print('output', mse, res, self.ind_idx)
         return mse, res
 
     def bounding_func(self, individual):

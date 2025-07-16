@@ -13,7 +13,7 @@ from l2l import dict_to_list, list_to_dict, get_grouped_dict
 from l2l.optimizers.optimizer import Optimizer
 
 from collections import namedtuple
-from os.path import join, isdir
+from os.path import join, isdir, isfile
 import os
 import dill
 
@@ -79,13 +79,32 @@ class SBIOptimizer(Optimizer):
 
         # initialize models
         if traj.is_loaded: # TODO
-            raise NotImplementedError()
-            # logger.info('Loading previous models')
-            # last_idx = ?
-            # self.prior = self._load_obj(join(traj.save_path, f'restricted_prior_{last_idx}.pkl'))
-            # self.restriction_estimator = self._load_obj(join(traj.save_path, f'restriction_estimator_{last_idx}.pkl'))
+           # raise NotImplementedError()
+            logger.info('Trajectory was loaded. Now loading previous models')
+            generation = traj.individual.generation-1
+            ind_dict, self.prior = optimizee_create_individual()
 
-            # self.g = last_idx
+            # load restriction estimator if applicable
+            restricted_prior_path = join(traj.save_path, f'gen{generation}/restricted_prior_{generation}.pkl')
+            if isfile(restricted_prior_path):
+                logger.info('Loading restricted prior')
+                self.prior = self._load_obj(restricted_prior_path)
+            restriction_estimator_path = join(traj.save_path, f'gen{generation}/restriction_estimator_{generation}.pkl')
+            if isfile(restriction_estimator_path):
+                logger.info('Loading restriction estimator')
+                self.restriction_estimator = self._load_obj(restriction_estimator_path)
+
+            # load inference object, density estimator and posterior
+            inference_path = join(traj.save_path, f'gen{generation}/inference_{generation}.dill')
+            if isfile(inference_path):
+                logger.info('Loading inference object')
+                inf_obj = self._load_obj(inference_path)
+                self.inference = inf_obj['inference']
+                self.density_estimator = inf_obj['density_estimator']
+                self.posterior = inf_obj['posterior']
+                self.prior = self.posterior
+            logger.info('Loading finished')
+            self.g = generation+1
         else:
             logger.info('Creating new models')
             ind_dict, self.prior = optimizee_create_individual()
@@ -98,13 +117,16 @@ class SBIOptimizer(Optimizer):
 
         logger.info('Initializing individuals')
         #samples = self.prior.sample((traj.pop_size,))
-        self.eval_pop, self.samples = self.optimizee_create_individual(traj.pop_size)
+        self.eval_pop, self.samples = self.optimizee_create_individual(traj.pop_size, prior=self.prior)
         #self.eval_pop = samples
         #self.eval_pop = [list_to_dict(sample, self.dict_spec) for sample in samples]
         print(self.eval_pop)
         #self.eval_pop = [{'parameters': sample} for sample in samples] # TODO parameter vector?
 
         self._expand_trajectory(traj)
+
+    def dicts_to_tensor(self, list_of_dicts, labels=['w_ex', 'w_in', 'delay', 'c_ex', 'c_in']):
+        return torch.Tensor([[d[l] for l in labels] for d in list_of_dicts])
 
     def post_process(self, traj, fitnesses_results):
         """
@@ -136,13 +158,26 @@ class SBIOptimizer(Optimizer):
             ind_index = traj.par.ind_idx
             x[ind_index] = torch.Tensor(fitness[1]) # only need simulation results
 
+        inv_theta = []
+        try:
+            inv_theta = traj.failed_individuals[self.g]
+        except Exception as e:
+            print(e)
+
+        if len(inv_theta) > 0:
+            inv_theta = self.dicts_to_tensor(inv_theta)
+            print(inv_theta)
+            print(theta.shape, inv_theta.shape)
+            theta = torch.cat([theta, inv_theta])
+            x = torch.cat([x, torch.full((len(inv_theta), x.shape[1]), torch.nan)])
+
         print('theta', theta)
         print('x', x)
 
         # check if there are any valid simulations
         mask = torch.isnan(x).any(dim=1)
         if mask.all():
-            raise ValueError(f'There was no valid simulation in generation {self.g}. Please check your prior and your simulation.')
+            raise ValueError(f'There was no valid simulation in generation {self.g}. Please check your prior and your optimizee.')
 
         if traj.save_path:
             logger.info('Saving data')
@@ -228,6 +263,10 @@ class SBIOptimizer(Optimizer):
 
         """
         pass
+
+    def restart_individual(self, ind_idx, individual):
+        tmp, _ = self.optimizee_create_individual(1, prior=self.prior)
+        return tmp
 
     def _save_obj(self, obj, path):
         """

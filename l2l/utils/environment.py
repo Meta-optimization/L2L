@@ -33,6 +33,7 @@ class Environment:
             self.multiprocessing = keyword_args['multiprocessing']
         self.run_id = 0
         self.enable_logging()
+        self.optimizer = None
 
     def run(self):
         """
@@ -40,7 +41,7 @@ class Environment:
         """
         result = {}
         logger.info(f"Environment run starting Runner for n iterations: {self.trajectory.par['n_iteration']}")
-        runner = Runner(self.trajectory, self.trajectory.par['n_iteration']+self.trajectory.individual.generation)
+        runner = Runner(self.trajectory, self.trajectory.par['n_iteration']+self.trajectory.individual.generation, optimizer=self.optimizer)
         for it in range(self.trajectory.individual.generation, self.trajectory.par['n_iteration']+self.trajectory.individual.generation):
             if self.multiprocessing:
                 # Multiprocessing is done through the runner

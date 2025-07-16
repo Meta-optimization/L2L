@@ -78,6 +78,16 @@ class Optimizer:
         """
         pass
 
+    def restart_individual(self, ind_idx, individual):
+        """
+        Return new parameter set for individual in case of error. This function just calls optimizee.create_individual()
+        unless it is overwritten by an optimizer subclass with a more sophisticated strategy for restarting individuals.
+
+        :param ind_idx: index of individual in generation
+        :param individual: new parameter set for individual
+        """
+        return self.optimizee_create_individual()
+
     def _expand_trajectory(self, traj):
         """
         Add as many explored runs as individuals that need to be evaluated. Furthermore, add the individuals as explored

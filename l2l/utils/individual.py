@@ -17,7 +17,7 @@ class Individual(ParameterGroup):
         """
         self.params = {}
         for i in params:
-            self.f_add_parameter(i.keys()[0], i[i.keys()[0]])
+            self.f_add_parameter(i, params[i])
         self.generation = generation
         self.ind_idx = ind_idx
 

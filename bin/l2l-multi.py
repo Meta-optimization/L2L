@@ -11,8 +11,14 @@ from l2l.optimizers.gradientdescent.optimizer import RMSPropParameters
 def main():
     name = 'L2L-FUN-GD'
     experiment = Experiment("../results")
+    runner_params = {
+        "srun": "",
+        "exec": "python",
+        "max_workers": 2
+    }
     traj, all_jube_params = experiment.prepare_experiment(name=name,
-                                                          trajectory_name=name)
+                                                          trajectory_name=name,
+                                                          runner_params=runner_params)
 
     # Optimizee
     optimizee_parameters = MultiOptimizeeParameters()
@@ -20,7 +26,7 @@ def main():
 
     ## Outerloop optimizer initialization
     parameters = RMSPropParameters(learning_rate=0.01, exploration_step_size=0.01,
-                                   n_random_steps=4, momentum_decay=0.5, # TODO n_random_steps=1
+                                   n_random_steps=8+7, momentum_decay=0.5, # TODO n_random_steps=1
                                    n_iteration=100, stop_criterion=np.Inf,
                                    seed=99) # TODO n_inner_params = individuals!
 
@@ -29,9 +35,9 @@ def main():
                                          parameters=parameters,
                                          optimizee_bounding_func=optimizee.bounding_func)
 
-    multi = Multi(optimizer, traj, 4)
+    multi_optimizer = Multi(optimizer, traj, 4)
 
-    experiment.run_experiment(optimizer=multi, optimizee=optimizee,
+    experiment.run_experiment(optimizer=multi_optimizer, optimizee=optimizee,
                               optimizer_parameters=parameters)
 
     experiment.end_experiment(optimizer)

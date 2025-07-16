@@ -5,6 +5,7 @@ import os
 import logging
 import socket
 import time
+import math
 try:
     from mpi4py import MPI
 except ImportError:
@@ -43,9 +44,17 @@ while running:
         running = int(params[2])
         if not running:
             break
-        handle_trajectory = open(f"{trajpath}{generation}.bin", "rb")
-        trajectory = pickle.load(handle_trajectory)
-        handle_trajectory.close()
+        traj_count = 10
+        while traj_count > 0:
+            try:
+                handle_trajectory = open(f"{trajpath}{generation}.bin", "rb")
+                trajectory = pickle.load(handle_trajectory)
+                handle_trajectory.close()
+                traj_count = -1
+            except:
+                time.sleep(2)
+                traj_count -= 1
+                logger.info(f"Trajectory access failed ({traj_count} tries to go)")
         handle_optimizee = open(f"{optimizeepath}", "rb")
         optimizee = pickle.load(handle_optimizee)
         handle_optimizee.close()
@@ -57,12 +66,17 @@ while running:
         res = optimizee.simulate(trajectory)
 
         if (mpi_run and rank == 0) or (not mpi_run):
-            handle_res = open(f"{respath}{generation}_{idx}.bin", "wb")
-            pickle.dump(res, handle_res, pickle.HIGHEST_PROTOCOL)
-            handle_res.close()
-            outputpipe.write(f"0\n".encode('ascii'))
-            outputpipe.flush()
-            logger.info(f"Finished {idx}")
+            if math.isnan(res[0]):
+                outputpipe.write(f"1\n".encode('ascii'))
+                outputpipe.flush()
+                logger.info(f"Failed {idx}")
+            else:
+                handle_res = open(f"{respath}{generation}_{idx}.bin", "wb")
+                pickle.dump(res, handle_res, pickle.HIGHEST_PROTOCOL)
+                handle_res.close()
+                outputpipe.write(f"0\n".encode('ascii'))
+                outputpipe.flush()
+                logger.info(f"Finished {idx}")
         del optimizee
         gc.collect()
     except Exception as e:
@@ -71,9 +85,9 @@ while running:
             logger.info(f"Params received in except: {params}")
         if params == "":
             continue
-        #else:
-        #    sys.stderr.write(b"1")
-        #    sys.stderr.flush()
+        else:
+            sys.stderr.write(b"1")
+            sys.stderr.flush()
 if (mpi_run and rank == 0) or (not mpi_run):
     outputpipe.close()
     inputpipe.close()

@@ -5,43 +5,26 @@ from l2l.optimizees.community_detection import HybridCommunityOptimizee, HybridC
 from l2l.optimizers.evolution import GeneticAlgorithmParameters, GeneticAlgorithmOptimizer
 def run_experiment():
     experiment = Experiment(
-        root_dir_path='../masterarbeit/community')
+        root_dir_path='..')
     
     runner_params = {
         "srun": "",
         "exec": "python3"
     } 
     traj, _ = experiment.prepare_experiment(
-        runner_params=runner_params, name=f"hybrid_ga_karate", overwrite=True, debug=True)
+        runner_params=runner_params, name=f"community_detection_hybrid_ga", overwrite=True, debug=True)
 
-    G = nx.karate_club_graph()
-    A = np.array([
-    [0, 1, 1, 0, 0, 0],
-    [1, 0, 1, 0, 0, 0],
-    [1, 1, 0, 0, 0, 0],
-    [0, 0, 0, 0, 1, 1],
-    [0, 0, 0, 1, 0, 1],
-    [0, 0, 0, 1, 1, 0]
-        ])
+    A = np.genfromtxt(f"connectivity_matrix")
 
+    G = nx.from_numpy_array(A)
 
-
-    # Graph aus der Matrix erzeugen
-    #G = nx.from_numpy_array(A)
-    """A = np.genfromtxt(f"/home/hanna/Documents/Meta-optimization/BrainNetViewer_20191031/Data/ExampleFiles/AAL90/Edge_AAL90_Binary.edge",
-                      delimiter='	')
-    G = nx.from_numpy_array(A)"""
-    A = np.genfromtxt(f"/home/hanna/Downloads/mnorm_H1_left")
-
-    #G = nx.from_numpy_array(A)
-
-    optimizee_parameters = HybridCommunityOptimizeeParameters(APIToken='test', 
+    optimizee_parameters = HybridCommunityOptimizeeParameters(APIToken='wEdq-d95ea6c975496e423e1e52a09aad0389ff90e336', 
                                                             config_path='./dwave', 
-                                                            num_partitions=4.0,
-                                                            one_hot_strength=5.0,
+                                                            num_partitions=5.0,
+                                                            one_hot_strength=2.0,
                                                             Graph = G, 
-                                                            weight = None,
-                                                            result_path='./community/hybrid_ga_karate')
+                                                            weight = 'weight',
+                                                            result_path='path/to/results')
     optimizee = HybridCommunityOptimizee(traj, optimizee_parameters)
 
 
@@ -50,7 +33,7 @@ def run_experiment():
                                                       pop_size=2,
                                                       cx_prob=0.7,
                                                       mut_prob=0.7,
-                                                      n_iteration=20,
+                                                      n_iteration=2,
                                                       ind_prob=0.45,
                                                       tourn_size=4,
                                                       mate_par=0.5,

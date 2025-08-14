@@ -1,59 +1,42 @@
 from l2l.utils.experiment import Experiment
 import networkx as nx
 import numpy as np
-import matplotlib.pyplot as plt
 from l2l.optimizees.community_detection import CommunityOptimizee, CommunityOptimizeeParameters
 from l2l.optimizers.evolution import GeneticAlgorithmParameters, GeneticAlgorithmOptimizer
 def run_experiment():
     experiment = Experiment(
-        root_dir_path='../masterarbeit/community')
+        root_dir_path='..')
     
     runner_params = {
         "srun": "",
         "exec": "python3"
     } 
     traj, _ = experiment.prepare_experiment(
-        runner_params=runner_params, name=f"qpu_ga_max_karate", overwrite=True, debug=True)
+        runner_params=runner_params, name=f"community_detection_ga", debug=True)
 
-    G = nx.karate_club_graph()
-    A = np.array([
-    [0, 1, 1, 0, 0, 0],
-    [1, 0, 1, 0, 0, 0],
-    [1, 1, 0, 0, 0, 0],
-    [0, 0, 0, 0, 1, 1],
-    [0, 0, 0, 1, 0, 1],
-    [0, 0, 0, 1, 1, 0]
-        ])
+    A = np.genfromtxt(f"connectivity_matrix")
 
-    #G = nx.from_numpy_array(A)
-    """A = np.genfromtxt(f"/home/hanna/Documents/Meta-optimization/BrainNetViewer_20191031/Data/ExampleFiles/AAL90/Edge_AAL90_Binary.edge",
-                      delimiter='	')
-    G = nx.from_numpy_array(A)"""
-    A = np.genfromtxt(f"/home/hanna/Documents/data/Whole-cohort_Matrices/stat_matrix_right")
+    G = nx.from_numpy_array(A)
 
-    #G = nx.from_numpy_array(A)
-
-    optimizee_parameters = CommunityOptimizeeParameters(APIToken='test', 
+    optimizee_parameters = CommunityOptimizeeParameters(APIToken='wEdq-d95ea6c975496e423e1e52a09aad0389ff90e336', 
                                                             config_path='./dwave', 
-                                                            num_partitions=5.0,
-                                                            num_reads=100.0,
-                                                            one_hot_strength=2.0,
+                                                            seed = 42,
                                                             Graph = G, 
-                                                            weight = None,
-                                                            result_path='./community/qpu_ga_max_karate')
+                                                            weight = 'weight',
+                                                            result_path='path/to/results')
     optimizee = CommunityOptimizee(traj, optimizee_parameters)
 
 
     # Genetic Algorithm Optimizer
     optimizer_parameters = GeneticAlgorithmParameters(seed=15, 
-                                                      pop_size=5,
+                                                      pop_size=20,
                                                       cx_prob=0.7,
                                                       mut_prob=0.7,
-                                                      n_iteration=20,
+                                                      n_iteration=30,
                                                       ind_prob=0.45,
                                                       tourn_size=4,
                                                       mate_par=0.5,
-                                                      mut_par=2
+                                                      mut_par=3
                                                       )
     optimizer = GeneticAlgorithmOptimizer(traj, 
                                           optimizee_create_individual=optimizee.create_individual,

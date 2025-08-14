@@ -6,7 +6,7 @@ from l2l.optimizees.clustering import HybridClusteringOptimizee, HybridClusterin
 from l2l.optimizers.evolution import GeneticAlgorithmParameters, GeneticAlgorithmOptimizer
 def run_experiment():
     experiment = Experiment(
-        root_dir_path='../masterarbeit/penalty')
+        root_dir_path='..')
     
     runner_params = {
         "srun": "",
@@ -15,7 +15,7 @@ def run_experiment():
     traj, _ = experiment.prepare_experiment(
         runner_params=runner_params, name=f"cluster", overwrite=True, debug=True)
 
-    #scattered_points = [(0, 0), (1, 1), (2, 4), (3, 2)]
+    #scattered_points
     num_clusters = 3
     X, y = make_blobs(n_samples=30, centers=num_clusters, cluster_std=1, random_state=42)
 
@@ -30,7 +30,7 @@ def run_experiment():
                                                          one_hot_strength=100.0,
                                                          points=X, 
                                                          num_clusters=num_clusters, 
-                                                         result_path='./cluster/penalty')
+                                                         result_path='path/to/results')
     optimizee = HybridClusteringOptimizee(traj, optimizee_parameters)
 
 

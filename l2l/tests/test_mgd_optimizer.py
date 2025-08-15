@@ -1,8 +1,11 @@
 import unittest
 
 import numpy as np
-from l2l.optimizers.gradientdescent.optimizer import GradientDescentOptimizer
-from l2l.optimizers.gradientdescent.optimizer import RMSPropParameters
+from l2l.optimizers.multigradientdescent.optimizer import MultiGradientDescentOptimizer
+#from l2l.optimizers.multigradientdescent.optimizer import MultiClassicGDParameters
+#from l2l.optimizers.multigradientdescent.optimizer import MultiStochasticGDParameters
+#from l2l.optimizers.multigradientdescent.optimizer import MultiAdamParameters
+from l2l.optimizers.multigradientdescent.optimizer import MultiRMSPropParameters
 from l2l.tests.test_optimizer import OptimizerTestCase
 from l2l.utils.experiment import Experiment
 
@@ -12,28 +15,36 @@ from l2l import list_to_dict
 class GDOptimizerTestCase(OptimizerTestCase):
 
     def test_gd(self):
-        optimizer_parameters = RMSPropParameters(learning_rate=0.01, exploration_step_size=0.01,
-                                       n_random_steps=1, momentum_decay=0.5,
-                                       n_iteration=1, stop_criterion=np.inf, seed=99)
+        ## Outerloop optimizer initialization
+        #parameters = MultiClassicGDParameters(learning_rate=0.01, exploration_step_size=0.01,
+        #                                n_random_steps=5, n_iteration=100,
+        #                                stop_criterion=np.inf, seed=99, n_inner_params=2)
+        #parameters = MultiAdamParameters(learning_rate=0.01, exploration_step_size=0.01, n_random_steps=5, first_order_decay=0.8,
+        #                            second_order_decay=0.8, n_iteration=100, stop_criterion=np.inf, seed=99, n_inner_params=2)
+        #parameters = MultiStochasticGDParameters(learning_rate=0.01, stochastic_deviation=1, stochastic_decay=0.99,
+        #                                     exploration_step_size=0.01, n_random_steps=5, n_iteration=100,
+        #                                     stop_criterion=np.inf, seed=99, n_inner_params=2)
+        optimizer_parameters = MultiRMSPropParameters(learning_rate=0.01, exploration_step_size=0.01,
+                                    n_random_steps=2, momentum_decay=0.5,
+                                    n_iteration=1, stop_criterion=np.inf, seed=99, n_inner_params=2)
 
-        #test with function generator optimizee
-        optimizer = GradientDescentOptimizer(self.trajectory_functionGenerator,
-                                             optimizee_create_individual=self.optimizee_functionGenerator.create_individual,
-                                             optimizee_fitness_weights=(0.1,),
-                                             parameters=optimizer_parameters,
-                                             optimizee_bounding_func=self.optimizee_functionGenerator.bounding_func)
+        optimizer = MultiGradientDescentOptimizer(self.trajectory_functionGenerator, optimizee_create_individual=self.optimizee_functionGenerator.create_individual,
+                                            optimizee_fitness_weights=(0.1,),
+                                            parameters=optimizer_parameters,
+                                            optimizee_bounding_func=self.optimizee_functionGenerator.bounding_func)
         self.assertIsNotNone(optimizer.parameters)
         self.assertIsNotNone(self.experiment_functionGenerator)
 
 
         try:
+
             self.experiment_functionGenerator.run_experiment(optimizee=self.optimizee_functionGenerator,
                                   optimizee_parameters=self.optimizee_functionGenerator_parameters,
                                   optimizer=optimizer,
                                   optimizer_parameters=optimizer_parameters)
         except Exception as e:
-            self.fail(e.__name__)
-
+            self.fail(str(e))
+        print(self.experiment_functionGenerator.optimizer)
         best = list_to_dict(self.experiment_functionGenerator.optimizer.current_individual.tolist(),
                              self.experiment_functionGenerator.optimizer.optimizee_individual_dict_spec)['coords']
         self.assertEqual(best[0],-4.998856251826551)
@@ -41,7 +52,7 @@ class GDOptimizerTestCase(OptimizerTestCase):
         self.experiment_functionGenerator.end_experiment(optimizer)
 
         #test with active wait opimizee
-        optimizer = GradientDescentOptimizer(self.trajectory_activeWait,
+        optimizer = MultiGradientDescentOptimizer(self.trajectory_activeWait,
                                              optimizee_create_individual=self.optimizee_activeWait.create_individual,
                                              optimizee_fitness_weights=(0.1,),
                                              parameters=optimizer_parameters,
@@ -62,7 +73,7 @@ class GDOptimizerTestCase(OptimizerTestCase):
 
 
 def suite():
-    suite = unittest.TestLoader().loadTestsFromTestCase(GDOptimizerTestCase)
+    suite = unittest.makeSuite(GDOptimizerTestCase, 'test')
     return suite
 
 

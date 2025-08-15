@@ -22,20 +22,25 @@ class OptimizerTestCase(unittest.TestCase):
 
         #set up funtiongenerator optimizee
         self.experiment_functionGenerator = Experiment(root_dir_path=root_dir_path)
-        jube_params = {}
-        self.trajectory_functionGenerator, all_jube_params = self.experiment_functionGenerator.prepare_experiment(name='L2L',
+        self.trajectory_functionGenerator, all_runner_params = self.experiment_functionGenerator.prepare_experiment(name='L2L',
                                                                               log_stdout=True,
-                                                                              jube_parameter=jube_params,
-                                                                              overwrite=True)
+                                                                              overwrite=True,
+                                                                              stop_run=False)
         self.optimizee_functionGenerator_parameters = namedtuple('OptimizeeParameters', [])
         self.optimizee_functionGenerator = FunctionGeneratorOptimizee(
             self.trajectory_functionGenerator, benchmark_function, seed=1)
         
         #set up activeWait optimizee
         self.experiment_activeWait = Experiment(root_dir_path=root_dir_path)
-        self.trajectory_activeWait, all_jube_params = self.experiment_activeWait.prepare_experiment(name='L2L',
+        self.trajectory_activeWait, all_runner_params = self.experiment_activeWait.prepare_experiment(name='L2L',
                                                                               log_stdout=True,
-                                                                              jube_parameter=jube_params,
-                                                                              overwrite=True)
+                                                                              overwrite=True,
+                                                                              stop_run=False)
         self.optimizee_activeWait_parameters = AWOptimizeeParameters(difficulty=10000.0)
         self.optimizee_activeWait = AWOptimizee(self.trajectory_activeWait, self.optimizee_activeWait_parameters)
+
+        self.experiment_stop_error = Experiment(root_dir_path=root_dir_path)
+        self.trajectory_stop_error, all_runner_params = self.experiment_stop_error.prepare_experiment(name='L2L',
+                                                                                   log_stdout=True,
+                                                                                   overwrite=True,
+                                                                                   stop_run=True)

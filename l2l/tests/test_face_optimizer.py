@@ -44,7 +44,7 @@ class FACEOptimizerTestCase(OptimizerTestCase):
         self.assertRaises(Exception, optimizer)
 
 def suite():
-    suite = unittest.makeSuite(FACEOptimizerTestCase, 'test')
+    suite = unittest.TestLoader().loadTestsFromTestCase(FACEOptimizerTestCase)
     return suite
 
 

@@ -184,7 +184,7 @@ class MultiGradientDescentOptimizer(Optimizer):
         self.grouped_params_dict = get_grouped_dict(new_individual_list)
 
         # Storing the fitness of the current individual
-        self.current_fitness = -np.Inf
+        self.current_fitness = -np.inf
         self.g =  traj.individual.generation
         new_individual_list = self.compress_individual(new_individual_list, traj.n_inner_params)
         self.eval_pop = new_individual_list
@@ -259,7 +259,9 @@ class MultiGradientDescentOptimizer(Optimizer):
         fitnesses_results_exp = []
         for (id, elem) in fitnesses_results:
             for ix, e in enumerate(elem):
-                fitnesses_results_exp.append((ix, float(e)))
+                e_array = np.atleast_1d(e)
+                fitnesses_results_exp.append((ix, [val for val in e_array]))
+
         # print('frex', fitnesses_results)
         for i, (run_index, fitness) in enumerate(fitnesses_results_exp):
             # We need to convert the current run index into an ind_idx

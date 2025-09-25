@@ -1,4 +1,5 @@
 import time
+import numpy as np
 from collections import namedtuple
 from l2l.optimizees.optimizee import Optimizee
 
@@ -48,10 +49,18 @@ class AWOptimizee(Optimizee):
                 primes.append(number)
         
         fitness = 0
-        return (fitness,) 
+        return fitness 
     
-
-    
+    def simulate_(self, traj):
+        if(traj.inner_params > 1):
+            fitness = []
+            individuals  = np.array(traj.individual.difficulty)
+            for i in range(traj.inner_params):
+                traj.individual.difficulty = individuals[i]
+                fitness.append(self.simulate(traj))
+            return fitness
+        else:
+            return (self.simulate(traj),)
     
     
 

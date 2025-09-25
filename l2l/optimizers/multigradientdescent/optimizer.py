@@ -134,6 +134,7 @@ class MultiGradientDescentOptimizer(Optimizer):
         traj.f_add_parameter('n_inner_params', parameters.n_inner_params, comment='Number of parameters internally explored per individual')
         traj.f_add_parameter('stop_criterion', parameters.stop_criterion, comment='Stopping criterion parameter')
         traj.f_add_parameter('seed', np.uint32(parameters.seed), comment='Optimizer random seed')
+        traj.inner_params = parameters.n_inner_params
 
         _, self.optimizee_individual_dict_spec = dict_to_list(self.optimizee_create_individual(), get_dict_spec=True)
         self.random_state = np.random.RandomState(seed=traj.par.seed)
@@ -259,8 +260,9 @@ class MultiGradientDescentOptimizer(Optimizer):
         fitnesses_results_exp = []
         for (id, elem) in fitnesses_results:
             for ix, e in enumerate(elem):
-                e_array = np.atleast_1d(e)
-                fitnesses_results_exp.append((ix, [val for val in e_array]))
+                fitnesses_results_exp.append((ix, float(e)))
+                #e_array = np.atleast_1d(e)
+                #fitnesses_results_exp.append((ix, [val for val in e_array]))
 
         # print('frex', fitnesses_results)
         for i, (run_index, fitness) in enumerate(fitnesses_results_exp):

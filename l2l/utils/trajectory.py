@@ -46,6 +46,7 @@ class Trajectory:
         self.is_loaded = False
         self.hall_of_fame = None
         self.retry = 0 #is needed for testing the restart worker
+        self.inner_params = 1 #only set higher for multioptimizer
 
     def f_add_parameter_group(self, name, comment=""):
         """

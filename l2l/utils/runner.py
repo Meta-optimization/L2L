@@ -395,7 +395,7 @@ class Runner():
                 '        logger.info(trajectory.retry)\n' +
                 '        logger.info(len(trajectory.individuals[int(generation)]))\n' +
                 '        trajectory.individual = trajectory.individuals[int(generation)][int(idx)] \n'+
-                '        res = optimizee.simulate(trajectory)\n\n' +
+                '        res = optimizee.simulate_(trajectory)\n\n' +
                 '        handle_res = open("' + respath + '"+ str(generation) + "_" + str(idx) + ".bin", "wb")\n' +
                 '        pickle.dump(res, handle_res, pickle.HIGHEST_PROTOCOL)\n' +
                 '        handle_res.close()\n' + 
@@ -439,6 +439,7 @@ class Runner():
         #tmpgen = trajectory.individuals[trajectory.individual.generation]
         tmptraj = Trajectory()
         tmptraj.retry = trajectory.retry
+        tmptraj.inner_params = trajectory.inner_params
         tmptraj.individual = trajectory.individual
         tmptraj.individuals[trajectory.individual.generation] = trajectory.individuals[trajectory.individual.generation]#tmpgen
         trajfname = "op_trajectory_%s.bin" % (trajectory.individual.generation)

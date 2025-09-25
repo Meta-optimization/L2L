@@ -2,9 +2,6 @@ import unittest
 
 import numpy as np
 from l2l.optimizers.multigradientdescent.optimizer import MultiGradientDescentOptimizer
-#from l2l.optimizers.multigradientdescent.optimizer import MultiClassicGDParameters
-#from l2l.optimizers.multigradientdescent.optimizer import MultiStochasticGDParameters
-#from l2l.optimizers.multigradientdescent.optimizer import MultiAdamParameters
 from l2l.optimizers.multigradientdescent.optimizer import MultiRMSPropParameters
 from l2l.tests.test_optimizer import OptimizerTestCase
 from l2l.utils.experiment import Experiment
@@ -12,44 +9,44 @@ from l2l.utils.experiment import Experiment
 from l2l import list_to_dict
 
 
-class MGDOptimizerTestCase(OptimizerTestCase):
+class MultiOptimizerTestCase(OptimizerTestCase):
 
-    def test_gd(self):
-        ## Outerloop optimizer initialization
+    def test_multi(self):
         optimizer_parameters = MultiRMSPropParameters(learning_rate=0.01, exploration_step_size=0.01,
-                                    n_random_steps=2, momentum_decay=0.5,
-                                    n_iteration=1, stop_criterion=np.inf, seed=99, n_inner_params=2)
+                                       n_random_steps=1, momentum_decay=0.5,
+                                       n_iteration=1, stop_criterion=np.inf, seed=99, n_inner_params = 3)
 
-        """optimizer = MultiGradientDescentOptimizer(self.trajectory_functionGenerator, optimizee_create_individual=self.optimizee_functionGenerator.create_individual,
-                                            optimizee_fitness_weights=(0.1,0.1),
-                                            parameters=optimizer_parameters,
-                                            optimizee_bounding_func=self.optimizee_functionGenerator.bounding_func)
+        #test with function generator optimizee
+        optimizer = MultiGradientDescentOptimizer(self.trajectory_functionGenerator, 
+                                                optimizee_create_individual=self.optimizee_functionGenerator.create_individual,
+                                                optimizee_fitness_weights=(0.1,),
+                                                parameters=optimizer_parameters,
+                                                optimizee_bounding_func=self.optimizee_functionGenerator.bounding_func)
+
         self.assertIsNotNone(optimizer.parameters)
         self.assertIsNotNone(self.experiment_functionGenerator)
 
 
         try:
-
             self.experiment_functionGenerator.run_experiment(optimizee=self.optimizee_functionGenerator,
                                   optimizee_parameters=self.optimizee_functionGenerator_parameters,
                                   optimizer=optimizer,
                                   optimizer_parameters=optimizer_parameters)
         except Exception as e:
-            self.fail(str(e))
-        print(self.experiment_functionGenerator.optimizer)
+            self.fail(e.__name__)
+
         best = list_to_dict(self.experiment_functionGenerator.optimizer.current_individual.tolist(),
                              self.experiment_functionGenerator.optimizer.optimizee_individual_dict_spec)['coords']
         self.assertEqual(best[0],-4.998856251826551)
         self.assertEqual(best[1],-1.9766742736816023)
-        self.experiment_functionGenerator.end_experiment(optimizer)"""
-        
+        self.experiment_functionGenerator.end_experiment(optimizer)
 
-        #test with active wait opimizee
-        optimizer = MultiGradientDescentOptimizer(self.trajectory_activeWait,
-                                             optimizee_create_individual=self.optimizee_activeWait.create_individual,
-                                             optimizee_fitness_weights=(0.1,),
-                                             parameters=optimizer_parameters,
-                                             optimizee_bounding_func=self.optimizee_activeWait.bounding_func)
+        #test with active wait opimizee not finished yet
+        optimizer = MultiGradientDescentOptimizer(self.trajectory_activeWait, 
+                                        optimizee_create_individual=self.optimizee_activeWait.create_individual,
+                                        optimizee_fitness_weights=(0.1,),
+                                        parameters=optimizer_parameters,
+                                        optimizee_bounding_func=self.optimizee_activeWait.bounding_func)
         try:
 
             self.experiment_activeWait.run_experiment(optimizee=self.optimizee_activeWait,
@@ -60,13 +57,13 @@ class MGDOptimizerTestCase(OptimizerTestCase):
             self.fail(Exception.__name__)
 
         best = list_to_dict(self.experiment_activeWait.optimizer.current_individual.tolist(),
-                             self.experiment_activeWait.optimizer.optimizee_individual_dict_spec)['difficulty']
+                            self.experiment_activeWait.optimizer.optimizee_individual_dict_spec)['difficulty']
         self.assertEqual(best, 10000)
         self.experiment_activeWait.end_experiment(optimizer)
 
 
 def suite():
-    suite = unittest.TestLoader().loadTestsFromTestCase(MGDOptimizerTestCase)
+    suite = unittest.TestLoader().loadTestsFromTestCase(MultiOptimizerTestCase)
     return suite
 
 

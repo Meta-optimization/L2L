@@ -48,6 +48,22 @@ class FunctionGeneratorOptimizee(Optimizee):
         :param ~l2l.utils.trajectory.Trajectory traj: Trajectory
         :return: a single element :obj:`tuple` containing the value of the chosen function
         """
-
         individual = np.array(traj.individual.coords)
-        return (self.cost_fn(individual, random_state=self.random_state), )
+        return self.cost_fn(individual, random_state=self.random_state)
+        
+        
+    def simulate_(self, traj):
+        """
+        Returns the fitness value and acts as a wrapper function for the multi-optimizer
+        :param ~l2l.utils.trajectory.Trajectory traj: Trajectory
+        :return: fitness values as a list for multi-optimzer, or single element
+        """
+        if(traj.inner_params > 1):
+            fitness = []
+            individuals  = np.array(traj.individual.coords)
+            for i in range(traj.inner_params):
+                traj.individual.coords = individuals[i]
+                fitness.append(self.simulate(traj))
+            return fitness
+        else:
+            return (self.simulate(traj),)

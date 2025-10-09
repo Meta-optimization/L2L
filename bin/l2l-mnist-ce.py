@@ -9,7 +9,7 @@ from l2l.optimizers.crossentropy.distribution import NoisyGaussian
 def run_experiment():
     name = 'L2L-MNIST-CE'
     experiment = Experiment("../results/")
-    traj, all_jube_params = experiment.prepare_experiment(name=name,
+    traj, runner_params = experiment.prepare_experiment(name=name,
                                                           trajectory_name=name,
                                                           log_stdout=True)
     optimizee_seed = 200

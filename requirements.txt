@@ -3,9 +3,9 @@ scipy
 pyyaml
 sphinx
 sphinxjp.themes.basicstrap
+sphinx-rtd-theme
 jinja2
 gitpython
 scikit-learn
 flake8
 deap
-JUBE @ git+https://github.com/Meta-optimization/JUBE-L2L@master

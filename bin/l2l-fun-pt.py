@@ -9,7 +9,7 @@ from l2l.optimizers.paralleltempering.optimizer import ParallelTemperingParamete
 def main():
     name = 'L2L-FunctionGenerator-PT'
     experiment = Experiment("../results/")
-    traj, all_jube_params = experiment.prepare_experiment(name=name,
+    traj, runner_params = experiment.prepare_experiment(name=name,
                                                           trajectory_name=name,
                                                           log_stdout=True)
 

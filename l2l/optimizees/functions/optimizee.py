@@ -48,6 +48,7 @@ class FunctionGeneratorOptimizee(Optimizee):
         :param ~l2l.utils.trajectory.Trajectory traj: Trajectory
         :return: a single element :obj:`tuple` containing the value of the chosen function
         """
+
         individual = np.array(traj.individual.coords)
         return self.cost_fn(individual, random_state=self.random_state)
         

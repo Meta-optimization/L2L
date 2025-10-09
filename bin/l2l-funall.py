@@ -19,9 +19,9 @@ from l2l.utils.experiment import Experiment
 def main():
     experiment = Experiment(root_dir_path='../results')
     name = 'L2L-FUNALL'
-    jube_params = {}
+    runner_params = {}
     traj, _ = experiment.prepare_experiment(name=name, log_stdout=True,
-                                            jube_parameter=jube_params)
+                                            runner_params=runner_params)
     n_iterations = 100
     seed = 1
 

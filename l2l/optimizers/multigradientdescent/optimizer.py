@@ -1,3 +1,4 @@
+
 import logging
 from collections import namedtuple
 
@@ -77,13 +78,17 @@ class MultiGradientDescentOptimizer(Optimizer):
     hierarchy of parallelization, e.g. in the case of GPUs, where one multi-individual can be defined per GPU and
     several individuals with independent parameter combinations can be deployed within each GPU.
 
+    Class for a generic gradient descent solver.
     In the pseudo code the algorithm does:
+
     For n iterations do:
         - Explore the fitness of individuals in the close vicinity of the current one
         - Calculate the gradient based on these fitnesses.
         - Create the new 'current individual' by taking a step in the parameters space along the direction
             of the largest ascent of the plane
+
     NOTE: This expects all parameters of the system to be of floating point
+
     :param  ~pypet.trajectory.Trajectory traj:
       Use this pypet trajectory to store the parameters of the specific runs. The parameters should be
       initialized based on the values in `parameters`
@@ -129,6 +134,7 @@ class MultiGradientDescentOptimizer(Optimizer):
         traj.f_add_parameter('n_inner_params', parameters.n_inner_params, comment='Number of parameters internally explored per individual')
         traj.f_add_parameter('stop_criterion', parameters.stop_criterion, comment='Stopping criterion parameter')
         traj.f_add_parameter('seed', np.uint32(parameters.seed), comment='Optimizer random seed')
+        traj.inner_params = parameters.n_inner_params
 
         _, self.optimizee_individual_dict_spec = dict_to_list(self.optimizee_create_individual(), get_dict_spec=True)
         self.random_state = np.random.RandomState(seed=traj.par.seed)
@@ -139,6 +145,7 @@ class MultiGradientDescentOptimizer(Optimizer):
         # Attempt with homogeneous distribution of points in space.
         # Multigradient descent starts with a homogeneous distribution of all parameters in space.
         # individual_dicts = self.optimizee_create_individual() # [{delay: a1, coupling: b1}, {delay: a1, coupling: b2},...]
+        # self.current_individual = self.optimizee_create_individual()
 
         self.current_individual = np.array(
             dict_to_list(self.optimizee_create_individual()))  # [one random sample]
@@ -168,13 +175,9 @@ class MultiGradientDescentOptimizer(Optimizer):
                          self.optimizee_individual_dict_spec)
             for i in range((parameters.n_random_steps*traj.n_inner_params)-1)
         ]
-        # In multigradient we create this by hand the first time. Here we should have 1024 parameters / individuals
-        # Attempt with homogeneous distribution of points in space.
-        # new_individual_list = [np.array(dict_to_list(self.optimizee_create_individual(individual_dicts[i]))) for i in individual_dicts] # [[a1,b1],[a1,b2],...]
-        # print(new_individual_list)
 
         # Also add the current individual to determine it's fitness
-        #new_individual_list.append(list_to_dict(self.current_individual, self.optimizee_individual_dict_spec))
+        new_individual_list.append(list_to_dict(self.current_individual, self.optimizee_individual_dict_spec))
             
         if optimizee_bounding_func is not None:
             new_individual_list = [self.optimizee_bounding_func(ind) for ind in new_individual_list]
@@ -182,8 +185,8 @@ class MultiGradientDescentOptimizer(Optimizer):
         self.grouped_params_dict = get_grouped_dict(new_individual_list)
 
         # Storing the fitness of the current individual
-        self.current_fitness = -np.Inf
-        self.g = 0
+        self.current_fitness = -np.inf
+        self.g =  traj.individual.generation
         new_individual_list = self.compress_individual(new_individual_list, traj.n_inner_params)
         self.eval_pop = new_individual_list
         self._expand_trajectory(traj)
@@ -200,18 +203,16 @@ class MultiGradientDescentOptimizer(Optimizer):
         Expands a multi-individual into many individuals, each with their own parameter combination.
         This expansion is necessary in order for the evolutionary algorithm to be applied correctly on the parameter
         space being explored.
-
         :param  c_population: the population of multi-individuals to be expanded
         :param inner_params: a description of the parameters which describe each of the individuals within
         the multi-individual.
-
         """
         individual_exp = [{} for i in range(len(c_population)*inner_params)]
         for ind_id, elem in enumerate(c_population):
             for key in self.grouped_params_dict.keys():
                 parameters = elem[key]
                 for ix, e in enumerate(parameters):
-                    individual_exp[ind_id*inner_params+ix][key] = float(e)
+                    individual_exp[ind_id * inner_params + ix][key] = [float(val) for val in np.atleast_1d(e)]
         return individual_exp
 
     def compress_individual(self, e_population, inner_params):
@@ -219,11 +220,9 @@ class MultiGradientDescentOptimizer(Optimizer):
         Compresses a set of individuals into a set of multi-individuals.
         This is required after the optimization algorithm has been applied in order to return the description
         of the individuals to the way it can be correctly interpreted during execution.
-
         :param  e_population: the population of individuals to be compressed
         :param inner_params: a description of the parameters which describe each of the individuals within
         the multi-individual.
-
         """
         e_population_reform = []
         for s in range(int(len(e_population) / inner_params)):
@@ -240,24 +239,32 @@ class MultiGradientDescentOptimizer(Optimizer):
         """
         See :meth:`~ltl.optimizers.optimizer.Optimizer.post_process`
         """
-        # print('g counter:', self.g)
         old_eval_pop = self.eval_pop.copy()
+        # setting each result of the GPU in the format of L2L original
+        # thus making all individual out of them
         old_eval_pop_expanded = self.expand_individual(old_eval_pop,traj.n_inner_params)
         self.eval_pop.clear()
 
         logger.info("  Evaluating %i individuals" % len(fitnesses_results))
         
-        assert len(fitnesses_results) == traj.n_random_steps
+        #assert len(fitnesses_results) == traj.n_random_steps
 
         # We need to collect the directions of the random steps along with the fitness evaluated there
         fitnesses = np.zeros((traj.n_random_steps*traj.n_inner_params))
-        dx = np.zeros((traj.n_random_steps*traj.n_inner_params, 2))
+
+        dx = np.zeros((traj.n_random_steps*traj.n_inner_params, len(self.current_individual)))
+        # dx = np.zeros((4,2))
+        # dx = np.zeros((len(fitnesses_results), len(traj.individual))))
+        # dx = np.zeros((16, 4))
         weighted_fitness_list = []
         fitnesses_results_exp = []
         for (id, elem) in fitnesses_results:
             for ix, e in enumerate(elem):
                 fitnesses_results_exp.append((ix, float(e)))
-        # print(fitnesses_results_exp)
+                #e_array = np.atleast_1d(e)
+                #fitnesses_results_exp.append((ix, [val for val in e_array]))
+
+        # print('frex', fitnesses_results)
         for i, (run_index, fitness) in enumerate(fitnesses_results_exp):
             # We need to convert the current run index into an ind_idx
             # (index of individual within one generation
@@ -271,35 +278,43 @@ class MultiGradientDescentOptimizer(Optimizer):
             weighted_fitness = np.dot(fitness, self.optimizee_fitness_weights)
             weighted_fitness_list.append(weighted_fitness)
 
-            # The last element of the list is the evaluation of the individual obtained via gradient descent
-            if i == len(fitnesses_results) - 1:
-                self.current_fitness = weighted_fitness
-            else:
-                fitnesses[i] = weighted_fitness
-                dx[i] = np.array(dict_to_list(individual)) - self.current_individual
+            # take best fitness from last iteration
+            indictlist = np.array(dict_to_list(individual))
+            # TODO should current individual be from last generation or best or mean from current? (MV)
+            dx[i] = indictlist - self.current_individual
+
+            fitnesses[i] = weighted_fitness
+
         traj.v_idx = -1  # set the trajectory back to default
 
         # Performs descending arg-sort of weighted fitness
-        fitness_sorting_indices = list(reversed(np.argsort(weighted_fitness_list)))
-        old_eval_pop_as_array = np.array([dict_to_list(x) for x in old_eval_pop])
+        fitness_sorting_indices = list(reversed(np.argsort(weighted_fitness_list, axis=0)))
+        old_eval_pop_as_array = np.array([dict_to_list(x) for x in old_eval_pop_expanded])
+        fitness_sorting_indices = np.array(fitness_sorting_indices).squeeze()
 
-        # Sorting the data according to fitness
-        sorted_population = old_eval_pop_as_array[fitness_sorting_indices]
-        sorted_fitness = np.asarray(weighted_fitness_list)[fitness_sorting_indices]
+        # Sorting the data according to fitness and taking the highest indexed
+        best_index = fitness_sorting_indices[0]
+        best_individual = old_eval_pop_as_array[best_index]
+        avrg_fitness = np.asarray(np.mean(weighted_fitness_list))
+        best_fitness = weighted_fitness_list[best_index]
 
         logger.info("-- End of generation %d --", self.g)
-        logger.info("  Evaluated %d individuals", len(fitnesses_results))
-        logger.info('  Average Fitness: %.4f', np.mean(sorted_fitness))
+        # logger.info("  Evaluated %d individuals", len(fitnesses_results))
+        logger.info("  Evaluated %d individuals", len(traj.individual.params))
+        logger.info('  Average Fitness: %.4f', avrg_fitness)
         logger.info("  Current fitness is %.2f", self.current_fitness)
-        logger.info('  Best Fitness: %.4f', sorted_fitness[0])
-        logger.info("  Best individual is %s", sorted_population[0])
+        logger.info('  Best Fitness: %.4f', best_fitness)
+        logger.info("  Best individual is %s", best_individual)
 
         generation_result_dict = {
             'generation': self.g,
             'current_fitness': self.current_fitness,
-            'best_fitness_in_run': sorted_fitness[0],
-            'average_fitness_in_run': np.mean(sorted_fitness),
+            'best_fitness_in_run': best_fitness,
+            'average_fitness_in_run': avrg_fitness,
         }
+
+        # mv. current fitness is set as the best or mean of this.generation (TODO should it be previous?)
+        self.current_fitness = best_fitness
 
         generation_name = 'generation_{}'.format(self.g)
         traj.results.generation_params.f_add_result_group(generation_name)
@@ -308,7 +323,7 @@ class MultiGradientDescentOptimizer(Optimizer):
 
         logger.info("-- End of iteration {}, current fitness is {} --".format(self.g, self.current_fitness))
 
-        if self.g < traj.n_iteration - 1 and traj.stop_criterion > self.current_fitness:
+        if self.g < traj.n_iteration -1 and traj.stop_criterion > self.current_fitness:
             # Create new individual using the appropriate gradient descent
             self.update_function(traj, np.dot(np.linalg.pinv(dx), fitnesses - self.current_fitness))
             current_individual_dict = list_to_dict(self.current_individual, self.optimizee_individual_dict_spec)
@@ -350,7 +365,9 @@ class MultiGradientDescentOptimizer(Optimizer):
     def init_classic_gd(self, parameters, traj):
         """
         Classic Gradient Descent specific initializiation.
+
         :param ~pypet.trajectory.Trajectory traj: The :mod:'pypet' trajectory on which the parameters should get stored.
+
         :return:
         """
         self.update_function = self.classic_gd_update
@@ -358,7 +375,9 @@ class MultiGradientDescentOptimizer(Optimizer):
     def init_rmsprop(self, parameters, traj):
         """
         RMSProp specific initializiation.
+
         :param ~pypet.trajectory.Trajectory traj: The :mod:'pypet' trajectory on which the parameters should get stored.
+
         :return:
         """
 
@@ -373,7 +392,9 @@ class MultiGradientDescentOptimizer(Optimizer):
     def init_adam(self, parameters, traj):
         """
         ADAM specific initializiation.
+
         :param ~pypet.trajectory.Trajectory traj: The :mod:'pypet' trajectory on which the parameters should get stored.
+
         :return:
         """
 
@@ -391,7 +412,9 @@ class MultiGradientDescentOptimizer(Optimizer):
     def init_stochastic_gd(self, parameters, traj):
         """
         Stochastic Gradient Descent specific initializiation.
+
         :param ~pypet.trajectory.Trajectory traj: The :mod:'pypet' trajectory on which the parameters should get stored.
+
         :return:
         """
 
@@ -404,9 +427,12 @@ class MultiGradientDescentOptimizer(Optimizer):
     def classic_gd_update(self, traj, gradient):
         """
         Updates the current individual using the classic Gradient Descent algorithm.
+
         :param ~pypet.trajectory.Trajectory traj: The :mod:'pypet' trajectory which contains the parameters 
             required by the update algorithm
+
         :param ~numpy.ndarray gradient: The gradient of the fitness curve, evaluated at the current individual
+
         :return:
         """
         self.current_individual += traj.learning_rate * gradient
@@ -414,9 +440,12 @@ class MultiGradientDescentOptimizer(Optimizer):
     def rmsprop_update(self, traj, gradient):
         """
         Updates the current individual using the RMSProp algorithm.
+
         :param ~pypet.trajectory.Trajectory traj: The :mod:'pypet' trajectory which contains the parameters 
             required by the update algorithm
+
         :param ~numpy.ndarray gradient: The gradient of the fitness curve, evaluated at the current individual
+
         :return:
         """
 
@@ -424,13 +453,17 @@ class MultiGradientDescentOptimizer(Optimizer):
                           (1 - traj.momentum_decay) * np.multiply(gradient, gradient))
         self.current_individual += np.multiply(traj.learning_rate / (np.sqrt(self.so_moment + self.delta)),
                                                gradient)
+        # print('ciupdate', self.current_individual)
 
     def adam_update(self, traj, gradient):
         """
         Updates the current individual using the ADAM algorithm.
+
         :param ~pypet.trajectory.Trajectory traj: The :mod:'pypet' trajectory which contains the parameters 
             required by the update algorithm
+
         :param ~numpy.ndarray gradient: The gradient of the fitness curve, evaluated at the current individual
+
         :return:
         """
 
@@ -447,13 +480,15 @@ class MultiGradientDescentOptimizer(Optimizer):
     def stochastic_gd_update(self, traj, gradient):
         """
         Updates the current individual using a stochastic version of the gradient descent algorithm.
+
         :param ~pypet.trajectory.Trajectory traj: The :mod:'pypet' trajectory which contains the parameters 
             required by the update algorithm
+
         :param ~numpy.ndarray gradient: The gradient of the fitness curve, evaluated at the current individual
+
         :return:
         """
 
         gradient += (self.random_state.normal(0.0, traj.stochastic_deviation, self.current_individual.size) * 
                      traj.stochastic_decay**(self.g + 1))
         self.current_individual += traj.learning_rate * gradient
-

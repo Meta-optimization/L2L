@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "l2l"
+version = "1.0.0-beta"
+authors = [
+    { name = "Anand Subramoney" },
+    { name = "Arjun Rao" },
+    { name = "Sandra Diaz-Pier" },
+    { name = "Franz Scherr" },
+    { name = "Darjan Salaj" },
+    { name = "Jakob Jordan" },
+    { name = "Nikolaus Kopp" },
+    { name = "Daniel Hackhofer" },
+    { name = "Sinisa Stekovic" },
+    { name = "Thomas Bohnstingl" }
+]
+license = { text = "GPL-3.0-only" }
+description = "L2L (Learning-to-learn) contains implementations of various gradient free optimization algorithms. It also makes it easy to optimize (hyper-)parameters for any task."
+readme = "README.rst"
+requires-python = ">=3.9"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "numpy",
+    "scipy",
+    "pyyaml",
+    "sphinx",
+    "sphinxjp.themes.basicstrap",
+    "sphinx-rtd-theme",
+    "jinja2",
+    "gitpython",
+    "scikit-learn",
+    "flake8",
+    "deap"
+]
+
+[project.urls]
+Homepage = "https://github.com/Meta-optimization/L2L"

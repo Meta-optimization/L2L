@@ -85,3 +85,8 @@ To run the tests go to the folder `l2l/tests` and execute:
 If the package nosetests is installed run on the top folder (L2L):
 
      nosetests -v --with-coverage --cover-package=l2l/
+
+Contributing to L2L
+*******************
+
+By contributing to this code you confirm that you understand that L2L follows an open development approach and is distributed under a GPL-3.0 license. This means you have also made sure that all your contributed code meets the requirements detailed in the contributing guidelines and does not breach the license of any other library or source of code.

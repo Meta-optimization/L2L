@@ -41,3 +41,11 @@ class Optimizee:
             multi-dimensional fitness function.
 
         """
+
+    def simulate_(self, traj):
+        """
+        This is a wrapper function for the simulate function that enables multi-optimizer functionality for every optimizee. 
+        If the Optimizee does not implement this, the multi-optimizer might not work properly. For an example, look into the 
+        function generator optimizee.
+        """
+        return self.simulate(traj)

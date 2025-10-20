@@ -43,9 +43,22 @@ class Trajectory:
             self.timeout = keyword_args['timeout']
         else:
             self.timeout = False
+        if 'debug' in keyword_args:
+            self.debug = keyword_args['debug']
+        else:
+            self.debug = False
+        if 'stop_run' in keyword_args:
+            self.stop_run = keyword_args['stop_run']
+        else:
+            self.stop_run = True
+        if 'timeout' in keyword_args:
+            self.timeout = keyword_args['timeout']
+        else:
+            self.timeout = False
         self.is_loaded = False
         self.hall_of_fame = None
         self.retry = 0 #is needed for testing the restart worker
+        self.inner_params = 1 #only set higher for multioptimizer
 
     def f_add_parameter_group(self, name, comment=""):
         """

@@ -49,6 +49,7 @@ class SBIOptimizee(Optimizee):
         :return dict: A dictionary containing the names of the parameters and their values
         """
         samples = prior.sample((n,))
+        samples = np.load('/p/home/jusers/todt1/jusuf/delay_check/npe_posterior_samples.npy')
         pop = [dict(zip(labels, sample)) for sample in samples]
         if n == 1:
             return pop[0], prior # TODO okay?

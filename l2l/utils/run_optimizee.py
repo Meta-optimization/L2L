@@ -60,8 +60,8 @@ while running:
         handle_optimizee.close()
 
         logger.info("Trajectory access")
-        logger.info(trajectory.individuals)
-        logger.info(len(trajectory.individuals[int(generation)]))
+        #logger.info(trajectory.individuals)
+        #logger.info(len(trajectory.individuals[int(generation)]))
         trajectory.individual = trajectory.individuals[int(generation)][int(idx)]
         res = optimizee.simulate(trajectory)
 

@@ -7,9 +7,9 @@ import time
 import copy
 import zipfile
 import sys
-
 from l2l.utils.trajectory import Trajectory
 from l2l.utils.individual import Individual
+
 
 logger = logging.getLogger("utils.runner")
 
@@ -78,7 +78,6 @@ class Runner():
         self.n_inds = len(trajectory.individuals[0])
         self.n_workers = min(self.n_inds, args['max_workers'])
 
-
         self.prepare_run_file()
         self.launch_workers()
         logger.info(f"{self.n_inds} workers launched\n")
@@ -95,6 +94,7 @@ class Runner():
         results = []
         for ind in individuals:
             #logger.info(f'ind {ind} {ind.ind_idx}') #TODO
+
             indfname = "results_%s_%s.bin" % (generation, ind.ind_idx)
             handle = open(os.path.join(self.work_paths["results"], indfname), "rb")
             results.append((ind.ind_idx, pickle.load(handle)))
@@ -143,7 +143,7 @@ class Runner():
         if self.srun_command:
             # HPC case with slurm
             log_files ={}
-            run_ind = f"{self.srun_command} --output={self.work_paths['individual_logs']}/out_{idx}.log --error={self.work_paths['individual_logs']}/err_{idx}.log {self.exec_command} {idx} &"
+            run_ind = f"{self.srun_command} --output='{self.work_paths['individual_logs']}/out_{idx}.log' --error='{self.work_paths['individual_logs']}/err_{idx}.log' {self.exec_command} {idx} &"
         else:
             # local case without slurm
             run_ind = f"{self.exec_command} {idx}"
@@ -304,7 +304,6 @@ class Runner():
                     # set worker to idle
                     self.idle_workers[w_id] = self.running_workers.pop(w_id)
 
-
                 #TODO error control of problematic optimizees
                 elif out == "1":
                     if(self.debug):
@@ -320,7 +319,6 @@ class Runner():
                     self.idle_workers[w_id] = self.running_workers.pop(w_id)
                     # restart individual
                     self.restart_individual(gen, ind_idx)
-
 
                 if status_code == None:
                     # Indivdual still running
@@ -407,6 +405,7 @@ class Runner():
         #tmpgen = trajectory.individuals[trajectory.individual.generation]
         tmptraj = Trajectory()
         tmptraj.retry = trajectory.retry
+        tmptraj.inner_params = trajectory.inner_params
         tmptraj.individual = trajectory.individual
         tmptraj.individuals[trajectory.individual.generation] = trajectory.individuals[trajectory.individual.generation]#tmpgen
         trajfname = "op_trajectory_%s.bin" % (trajectory.individual.generation)

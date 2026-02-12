@@ -54,7 +54,7 @@ class Experiment(object):
         :notes
            Default runner parameters are:
             - srun: ""
-            - exec: "python3 + self.paths.simulation_path/run_optimizee.py"
+            - exec: 'python3 + "self.paths.simulation_path/run_optimizee.py"'
             - max_workers: 32
             - work_path: self.paths.root_dir_path,
             - paths_obj: self.paths
@@ -130,7 +130,7 @@ class Experiment(object):
 
         default_runner_params = {
             "srun": "",
-            "exec": "python3 " + os.path.join(self.paths.simulation_path, "run_optimizee.py"),
+            "exec": 'python3 "' + os.path.join(self.paths.simulation_path, "run_optimizee.py") + '"',
             "max_workers": 32,
             "work_path": self.paths.root_dir_path,
             "paths_obj": self.paths,
@@ -147,8 +147,8 @@ class Experiment(object):
         if kwargs.get('runner_params'):
             for k, v in kwargs['runner_params'].items():
                 if k == "exec":
-                    val = v + " " + os.path.join(self.paths.simulation_path,
-                                                 "run_optimizee.py")
+                    val = v + ' "' + os.path.join(self.paths.simulation_path,
+                                                 "run_optimizee.py") + '"'
                     self.traj.f_add_parameter_to_group("runner_params", k, val)
                     all_runner_params[k] = val
                 else:

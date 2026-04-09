@@ -10,7 +10,7 @@ def plot(fn, random_state):
     from matplotlib.ticker import LinearLocator, FormatStrFormatter
 
     fig = plt.figure()
-    ax = fig.gca(projection=Axes3D.name)
+    ax = fig.add_subplot(projection=Axes3D.name)
 
     # Make data.
     X = np.arange(fn.bound[0], fn.bound[1], 0.05)

@@ -1,0 +1,273 @@
+parameters:
+  simulation:
+    simulation_name: {SIMNAME}
+    trial_id: {TRIALID}
+    stages:
+    - awake_training
+    save_all_output: false
+    streamline_losses: true
+    nest_seed: 1204457050
+    numpy_seed: 1713543699
+    n_trials: 1
+    cycle: 1
+    n_step_nrem: 1
+    initial_awake_pause: true
+    nest_print_time: false
+    nest_import_Ca-AdEx_module: true
+    test: classification
+    th_STDP_closure:
+      active: true
+      t_pre: 195
+      t_stim: 5
+      t_post: 100
+  input:
+    dataset_selection:
+      training:
+        type: random
+        balanced: true
+        shuffle: false
+      test:
+        type: random
+        balanced: true
+        shuffle: false
+    dataset_index:
+      training:
+      - 22081
+      - 6425
+      - 14036
+      - 5526
+      - 40828
+      - 3237
+      - 7397
+      - 54158
+      - 56063
+      - 36603
+      - 33841
+      - 53018
+      - 40732
+      - 46467
+      - 59030
+      - 34597
+      - 40070
+      - 49438
+      - 17868
+      - 47509
+      - 43493
+      - 37615
+      - 50162
+      - 6951
+      - 53590
+      - 36155
+      - 7881
+      - 41739
+      - 31274
+      - 53535
+    coding_number: 4
+    hemi_overlap: 0
+    n_fov: 9
+    scale: 64
+    n_class: 10
+    n_ranks_train: 3
+    n_ranks_test: 10
+  awake_training:
+    times:
+      t_pause: 175.0
+      t_img: 25.0
+      t_relaxation: 200.0
+    synapses:
+      conn_params:
+        th:
+          all:
+            fwd:
+              stdp_params:
+                lambda: 0.0417969818275807
+        cx:
+          all:
+            exc_exc:
+              stdp_params:
+                lambda: 0.0176051291314932
+            bwd:
+              stdp_params:
+                lambda: 0.0417969818275807
+          intra:
+            inhf_exc:
+              weight: -0.3300743862429623
+    noise:
+      rates:
+        th:
+          exc: 40000.0
+        cx:
+          exc_1: 1666.0
+          inh:
+            relaxation: 0
+            example: 0.0
+            pause: 0.0
+        ro:
+          exc: 10000.0
+      weights:
+        th:
+          exc: 8
+        cx:
+          exc_1: 2.4
+          inh: 0.0
+        ro:
+          exc: 1.4
+  awake_test:
+    times:
+      t_pause: {TIMEPAUSE}
+      t_img: {TIMEIMG}
+      t_relaxation: 0.0
+    noise:
+      rates:
+        th:
+          exc: 40000.0
+        cx:
+          exc_1: {NOISERATE}
+          inh:
+            relaxation: 0
+            example: 0.0
+            pause: 0.0
+      weights:
+        th:
+          exc: 8
+        cx:
+          exc_1: 2.4
+          inh: 0.0
+        ro:
+          exc: 1.4
+    synapses:
+      conn_params:
+        cx:
+          intra:
+            inhf_exc:
+              weight: -0.3300743862429623
+  default_network:
+    times:
+      t_pause: 400.0
+      t_img: 400.0
+      t_relaxation: 0.0
+    synapses:
+      conn_params:
+        th:
+          intra:
+            exc_inh:
+              stdp: false
+              weight: 0.0
+              delay: 1
+            inh_exc:
+              stdp: false
+              weight: 0.0
+              delay: 1
+            fwd:
+              stdp: true
+              weight: 0
+              delay: 1
+              stdp_params:
+                Wmax: {THWMAX}
+        cx:
+          intra:
+            exc_exc:
+              stdp: true
+              weight:
+                distribution: uniform
+                high: 0.011
+                low: 0.01
+              delay: 1
+              stdp_params:
+                Wmax: {CXWMAX}
+            exc_inhf:
+              stdp: false
+              weight: 7
+              delay: 1
+            inhf_exc:
+              stdp: false
+              weight: {WEIGHTINH}
+              delay: 1
+            inhf_inhf:
+              stdp: false
+              weight: -1.0
+              delay: 1
+            bwd:
+              stdp: true
+              weight: 0
+              delay: 1
+              stdp_params:
+                Wmax: {THWMAX}
+            fwd:
+              stdp: true
+              weight: 0.0001
+              delay: 1
+              stdp_params:
+                Wmax: 154
+    structure:
+      cx:
+        areas: 1
+        lesion: none
+        n_exc_ca: 20
+        n_inh_fast: 45
+        n_inh_slow: 0
+      th:
+        areas: 1
+        n_inh: 200
+    noise:
+      rates:
+        th:
+          exc: 0
+          inh: null
+        cx:
+          exc_1: 0
+          exc_2: null
+          inh:
+            relaxation: 0
+            example: 0
+            pause: 0
+        ro:
+          exc: 10000.0
+          inh: null
+  nrem:
+    name: nrem
+    neuron:
+      cx:
+        exc:
+          b: 200
+          tau_w: 300
+          g_C_d: 0.0
+    times:
+      t_thermalization: 5000.0
+      t_nrem: 10000.0
+      t_relaxation: 0
+    noise:
+      rates:
+        th:
+          exc: 2000.0
+        cx:
+          exc_1: 500.0
+      weights:
+        th:
+          exc: 8
+        cx:
+          exc_1: 15
+    synapses:
+      conn_params:
+        th:
+          intra:
+            fwd:
+              stdp_params:
+                lambda: 0.0005
+                alpha: 1.1
+              modulation:
+                ratio: 1
+        cx:
+          intra:
+            exc_exc:
+              stdp_params:
+                lambda: 0.0005
+                alpha: 1.1
+              modulation:
+                ratio: 1
+            bwd:
+              stdp_params:
+                lambda: 0.005
+                alpha: 1.1
+              modulation:
+                ratio: 10

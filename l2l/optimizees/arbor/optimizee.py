@@ -23,7 +23,7 @@ class ArborOptimizee(Optimizee):
         ...
         """
         samples = prior.sample((n,))
-        pop = [dict(zip(labels, sample)) for sample in samples]
+        pop = [dict(zip(labels, sample.tolist())) for sample in samples]
         if n == 1:
             return pop[0], prior # TODO okay?
         return pop, samples

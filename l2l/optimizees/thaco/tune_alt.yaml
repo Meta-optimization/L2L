@@ -1,0 +1,306 @@
+# Model: `thaco_scirep_3x3_2019`
+
+# Tuning of model parameters contained in complete.yaml file.
+# Changes here overwrite values there.
+# Also notice that some parameters (e.g. the paths)
+# can be further modified through CLI args in `thaco.py` script.
+
+
+parameters:
+  simulation:
+    simulation_name: {SIMNAME}
+    trial_id: {TRIALID}
+    stages: ['awake_training','nrem']
+    save_all_output: False
+    nest_seed: 123456                  # provide integer or empty string
+    numpy_seed: 7890                   # provide integer or empty string
+    n_trials: 1                        # number of independent trials to run
+    cycle: 1                           # number of learning cycles
+    n_step_nrem: 1                     # number of substeps during nrem
+    initial_awake_pause: False         # False: no initial pause, True: yes initial pause
+    nest_print_time: True              # Print time and real time factor during NEST simulation
+    nest_import_Ca-AdEx_module: True   # Import NEST Ca-AdEx module
+    test: 'classification'                  # none: no awake classification stage
+                                       # classification: active awake classification stage
+                                       # retrieval: training set recognition task
+                                       # only: only awake classification stage
+
+    th_STDP_closure:                   # Params for NEST bug curation
+      active: true
+      t_pre: 195
+      t_stim: 5
+      t_post: 100
+
+  input:
+    dataset_selection:
+      training:
+        type: "random"                 #choose in: ["random", "deterministic"]
+        balanced: True                 #choose in: [True, False]
+        shuffle: False
+      test:
+        type: "random"                 #choose in: ["random", "deterministic"]
+        balanced: True                 #choose in: [True, False]
+        shuffle: False
+    dataset_index:
+      training: [
+                 22081,  6425, 14036,         # 0
+                 5526, 40828,  3237,          # 1
+                 7397, 54158, 56063,          # 2
+                 36603, 33841, 53018,         # 3
+                 40732, 46467, 59030,         # 4
+                 34597, 40070, 49438,         # 5
+                 17868, 47509, 43493,         # 6
+                 37615, 50162,  6951,         # 7
+                 53590, 36155,  7881,         # 8
+                 41739, 31274, 53535          # 9
+                 ]
+    coding_number: 4
+    hemi_overlap: 0
+    n_fov: 9                            # 38 if FOVEAL input, 9 if non-FOVEAL input
+    scale: 64
+    n_class: 10                         # number of classes of training set
+    n_ranks_train: 3                    # number of training img per class
+    n_ranks_test: 10
+
+  awake_training:     #to switch of the thalamo cortical loop set the cx --> th connections learning rate to 0
+    times:
+      t_pause: !!float 175   #175
+      t_img: !!float 25   #25
+      t_relaxation: !!float 200
+    synapses:
+      conn_params:
+        th:
+          all:
+            fwd:
+              stdp_params:
+                lambda: 0.04   #0.04
+        cx:
+          all:
+            exc_exc:
+              stdp_params:
+                lambda: 0.16   #0.16
+            bwd:
+              stdp_params:
+                lambda: 0.04   #0.04
+
+    noise:
+      rates:
+        th:
+          exc: !!float 40e3                   # NON LETTO
+        cx:
+          exc_1: !!float 1666   #1666 #quasi perfetto             #++++++++++++
+          inh:
+            relaxation: 0
+            example: !!float 0.0
+            pause: !!float 0
+        ro:
+          exc: 10000.0
+      weights:
+        th:
+          exc: 8
+        cx:
+          exc_1: !!float 2.4
+          inh: 0.0
+        ro:
+          exc: 1.4
+
+  awake_test:
+    times:
+      t_pause: !!float {TIMEPAUSE}   #400
+      t_img: !!float {TIMEIMG}   #400
+      t_relaxation: !!float 0
+    noise:
+      rates:
+        th:
+          exc: !!float 40e3   #30e3
+        cx:
+          exc_1: !!float {NOISERATE}   #332            # Implementato con noise aspecifico
+          inh:
+            relaxation: 0
+            example: !!float 0.0
+            pause: !!float 0
+      weights:
+        th:
+          exc: 8
+        cx:
+          exc_1: !!float 2.4
+          inh: 0.0
+        ro:
+          exc: 1.4
+
+  default_network:
+    times:
+      t_pause: !!float 400   #150
+      t_img: !!float 400   #150
+      t_relaxation: !!float 0
+
+    synapses:
+      conn_params:
+        th:
+          intra:
+            exc_inh:
+              stdp: False
+              weight: 0.0   #4.37
+              delay: 1
+            inh_exc:
+              stdp: False
+              weight: 0.0   #-0.75            ####### da ripristinare??
+              delay: 1
+            fwd:
+              stdp: True
+              weight: 0      #0.01            ####### da ripristinare??
+              delay: 1
+              stdp_params:
+                Wmax: {THWMAX}   #0.7   #0.4   #0.7   #1.0
+        cx:
+          intra:
+            exc_exc:
+              stdp: True
+              weight:
+                distribution: 'uniform'
+                high: 0.011
+                low: 0.01
+              delay: 1
+                #distribution: 'exponential_clipped'
+                #beta: 0.1
+                #low: 1
+                #high: 1.1
+              stdp_params:
+                Wmax: {CXWMAX}   #28.5
+            exc_inhf:
+              stdp: false
+              weight: 7
+              delay: 1
+            inhf_exc:
+              stdp: false
+              weight: {WEIGHTINH}               # DA CONTROLLARE !!
+              delay: 1
+            inhf_inhf:
+              stdp: false
+              weight: -1.0
+              delay: 1
+            bwd:
+              stdp: True
+              weight: 0     #1             ####### da ripristinare??
+              delay: 1
+              stdp_params:
+                Wmax: {THWMAX}   #0.7    #135
+            fwd:
+              stdp: True
+              weight: 0.0001
+              delay: 1
+              stdp_params:
+                Wmax: 154
+
+    structure:
+      cx:
+        areas: 1
+        lesion: none
+        n_exc_ca: 20
+        n_inh_fast: 45                   # Da cambiare ogni volta che aumentano gli eccitatori
+        n_inh_slow: 0
+      th:
+        areas: 1
+        n_inh: 200
+
+    noise:
+      rates:
+        th:
+          exc: 0   #!!float 40e3   #30e3
+          inh: null
+        cx:
+          exc_1: 0   #!!float 2e3
+          exc_2: null
+          inh:
+            relaxation: 0   #!!float 40e3
+            example: 0   #0
+            pause: 0   #!!float 20e3
+        ro:
+          exc: !!float 10e3
+          inh: null
+
+
+
+
+  nrem:
+
+    name: 'nrem'
+
+    neuron:
+      cx:
+        exc:
+          b: 200
+          tau_w: 300
+          g_C_d: 0.
+          #e_L_d: -60.000000000000014
+          #e_L_s: -74.24596493128396
+
+    times:
+      t_thermalization: !!float 5e3   #40e3
+      t_nrem: !!float 10e3   #100e3
+      t_relaxation: 0
+
+    noise:
+      rates:
+        th:
+          exc: !!float 2000
+        cx:
+          exc_1: !!float 500   #180   #680
+
+      weights:
+        th:
+          exc: 8
+        cx:
+          exc_1: 15
+
+    synapses:
+      conn_params:
+        th:
+          intra:
+            fwd:
+              stdp_params:
+                lambda: !!float 0.0005    #2e-06
+                alpha: 1.1
+              modulation:
+                ratio: 1   #1
+        cx:
+          intra:
+            exc_exc:
+              stdp_params:
+                lambda: !!float 0.0005    #2e-06
+                alpha: 1.1
+              modulation:
+                ratio: 1
+            #exc_inhf:
+            #  weight: 3
+            #inhf_exc:
+            #  weight: -3  #-0.7
+            bwd:
+              stdp_params:
+                lambda: !!float 0.005    #2e-06
+                alpha: 1.1
+              modulation:
+                ratio: 10   #1
+
+
+
+#receptor_types =
+#	       {'EXC_SPIKES_SOMA': 1,
+# 	       'INH_SPIKES_SOMA': 2,
+# 	       'EXC_SPIKES_DISTAL': 3,
+# 	       'INH_SPIKES_DISTAL': 4,
+# 	       'SPIKES_AMPA_D': 5,
+# 	       'SPIKES_BETA_D': 6,
+# 	       'SPIKES_AMPA_NMDA_D': 7}
+
+#      training: [22081,  6425, 14036,         # 0
+#                 5526, 40828,  3237,          # 1
+#                 7397, 54158, 56063,          # 2
+#                 36603, 33841, 53018,         # 3
+#                 40732, 46467, 59030,         # 4
+#                 34597, 40070, 49438,         # 5
+#                 17868, 47509, 43493,         # 6
+#                 37615, 50162,  6951,         # 7
+#                 53590, 36155,  7881,         # 8
+#                 41739, 31274, 53535]         # 9
+#                ]

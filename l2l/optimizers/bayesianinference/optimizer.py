@@ -4,7 +4,7 @@ Optimizer for Simulation-based Inference based on the sbi python package
 
 import logging
 
-import sbi
+from sbi.utils import RestrictionEstimator
 import torch
 import numpy as np
 
@@ -110,14 +110,26 @@ class SBIOptimizer(Optimizer):
             ind_dict, self.prior = optimizee_create_individual()
             #_, self.dict_spec = dict_to_list(ind_dict, True)
             if traj.restrict_prior > 0:
-                self.restriction_estimator = sbi.utils.RestrictionEstimator(prior=self.prior)
-            self.inference = traj.inference_method(prior=self.prior, summary_writer=summary_writer)
+                self.restriction_estimator = RestrictionEstimator(prior=self.prior)
+
+            if isinstance(traj.inference_method, type):
+                self.inference = traj.inference_method(prior=self.prior, summary_writer=summary_writer)
+                sample_prior = True
+            else:
+                self.inference = traj.inference_method
+                sample_prior = False
 
             self.g = 0  # the current generation
 
         logger.info('Initializing individuals')
         #samples = self.prior.sample((traj.pop_size,))
-        self.eval_pop, self.samples = self.optimizee_create_individual(traj.pop_size, prior=self.prior)
+        if sample_prior:
+            self.eval_pop, self.samples = self.optimizee_create_individual(traj.pop_size, prior=self.prior)
+        else:
+            logger.info('Using pre-trained inference model to draw samples')
+            self.posterior = self.inference.build_posterior()
+            self.prior = self.posterior.set_default_x(traj.x_obs)
+            self.eval_pop, self.samples = self.optimizee_create_individual(traj.pop_size, prior=self.prior)
         #self.eval_pop = samples
         #self.eval_pop = [list_to_dict(sample, self.dict_spec) for sample in samples]
         print(self.eval_pop)
@@ -219,7 +231,7 @@ class SBIOptimizer(Optimizer):
         # inference method #
         ####################
 
-        self.inference = self.inference.append_simulations(theta[~mask], x[~mask], proposal=self.prior) # TODO lieber alle?
+        self.inference = self.inference.append_simulations(theta[~mask], x[~mask])#, proposal=self.prior) # TODO lieber alle?
         if inference_round:
             logger.info('Running the inference method')
             self.density_estimator = self.inference.train()

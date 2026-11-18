@@ -1,0 +1,83 @@
+model: psp2c
+code_labels:
+- Ca-AdEx
+simulation_name: {SIMNAME}
+trial_id: {TRIALID}
+sp_label: ''
+stages:
+- awake_training
+dataset_path: '/home/todt/Dokumente/ThaCo/ThaCo2c-GPU-L2L/Dataset/PreprocessedData/Scirep2019/mnist_scirep_2019'
+root_sp: '/home/todt/Dokumente/ThaCo/ThaCo2c-GPU-L2L/ModelCatalogue/'
+root_path_code1: '/home/todt/Dokumente/ThaCo/ThaCo2c-GPU-L2L/Output/SimulationOutput/'
+root_path_code2: ''
+output_path: '/home/todt/Dokumente/ThaCo/ThaCo2c-GPU-L2L/Output/Analysis_output'
+early_spikes_multiplier: 2.5
+test_prediction:
+- class
+- first_spike
+optimization_method: class
+accuracy_loss:
+  w_pre: 1.0
+  w_post: 1.0
+rate_loss:
+  training_target_ms: 400
+  classification_target_ms: 200
+raw_mnist_path: /qst0/home1/homedirs/paolucci/github_exec/ThaCo3/Dataset/RawInputData/MNIST/
+streamline_losses: true
+KNN_MPL_baseline: true
+visualize_examples_baselines: false
+mlp_hidden: 256
+mlp_max_iter: 300
+mlp_random_state: 0
+dt_fr_high: 5
+dt_fr_low: 5
+nu_t_low: 1.2
+fs: 1000
+df: 0.25
+noverlap: 0
+make_plots: true
+save_plots: true
+rastergram: true
+spectrogram: false
+accuracy: true
+firing_rate: true
+synapses: true
+delay: false
+verbosity_level: selection
+verbosity:
+  firing_rate_keys:
+    cx:
+    - exc
+    - inhf
+    th:
+    - exc
+    - inh
+    noise_cx: []
+    noise_th: []
+  firing_rate_dyn_keys:
+    cx:
+    - exc
+    - inhf
+    th:
+    - exc
+    - inh
+    noise_cx: []
+    noise_th: []
+  rastergrams_keys:
+    cx:
+    - exc
+    - inhf
+    th:
+    - exc
+    - inh
+    noise_cx: []
+    noise_th: []
+  spectrograms_keys:
+    cx:
+    - exc
+    - inhf
+    th: []
+    noise_cx: []
+    noise_th: []
+  weights_homeo_key: false
+  diff_key: true
